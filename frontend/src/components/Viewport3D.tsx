@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
+import OffsetMarkers from "./OffsetMarkers";
 
 export default function Viewport3D() {
   return (
@@ -16,6 +17,7 @@ export default function Viewport3D() {
       <Suspense fallback={null}>
         <MuJoCoModel />
         <ACMSkeleton />
+        <OffsetMarkers />
       </Suspense>
       <Grid
         args={[10, 10]}
