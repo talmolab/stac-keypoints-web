@@ -11,6 +11,8 @@ from fastapi.responses import JSONResponse
 from backend.mujoco_utils import compute_body_transforms, extract_model_geometry
 from backend.acm_processing import load_acm_trials, load_single_matfile, apply_retargeting
 from backend.alignment import align_acm_to_mujoco
+from backend.config_io import load_stac_yaml, export_stac_yaml, load_stac_output_h5
+from backend.frame_selector import suggest_frames
 
 app = FastAPI(title="STAC Retarget UI")
 
@@ -105,3 +107,42 @@ async def align_endpoint(data: dict):
         mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
     )
     return result
+
+
+@app.post("/api/load-config")
+async def load_config(path: str = Query(...)):
+    """Load STAC YAML config."""
+    try:
+        return load_stac_yaml(path)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.post("/api/export-config")
+async def export_config(data: dict):
+    """Export updated config to YAML."""
+    output_path = data.get("outputPath", "/tmp/stac_config_export.yaml")
+    try:
+        export_stac_yaml(data["config"], output_path)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    return {"path": output_path}
+
+
+@app.post("/api/load-stac-output")
+async def load_stac_output(path: str = Query(...)):
+    """Load STAC output H5 (offsets, qpos)."""
+    try:
+        return load_stac_output_h5(path)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+
+
+@app.post("/api/suggest-frames")
+async def suggest_frames_endpoint(data: dict):
+    """Suggest diverse frames for labeling."""
+    frames = suggest_frames(
+        data["positions"], data["numFrames"], data["numKeypoints"],
+        n_suggestions=data.get("nSuggestions", 8),
+    )
+    return {"frames": frames}
