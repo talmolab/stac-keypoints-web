@@ -3,11 +3,14 @@ from __future__ import annotations
 
 import tempfile
 
+import numpy as np
 from fastapi import FastAPI, File, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.mujoco_utils import compute_body_transforms, extract_model_geometry
+from backend.acm_processing import load_acm_trials, load_single_matfile, apply_retargeting
+from backend.alignment import align_acm_to_mujoco
 
 app = FastAPI(title="STAC Retarget UI")
 
@@ -55,3 +58,50 @@ async def body_transforms(qpos: list[float]):
         return JSONResponse({"error": "No XML loaded"}, status_code=400)
     transforms = compute_body_transforms(_state["xml_path"], qpos)
     return transforms
+
+
+@app.post("/api/load-acm")
+async def load_acm(max_trials: int = Query(5), decimate: int = Query(2)):
+    """Load ACM gap-crossing trials, run FK, return STAC keypoints."""
+    try:
+        result = load_acm_trials(max_trials=max_trials, decimate=decimate)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    return result
+
+
+@app.post("/api/load-matfile")
+async def load_matfile(file: UploadFile = File(None), path: str = Query(None)):
+    """Load a single .mat file."""
+    if path:
+        mat_path = path
+    elif file:
+        tmp = tempfile.NamedTemporaryFile(suffix=".mat", delete=False)
+        content = await file.read()
+        tmp.write(content)
+        tmp.close()
+        mat_path = tmp.name
+    else:
+        return JSONResponse({"error": "Provide file or path"}, status_code=400)
+    try:
+        result = load_single_matfile(mat_path)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    return result
+
+
+@app.post("/api/align")
+async def align_endpoint(data: dict):
+    """Align ACM keypoints to MuJoCo pose via Procrustes."""
+    positions = np.array(data["positions"]).reshape(
+        data["numFrames"], data["numKeypoints"], 3
+    )
+    result = align_acm_to_mujoco(
+        positions,
+        data["keypointNames"],
+        data["xmlPath"],
+        data["keypointModelPairs"],
+        scale_factor=data.get("scaleFactor", 0.9),
+        mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
+    )
+    return result
