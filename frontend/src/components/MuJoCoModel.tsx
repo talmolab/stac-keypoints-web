@@ -9,6 +9,13 @@ export default function MuJoCoModel() {
   const bodyTransforms = useStore((s) => s.bodyTransforms);
   const bodyRefs = useRef<Map<number, THREE.Group>>(new Map());
 
+  const mode = useStore((s) => s.mode);
+  const selectedKp = useStore((s) => s.selectedKeypoint);
+  const addMapping = useStore((s) => s.addMapping);
+  const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
+  const storeBodyNames = useStore((s) => s.bodyNames);
+  const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
+
   // Group geoms by bodyId
   const bodyGroups = useMemo(() => {
     if (geoms.length === 0) return [];
@@ -44,6 +51,19 @@ export default function MuJoCoModel() {
           ref={(ref: THREE.Group | null) => {
             if (ref) bodyRefs.current.set(bodyId, ref);
           }}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (mode === "mapping" && selectedKp) {
+              const bodyName = storeBodyNames[bodyId] || "";
+              addMapping(selectedKp, bodyName);
+              setSelectedKp(null);
+            }
+          }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            if (mode === "mapping" && selectedKp) setHoveredBody(bodyId);
+          }}
+          onPointerOut={() => setHoveredBody(null)}
         >
           {bodyGeoms.map((geom, i) => {
             const geometry = buildGeomGeometry(geom);
@@ -57,6 +77,8 @@ export default function MuJoCoModel() {
                   opacity={geom.color[3]}
                   transparent={geom.color[3] < 1}
                   roughness={0.7}
+                  emissive={hoveredBody === bodyId && mode === "mapping" && selectedKp ? "#444400" : "#000000"}
+                  emissiveIntensity={hoveredBody === bodyId ? 0.5 : 0}
                 />
               </mesh>
             );
