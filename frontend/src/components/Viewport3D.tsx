@@ -2,6 +2,7 @@ import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
+import ACMSkeleton from "./ACMSkeleton";
 
 export default function Viewport3D() {
   return (
@@ -14,6 +15,7 @@ export default function Viewport3D() {
       <directionalLight position={[-3, 3, -3]} intensity={0.3} />
       <Suspense fallback={null}>
         <MuJoCoModel />
+        <ACMSkeleton />
       </Suspense>
       <Grid
         args={[10, 10]}
