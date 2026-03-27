@@ -13,6 +13,7 @@ from backend.acm_processing import load_acm_trials, load_single_matfile, apply_r
 from backend.alignment import align_acm_to_mujoco
 from backend.config_io import load_stac_yaml, export_stac_yaml, load_stac_output_h5
 from backend.frame_selector import suggest_frames
+from backend.stac_runner import run_quick_stac
 
 app = FastAPI(title="STAC Retarget UI")
 
@@ -146,3 +147,25 @@ async def suggest_frames_endpoint(data: dict):
         n_suggestions=data.get("nSuggestions", 8),
     )
     return {"frames": frames}
+
+
+@app.post("/api/run-quick-stac")
+async def run_quick_stac_endpoint(data: dict):
+    """Run Quick STAC on labeled frames."""
+    frame_indices = data.get("frameIndices", list(range(min(4, data.get("numFrames", 0)))))
+    try:
+        result = run_quick_stac(
+            kp_positions_flat=data["positions"],
+            num_frames=data["numFrames"],
+            num_keypoints=data["numKeypoints"],
+            kp_names=data["keypointNames"],
+            xml_path=data["xmlPath"],
+            frame_indices=frame_indices,
+            offsets=data.get("offsets"),
+            mappings=data.get("mappings"),
+            scale_factor=data.get("scaleFactor", 0.9),
+            mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    return result
