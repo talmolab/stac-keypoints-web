@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "uvicorn backend.app:app --reload --host 0.0.0.0 --port 8000",
+    "install:frontend": "cd frontend && npm install"
+  }
+}
