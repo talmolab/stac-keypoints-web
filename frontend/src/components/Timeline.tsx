@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useStore } from "../store";
+import * as api from "../api";
 
 export default function Timeline() {
   const currentFrame = useStore((s) => s.currentFrame);
@@ -9,6 +10,8 @@ export default function Timeline() {
   const setCurrentFrame = useStore((s) => s.setCurrentFrame);
   const togglePlay = useStore((s) => s.togglePlay);
   const labelCurrentFrame = useStore((s) => s.labelCurrentFrame);
+  const acmPositions = useStore((s) => s.acmPositions);
+  const acmNumKeypoints = useStore((s) => s.acmNumKeypoints);
 
   const animRef = useRef<number>(0);
   useEffect(() => {
@@ -26,6 +29,24 @@ export default function Timeline() {
     animRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(animRef.current);
   }, [isPlaying, numFrames, setCurrentFrame]);
+
+  const handleSuggestFrames = async () => {
+    if (!acmPositions || numFrames === 0) return;
+    const result = await api.suggestFrames({
+      positions: Array.from(acmPositions),
+      numFrames: numFrames,
+      numKeypoints: acmNumKeypoints,
+      nSuggestions: 8,
+    });
+    if (result.frames) {
+      for (const f of result.frames) {
+        setCurrentFrame(f);
+        labelCurrentFrame();
+      }
+      setCurrentFrame(result.frames[0]);
+      alert("Suggested " + result.frames.length + " diverse frames");
+    }
+  };
 
   if (numFrames === 0) {
     return (
@@ -62,6 +83,7 @@ export default function Timeline() {
           {currentFrame} / {numFrames - 1}
         </span>
         <button onClick={labelCurrentFrame} style={btnStyle}>Label Frame</button>
+        <button onClick={handleSuggestFrames} style={btnStyle}>Suggest Frames</button>
       </div>
       <div style={{ display: "flex", gap: 1, alignItems: "center", overflow: "hidden" }}>
         {dots}

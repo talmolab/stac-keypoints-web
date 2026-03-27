@@ -102,6 +102,39 @@ export default function Toolbar() {
     alert("Loaded " + data.kpNames.length + " learned offsets from STAC output");
   }, []);
 
+  const handleRunStac = useCallback(async () => {
+    const state = useStore.getState();
+    if (!state.acmPositions || !state.xmlPath) {
+      alert("Load XML and ACM data first."); return;
+    }
+    const labeledFrames = Array.from(state.labeledFrames);
+    if (labeledFrames.length === 0) {
+      alert("Label at least one frame first."); return;
+    }
+    const pairs: Record<string, string> = {};
+    for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
+    const offsetMap: Record<string, [number, number, number]> = {};
+    for (const o of state.offsets) offsetMap[o.keypointName] = [o.x, o.y, o.z];
+
+    const positions = state.alignedPositions ?? state.acmPositions;
+    const result = await api.runQuickStac({
+      positions: Array.from(positions),
+      numFrames: state.acmNumFrames,
+      numKeypoints: state.acmNumKeypoints,
+      keypointNames: state.acmKeypointNames,
+      xmlPath: state.xmlPath,
+      frameIndices: labeledFrames,
+      mappings: pairs,
+      offsets: offsetMap,
+      scaleFactor: state.scaleFactor,
+      mocapScaleFactor: state.mocapScaleFactor,
+    });
+    if (result.error) { alert(result.error); return; }
+    state.setStacResults(result.qpos);
+    alert("Quick STAC done on " + result.qpos.length + " frames. Mean error: " +
+      (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1) + "mm");
+  }, []);
+
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
@@ -109,6 +142,7 @@ export default function Toolbar() {
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
       <button style={btnStyle} onClick={handleAlign}>Align</button>
       <button style={btnStyle} onClick={handleLoadStacOutput}>Load STAC H5</button>
+      <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunStac}>Run STAC</button>
       <button style={btnStyle} onClick={handleExport}>Export</button>
     </>
   );
