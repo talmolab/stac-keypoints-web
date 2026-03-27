@@ -1,5 +1,7 @@
 import React from "react";
 import Viewport3D from "./components/Viewport3D";
+import Timeline from "./components/Timeline";
+import MappingTable from "./components/MappingTable";
 
 export default function App() {
   return (
@@ -12,14 +14,14 @@ export default function App() {
           <Viewport3D />
         </div>
         <div style={{ width: 240, borderLeft: "1px solid #333", padding: 12, color: "#ccc", background: "#16213e" }}>
-          Mapping Table
+          <MappingTable />
         </div>
         <div style={{ width: 280, borderLeft: "1px solid #333", padding: 12, color: "#ccc", background: "#16213e" }}>
           Properties
         </div>
       </div>
       <div style={{ height: 64, background: "#1a1a2e", borderTop: "1px solid #333", display: "flex", alignItems: "center", padding: "0 16px", color: "#888" }}>
-        Timeline
+        <Timeline />
       </div>
     </div>
   );
