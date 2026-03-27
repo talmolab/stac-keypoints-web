@@ -3,12 +3,14 @@ import Viewport3D from "./components/Viewport3D";
 import Timeline from "./components/Timeline";
 import MappingTable from "./components/MappingTable";
 import PropertiesPanel from "./components/PropertiesPanel";
+import Toolbar from "./components/Toolbar";
 
 export default function App() {
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ height: 48, background: "#1a1a2e", display: "flex", alignItems: "center", padding: "0 16px", color: "#fff", gap: 12 }}>
         <span style={{ fontWeight: 600, fontSize: 16 }}>STAC Retarget UI</span>
+        <Toolbar />
       </div>
       <div style={{ flex: 1, display: "flex" }}>
         <div style={{ flex: 3 }}>
