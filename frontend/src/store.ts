@@ -69,6 +69,7 @@ interface AppState {
   // Segment scales (skeleton editor)
   segmentScales: Record<string, number>;
   adjustedPositions: Float32Array | null;
+  hoveredSegment: string | null; // "parent→child" key
 
   // IK status message (inline, replaces alert popups)
   ikStatus: string | null;
@@ -103,6 +104,8 @@ interface AppState {
   setModelScale: (scale: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
+  resetSegmentScales: () => void;
+  setHoveredSegment: (key: string | null) => void;
   setAutoIk: (enabled: boolean) => void;
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setIkStatus: (status: string | null) => void;
@@ -148,14 +151,15 @@ export const useStore = create<AppState>((set) => ({
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
-  showGlobalControls: true,
+  showGlobalControls: false,
   segmentScales: {},
   adjustedPositions: null,
+  hoveredSegment: null,
   ikStatus: null,
-  autoIk: false,
+  autoIk: true,
   hoveredName: null,
   hoveredPosition: null,
-  followCamera: false,
+  followCamera: true,
   setFollowCamera: (follow) => set({ followCamera: follow }),
 
   setXmlData: (data) => set({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath }),
@@ -208,6 +212,8 @@ export const useStore = create<AppState>((set) => ({
     );
     return { segmentScales: newScales, adjustedPositions: adjusted };
   }),
+  resetSegmentScales: () => set({ segmentScales: {}, adjustedPositions: null }),
+  setHoveredSegment: (key) => set({ hoveredSegment: key }),
   setAutoIk: (enabled) => set({ autoIk: enabled }),
   setHover: (name, position) => set({ hoveredName: name, hoveredPosition: position || null }),
   setIkStatus: (status) => set({ ikStatus: status }),

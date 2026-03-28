@@ -8,6 +8,7 @@ export default function MappingTable() {
   const addMapping = useStore((s) => s.addMapping);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const bodyNames = useStore((s) => s.bodyNames);
+  const hoveredSegment = useStore((s) => s.hoveredSegment);
   const acmKeypointNames = useStore((s) => s.acmKeypointNames);
   const mode = useStore((s) => s.mode);
 
@@ -171,12 +172,19 @@ export default function MappingTable() {
         {mappings.length === 0 ? (
           <div style={{ color: "#555", fontSize: 12 }}>No mappings yet</div>
         ) : (
-          mappings.map((m) => (
+          mappings.map((m) => {
+            // Highlight if this keypoint is part of the hovered skeleton segment
+            const isSegmentHighlighted = hoveredSegment
+              ? hoveredSegment.includes(m.keypointName)
+              : false;
+            return (
             <div key={m.keypointName} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: "4px 4px", borderBottom: "1px solid #2a2a4a", fontSize: 12,
               cursor: "pointer",
-              background: selectedKp === m.keypointName ? "#2a2a3a" : "transparent",
+              background: selectedKp === m.keypointName ? "#2a2a3a"
+                : isSegmentHighlighted ? "#2a3a2a" : "transparent",
+              borderLeft: isSegmentHighlighted ? "3px solid #88ff88" : "3px solid transparent",
             }}
               onClick={() => {
                 // Click a mapping row to select that keypoint for reassignment
@@ -192,7 +200,8 @@ export default function MappingTable() {
                 background: "none", border: "none", color: "#ff4444", cursor: "pointer", fontSize: 14,
               }}>x</button>
             </div>
-          ))
+            );
+          })
         )}
       </div>
       <div style={{ marginTop: 8, fontSize: 11, color: "#555" }}>{mappings.length} / {acmKeypointNames.length || 21} mapped</div>

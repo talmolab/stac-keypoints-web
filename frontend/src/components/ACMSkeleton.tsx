@@ -2,6 +2,7 @@ import React, { useMemo, useCallback } from "react";
 import * as THREE from "three";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
+import { segmentKey } from "../skeletonEditor";
 
 const KP_COLORS: Record<string, string> = {
   // Spine (orange/yellow)
@@ -25,6 +26,7 @@ export default function ACMSkeleton() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const setHover = useStore((s) => s.setHover);
+  const hoveredSegment = useStore((s) => s.hoveredSegment);
 
   const framePositions = useMemo(() => {
     if (!positions || numKp === 0) return null;
@@ -51,14 +53,30 @@ export default function ACMSkeleton() {
   const nameToIdx: Record<string, number> = {};
   kpNames.forEach((n, i) => { nameToIdx[n] = i; });
 
-  const bonePoints: number[] = [];
+  // Build set of keypoint names involved in hovered segment
+  const highlightedKps = new Set<string>();
+  if (hoveredSegment) {
+    const parts = hoveredSegment.split("\u2192");
+    if (parts.length === 2) {
+      highlightedKps.add(parts[0].trim());
+      highlightedKps.add(parts[1].trim());
+    }
+  }
+
+  // Build bone lines — highlighted segment gets a different color
+  const normalBonePoints: number[] = [];
+  const highlightBonePoints: number[] = [];
   for (const bone of bones) {
     const pi = nameToIdx[bone.parent];
     const ci = nameToIdx[bone.child];
-    if (pi !== undefined && ci !== undefined) {
-      const p = framePositions[pi];
-      const c = framePositions[ci];
-      bonePoints.push(p.x, p.y, p.z, c.x, c.y, c.z);
+    if (pi === undefined || ci === undefined) continue;
+    const p = framePositions[pi];
+    const c = framePositions[ci];
+    const key = segmentKey(bone.parent, bone.child);
+    if (key === hoveredSegment) {
+      highlightBonePoints.push(p.x, p.y, p.z, c.x, c.y, c.z);
+    } else {
+      normalBonePoints.push(p.x, p.y, p.z, c.x, c.y, c.z);
     }
   }
 
@@ -67,8 +85,9 @@ export default function ACMSkeleton() {
       {kpNames.map((name, i) => {
         const pos = framePositions[i];
         const isSelected = selectedKp === name;
-        const color = isSelected ? "#ffff00" : KP_COLORS[name] || "#888888";
-        const size = isSelected ? 0.005 : 0.003;
+        const isHighlighted = highlightedKps.has(name);
+        const color = isSelected ? "#ffff00" : isHighlighted ? "#ffffff" : KP_COLORS[name] || "#888888";
+        const size = isSelected ? 0.005 : isHighlighted ? 0.005 : 0.003;
         return (
           <mesh
             key={name}
@@ -83,12 +102,22 @@ export default function ACMSkeleton() {
           </mesh>
         );
       })}
-      {bonePoints.length > 0 && (
-        <lineSegments>
+      {/* Normal bone lines */}
+      {normalBonePoints.length > 0 && (
+        <lineSegments renderOrder={10}>
           <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[new Float32Array(bonePoints), 3]} />
+            <bufferAttribute attach="attributes-position" args={[new Float32Array(normalBonePoints), 3]} />
           </bufferGeometry>
-          <lineBasicMaterial color="#999999" />
+          <lineBasicMaterial color="#999999" depthTest={false} />
+        </lineSegments>
+      )}
+      {/* Highlighted bone line */}
+      {highlightBonePoints.length > 0 && (
+        <lineSegments renderOrder={12}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[new Float32Array(highlightBonePoints), 3]} />
+          </bufferGeometry>
+          <lineBasicMaterial color="#ffffff" depthTest={false} />
         </lineSegments>
       )}
     </group>

@@ -36,16 +36,16 @@ export function useAutoIk() {
     // Clear any pending timer
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    // Debounce: wait 400ms after last change before running IK
+    // Debounce: 150ms for snappy feedback
     timerRef.current = setTimeout(async () => {
       if (runningRef.current) return; // skip if already running
       runningRef.current = true;
       const state = useStore.getState();
-      state.setIkStatus("Auto IK running...");
-      // Use fewer iterations for live feedback (50 = fast, ~0.5s per frame)
-      await runIk([state.currentFrame], 50);
+      state.setIkStatus("Auto IK...");
+      // 25 iterations for live feedback (~0.2s per frame)
+      await runIk([state.currentFrame], 25);
       runningRef.current = false;
-    }, 400);
+    }, 150);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

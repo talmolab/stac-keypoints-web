@@ -20,6 +20,8 @@ export default function PropertiesPanel() {
   const setShowGlobalControls = useStore((s) => s.setShowGlobalControls);
   const segmentScales = useStore((s) => s.segmentScales);
   const setSegmentScale = useStore((s) => s.setSegmentScale);
+  const resetSegmentScales = useStore((s) => s.resetSegmentScales);
+  const setHoveredSegment = useStore((s) => s.setHoveredSegment);
   const followCamera = useStore((s) => s.followCamera);
   const setFollowCamera = useStore((s) => s.setFollowCamera);
   const autoIk = useStore((s) => s.autoIk);
@@ -109,16 +111,30 @@ export default function PropertiesPanel() {
 
       {/* Skeleton Editor */}
       <div>
-        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Skeleton Editor</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+          <h3 style={{ margin: 0, fontSize: 14, color: "#aaa" }}>Skeleton Editor</h3>
+          <button
+            onClick={resetSegmentScales}
+            style={{ ...btnStyle, padding: "2px 8px", fontSize: 10 }}
+          >
+            Reset
+          </button>
+        </div>
         <div style={{ fontSize: 11, color: "#77aaff", marginBottom: 6 }}>
           Adjust segment lengths. Downstream keypoints propagate.
         </div>
         {RETARGET_TREE.filter((b) => SPINE_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
           const key = segmentKey(bone.parent, bone.child);
           const value = segmentScales[key] ?? 1.0;
+          const isModified = Math.abs(value - 1.0) > 0.01;
           return (
-            <div key={key} style={{ marginBottom: 4 }}>
-              <label style={{ fontSize: 11, color: "#888" }}>
+            <div
+              key={key}
+              style={{ marginBottom: 4, padding: "2px 4px", borderRadius: 3, background: "transparent" }}
+              onMouseEnter={() => setHoveredSegment(key)}
+              onMouseLeave={() => setHoveredSegment(null)}
+            >
+              <label style={{ fontSize: 11, color: isModified ? "#ffaa00" : "#888" }}>
                 {bone.parent} {"\u2192"} {bone.child}: {value.toFixed(2)}x
               </label>
               <input type="range" min={0.3} max={2.0} step={0.01}
