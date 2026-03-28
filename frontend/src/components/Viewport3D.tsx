@@ -1,10 +1,8 @@
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+import { OrbitControls, Grid } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
-import OffsetMarkers from "./OffsetMarkers";
-import OffsetGizmo from "./OffsetGizmo";
 import ModelGizmo from "./ModelGizmo";
 
 export default function Viewport3D() {
@@ -19,10 +17,18 @@ export default function Viewport3D() {
       <Suspense fallback={null}>
         <MuJoCoModel />
         <ACMSkeleton />
-        <OffsetMarkers />
-        <OffsetGizmo />
         <ModelGizmo />
       </Suspense>
+      <Grid
+        args={[2, 2]}
+        cellSize={0.05}
+        sectionSize={0.25}
+        fadeDistance={3}
+        cellColor="#333344"
+        sectionColor="#444466"
+        position={[0, 0, 0]}
+        infiniteGrid
+      />
       <OrbitControls makeDefault />
     </Canvas>
   );

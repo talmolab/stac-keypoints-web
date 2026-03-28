@@ -3,6 +3,8 @@ import * as THREE from "three";
 import { useStore } from "../store";
 import { mjToThree, mjQuatToThree, buildGeomGeometry } from "../mujocoLoader";
 import type { GeomData } from "../types";
+import OffsetMarkers from "./OffsetMarkers";
+import OffsetGizmo from "./OffsetGizmo";
 
 export default function MuJoCoModel() {
   const geoms = useStore((s) => s.geoms);
@@ -122,6 +124,8 @@ export default function MuJoCoModel() {
                 })}
               </group>
             ))}
+            <OffsetMarkers />
+            <OffsetGizmo />
           </group>
         </group>
       </group>
