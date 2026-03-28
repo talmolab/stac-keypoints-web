@@ -4,6 +4,7 @@ import { OrbitControls, Grid } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import OffsetMarkers from "./OffsetMarkers";
+import OffsetGizmo from "./OffsetGizmo";
 
 export default function Viewport3D() {
   return (
@@ -18,6 +19,7 @@ export default function Viewport3D() {
         <MuJoCoModel />
         <ACMSkeleton />
         <OffsetMarkers />
+        <OffsetGizmo />
       </Suspense>
       <Grid
         args={[10, 10]}

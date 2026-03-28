@@ -12,6 +12,7 @@ export default function MuJoCoModel() {
   const mode = useStore((s) => s.mode);
   const selectedKp = useStore((s) => s.selectedKeypoint);
   const addMapping = useStore((s) => s.addMapping);
+  const updateOffset = useStore((s) => s.updateOffset);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const storeBodyNames = useStore((s) => s.bodyNames);
   const modelRotationY = useStore((s) => s.modelRotationY);
@@ -57,6 +58,21 @@ export default function MuJoCoModel() {
             if (mode === "mapping" && selectedKp) {
               const bodyName = storeBodyNames[bodyId] || "";
               addMapping(selectedKp, bodyName);
+
+              // Capture click offset from body origin
+              if (e.point && bodyTransforms[bodyId]) {
+                const pt = e.point;
+                // Three.js (x, y, z) -> MuJoCo (x, -z, y)
+                const clickMj = [pt.x, -pt.z, pt.y];
+                const bodyMj = bodyTransforms[bodyId].position;
+                updateOffset(
+                  selectedKp,
+                  clickMj[0] - bodyMj[0],
+                  clickMj[1] - bodyMj[1],
+                  clickMj[2] - bodyMj[2]
+                );
+              }
+
               setSelectedKp(null);
             }
           }}

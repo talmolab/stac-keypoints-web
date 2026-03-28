@@ -1,4 +1,8 @@
-"""Quick STAC runner for subset of frames."""
+"""Quick STAC runner for subset of frames.
+
+Uses Procrustes alignment for root pose, then Jacobian transpose IK to solve
+joint angles so the model posture matches the target keypoints.
+"""
 from __future__ import annotations
 
 import numpy as np
@@ -19,6 +23,109 @@ def _rotation_matrix_to_quat(R: np.ndarray) -> np.ndarray:
     return np.array([q[3], q[0], q[1], q[2]])  # MuJoCo wants (w, x, y, z)
 
 
+def _jacobian_ik(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    target_positions: np.ndarray,
+    kp_names: list[str],
+    kp_body_map: dict[str, str],
+    offsets: dict[str, list[float]] | None = None,
+    max_iter: int = 200,
+    step: float = 0.5,
+    damping: float = 0.01,
+) -> np.ndarray:
+    """Jacobian transpose IK to solve joint angles.
+
+    Keeps root position/orientation fixed (set externally via Procrustes)
+    and only updates joint DOFs (qpos[7:]).
+
+    Parameters
+    ----------
+    model : MjModel
+    data : MjData with root qpos already set.
+    target_positions : (num_keypoints, 3) target world positions in meters.
+    kp_names : keypoint names in target_positions order.
+    kp_body_map : keypoint name -> MuJoCo body name.
+    offsets : keypoint name -> [x, y, z] offset from body origin.
+    max_iter : max Jacobian iterations.
+    step : gradient step size.
+    damping : regularisation for gradient norm.
+
+    Returns
+    -------
+    qpos copy after IK.
+    """
+    nq = model.nq
+
+    # Resolve body IDs and active keypoint indices once
+    active: list[tuple[int, int, np.ndarray]] = []  # (kp_idx, body_id, offset)
+    for kp_name, body_name in kp_body_map.items():
+        if kp_name not in kp_names:
+            continue
+        body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
+        if body_id < 0:
+            continue
+        kp_idx = kp_names.index(kp_name)
+        off = np.array(offsets[kp_name]) if offsets and kp_name in offsets else np.zeros(3)
+        active.append((kp_idx, body_id, off))
+
+    if not active:
+        mujoco.mj_forward(model, data)
+        return data.qpos.copy()
+
+    best_qpos = data.qpos.copy()
+    best_error = float("inf")
+
+    for iteration in range(max_iter):
+        mujoco.mj_forward(model, data)
+
+        total_error = 0.0
+        grad = np.zeros(nq)
+
+        for kp_idx, body_id, off in active:
+            target = target_positions[kp_idx]
+            current = data.xpos[body_id] + off
+            error = target - current
+            total_error += np.linalg.norm(error)
+
+            # Positional Jacobian for this body
+            jacp = np.zeros((3, nq))
+            mujoco.mj_jacBody(model, data, jacp, None, body_id)
+
+            # Accumulate gradient: J^T @ error
+            grad += jacp.T @ error
+
+        # Track best solution
+        if total_error < best_error:
+            best_error = total_error
+            best_qpos[:] = data.qpos
+
+        # Convergence check (mean per-keypoint error < 1mm)
+        if total_error / len(active) < 0.001:
+            break
+
+        # Only update joint DOFs (skip root position [0:3] and quaternion [3:7])
+        joint_grad = grad[7:]
+        grad_norm = np.linalg.norm(joint_grad)
+        if grad_norm > 1e-10:
+            data.qpos[7:] += step * joint_grad / (grad_norm + damping)
+
+        # Clamp to joint limits
+        for i in range(model.njnt):
+            if model.jnt_limited[i]:
+                addr = model.jnt_qposadr[i]
+                if addr < 7:
+                    continue  # skip root
+                lo = model.jnt_range[i, 0]
+                hi = model.jnt_range[i, 1]
+                data.qpos[addr] = np.clip(data.qpos[addr], lo, hi)
+
+    # Use best solution found
+    data.qpos[:] = best_qpos
+    mujoco.mj_forward(model, data)
+    return data.qpos.copy()
+
+
 def run_quick_stac(
     kp_positions_flat: list[float],
     num_frames: int,
@@ -31,13 +138,14 @@ def run_quick_stac(
     scale_factor: float = 0.9,
     mocap_scale_factor: float = 0.01,
 ) -> dict:
-    """Run simplified IK on a subset of frames and return qpos + body transforms.
+    """Run IK on a subset of frames and return qpos + body transforms.
 
     For each frame:
     1. Find trunk keypoints in both ACM and MuJoCo spaces
     2. Procrustes align MuJoCo trunk to ACM trunk to get root R, t
     3. Set qpos root position/quaternion accordingly
-    4. Run mj_forward to get body transforms
+    4. Run Jacobian transpose IK to solve joint angles
+    5. Collect body transforms
     """
     positions = np.array(kp_positions_flat).reshape(num_frames, num_keypoints, 3)
 
@@ -83,6 +191,8 @@ def run_quick_stac(
     all_errors = []
     all_body_transforms = []
 
+    prev_qpos = None
+
     for frame_idx in frame_indices:
         if frame_idx >= num_frames:
             continue
@@ -90,8 +200,11 @@ def run_quick_stac(
         # Target positions for this frame (cm -> meters)
         target_m = positions[frame_idx] * mocap_scale_factor
 
-        # Reset to default pose
-        mujoco.mj_resetData(model, data)
+        # Reset to default pose or use previous frame for temporal coherence
+        if prev_qpos is not None:
+            data.qpos[:] = prev_qpos
+        else:
+            mujoco.mj_resetData(model, data)
 
         if mj_trunk_arr is not None and len(trunk_kps_available) >= 3:
             # Get ACM trunk keypoint positions for this frame
@@ -120,7 +233,16 @@ def run_quick_stac(
             data.qpos[2] = mean_target[2]
             data.qpos[3] = 1.0  # quaternion w
 
+        # Run Jacobian IK to solve joint angles
+        if mappings:
+            solved_qpos = _jacobian_ik(
+                model, data, target_m, kp_names, mappings,
+                offsets=offsets, max_iter=200, step=0.5, damping=0.01,
+            )
+            data.qpos[:] = solved_qpos
         mujoco.mj_forward(model, data)
+
+        prev_qpos = data.qpos.copy()
 
         # Compute error: mean distance from model bodies to target keypoints
         if mappings:
@@ -131,7 +253,7 @@ def run_quick_stac(
                 kp_idx = kp_names.index(kp_name)
                 body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
                 if body_id >= 0:
-                    body_pos = data.xpos[body_id] * scale_factor
+                    body_pos = data.xpos[body_id]
                     offset = np.zeros(3)
                     if offsets and kp_name in offsets:
                         offset = np.array(offsets[kp_name])

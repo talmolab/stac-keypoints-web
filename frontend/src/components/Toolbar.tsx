@@ -102,14 +102,10 @@ export default function Toolbar() {
     alert("Loaded " + data.kpNames.length + " learned offsets from STAC output");
   }, []);
 
-  const handleRunStac = useCallback(async () => {
+  const runStacOnFrames = useCallback(async (frameIndices: number[]) => {
     const state = useStore.getState();
     if (!state.acmPositions || !state.xmlPath) {
       alert("Load XML and ACM data first."); return;
-    }
-    const labeledFrames = Array.from(state.labeledFrames);
-    if (labeledFrames.length === 0) {
-      alert("Label at least one frame first."); return;
     }
     const pairs: Record<string, string> = {};
     for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
@@ -123,7 +119,7 @@ export default function Toolbar() {
       numKeypoints: state.acmNumKeypoints,
       keypointNames: state.acmKeypointNames,
       xmlPath: state.xmlPath,
-      frameIndices: labeledFrames,
+      frameIndices,
       mappings: pairs,
       offsets: offsetMap,
       scaleFactor: state.scaleFactor,
@@ -136,7 +132,6 @@ export default function Toolbar() {
     if (result.bodyTransforms && result.bodyTransforms.length > 0) {
       setBodyTransforms(result.bodyTransforms[0]);
     } else if (result.qpos.length > 0) {
-      // Fallback: compute body transforms from the first qpos via the API
       const transforms = await api.bodyTransforms(result.qpos[0]);
       setBodyTransforms(transforms);
     }
@@ -144,6 +139,18 @@ export default function Toolbar() {
     alert("Quick STAC done on " + result.qpos.length + " frames. Mean error: " +
       (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1) + "mm");
   }, [setBodyTransforms]);
+
+  const handleRunStac = useCallback(async () => {
+    const state = useStore.getState();
+    const labeledFrames = Array.from(state.labeledFrames);
+    const frames = labeledFrames.length > 0 ? labeledFrames : [state.currentFrame];
+    await runStacOnFrames(frames);
+  }, [runStacOnFrames]);
+
+  const handleRunStacFrame = useCallback(async () => {
+    const state = useStore.getState();
+    await runStacOnFrames([state.currentFrame]);
+  }, [runStacOnFrames]);
 
   return (
     <>
@@ -153,6 +160,7 @@ export default function Toolbar() {
       <button style={btnStyle} onClick={handleAlign}>Align</button>
       <button style={btnStyle} onClick={handleLoadStacOutput}>Load STAC H5</button>
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunStac}>Run STAC</button>
+      <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunStacFrame}>STAC Frame</button>
       <button style={btnStyle} onClick={handleExport}>Export</button>
     </>
   );
