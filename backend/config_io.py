@@ -45,6 +45,12 @@ def export_stac_yaml(config: dict, output_path: str) -> None:
             "KEYPOINT_INITIAL_OFFSETS": offsets_str,
         },
     }
+    # Include segment scales if any are non-default
+    segment_scales = config.get("segmentScales", {})
+    if segment_scales:
+        non_default = {k: v for k, v in segment_scales.items() if abs(v - 1.0) > 0.001}
+        if non_default:
+            yaml_dict["skeleton_editor"] = {"segment_scales": non_default}
     with open(output_path, "w") as f:
         yaml.dump(yaml_dict, f, default_flow_style=False, sort_keys=False)
 

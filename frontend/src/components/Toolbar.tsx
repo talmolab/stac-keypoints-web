@@ -83,6 +83,7 @@ export default function Toolbar() {
       mocapScaleFactor: state.mocapScaleFactor,
       xmlPath: state.xmlPath || "",
       kpNames: state.acmKeypointNames,
+      segmentScales: state.segmentScales,
     };
     const path = prompt("Export config to:", "/tmp/stac_retarget_config.yaml");
     if (!path) return;

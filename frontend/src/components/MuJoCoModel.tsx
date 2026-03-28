@@ -24,8 +24,8 @@ export default function MuJoCoModel() {
   const mappings = useStore((s) => s.mappings);
   const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
 
-  // In offset mode, make bodies semi-transparent so keypoints are visible
-  const isOffsetMode = mode === "offset";
+  // Make bodies semi-transparent in both mapping and offset modes so keypoints are always visible
+  const isTransparentMode = mode === "offset" || mode === "mapping";
 
   const bodyGroups = useMemo(() => {
     if (geoms.length === 0) return [];
@@ -114,7 +114,7 @@ export default function MuJoCoModel() {
                     const localQuat = mjQuatToThree(geom.quaternion as [number, number, number, number]);
                     // Semi-transparent in offset mode
                     const baseOpacity = geom.color[3];
-                    const opacity = isOffsetMode ? Math.min(baseOpacity, 0.3) : baseOpacity;
+                    const opacity = isTransparentMode ? Math.min(baseOpacity, 0.3) : baseOpacity;
 
                     const isHighlighted = (() => {
                       // Highlight if hovered in mapping mode
@@ -133,7 +133,7 @@ export default function MuJoCoModel() {
                           color={new THREE.Color(geom.color[0], geom.color[1], geom.color[2])}
                           opacity={opacity}
                           transparent={true}
-                          depthWrite={!isOffsetMode}
+                          depthWrite={!isTransparentMode}
                           roughness={0.7}
                           emissive={isHighlighted === "hover" ? "#444400" : isHighlighted === "selected" ? "#004400" : "#000000"}
                           emissiveIntensity={isHighlighted ? 0.6 : 0}

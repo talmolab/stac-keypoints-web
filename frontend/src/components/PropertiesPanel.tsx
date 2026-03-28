@@ -30,8 +30,34 @@ export default function PropertiesPanel() {
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
 
+  const [showGuide, setShowGuide] = React.useState(true);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%", overflow: "auto" }}>
+      {/* Workflow Guide */}
+      <div>
+        <h3
+          style={{ margin: "0 0 4px", fontSize: 14, color: "#aaa", cursor: "pointer", userSelect: "none" }}
+          onClick={() => setShowGuide(!showGuide)}
+        >
+          {showGuide ? "▾" : "▸"} Workflow Guide
+        </h3>
+        {showGuide && (
+          <div style={{ fontSize: 11, color: "#999", lineHeight: 1.6, padding: "4px 0" }}>
+            <div style={{ color: "#ffcc00", fontWeight: 600, marginBottom: 2 }}>Step 1: Skeleton Editor</div>
+            <div>Adjust ACM spine proportions to match the MuJoCo model. Shorten <code>SpineL→SpineM</code> and <code>SpineM→SpineF</code> (typically ~0.6x).</div>
+            <div style={{ color: "#ffcc00", fontWeight: 600, marginTop: 6, marginBottom: 2 }}>Step 2: Mapping (press 1)</div>
+            <div>Verify each <span style={{ color: "#ffaa00" }}>ACM keypoint</span> is assigned to the correct <span style={{ color: "#66bbff" }}>MuJoCo body</span>. Click a keypoint → click a body or pick from the list.</div>
+            <div style={{ color: "#ffcc00", fontWeight: 600, marginTop: 6, marginBottom: 2 }}>Step 3: Offsets (press 2)</div>
+            <div>Drag <span style={{ color: "#00ff88" }}>green offset markers</span> (on the MuJoCo model) to align with the stationary <span style={{ color: "#ffaa00" }}>ACM keypoints</span>. IK auto-runs to show the result.</div>
+            <div style={{ color: "#ffcc00", fontWeight: 600, marginTop: 6, marginBottom: 2 }}>Step 4: Validate</div>
+            <div>Click <b>IK Sequence</b> to run IK on all frames. Scrub the timeline and use Follow Rodent to evaluate. Iterate steps 1-3 as needed.</div>
+            <div style={{ color: "#ffcc00", fontWeight: 600, marginTop: 6, marginBottom: 2 }}>Step 5: Export</div>
+            <div>Click <b>Export</b> to save the config (mappings, offsets, segment scales) for use with the STAC pipeline.</div>
+          </div>
+        )}
+      </div>
+
       {/* Mode toggle */}
       <div>
         <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Mode</h3>

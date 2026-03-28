@@ -65,7 +65,7 @@ export function CameraKeyboardControls() {
 
     // Orbit rotation (Q/E) -- rotate around target
     if (keysPressed.has("KeyQ") || keysPressed.has("KeyE")) {
-      const angle = keysPressed.has("KeyQ") ? ROTATE_SPEED : -ROTATE_SPEED;
+      const angle = keysPressed.has("KeyE") ? ROTATE_SPEED : -ROTATE_SPEED;
       const offset = camera.position.clone().sub(orbitControls.target);
       offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
       camera.position.copy(orbitControls.target).add(offset);
