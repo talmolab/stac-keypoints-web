@@ -20,6 +20,8 @@ export default function PropertiesPanel() {
   const setShowGlobalControls = useStore((s) => s.setShowGlobalControls);
   const segmentScales = useStore((s) => s.segmentScales);
   const setSegmentScale = useStore((s) => s.setSegmentScale);
+  const followCamera = useStore((s) => s.followCamera);
+  const setFollowCamera = useStore((s) => s.setFollowCamera);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -52,6 +54,12 @@ export default function PropertiesPanel() {
           </div>
         )}
       </div>
+
+      {/* Follow camera toggle */}
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer" }}>
+        <input type="checkbox" checked={followCamera} onChange={(e) => setFollowCamera(e.target.checked)} />
+        Follow Rodent
+      </label>
 
       {/* Selected keypoint info */}
       {selectedKp && (
@@ -114,6 +122,21 @@ export default function PropertiesPanel() {
           );
         })}
       </div>
+
+      {/* Keyboard shortcuts reference */}
+      <details style={{ fontSize: 11, color: "#666", marginTop: 8 }}>
+        <summary style={{ cursor: "pointer", color: "#888", fontSize: 12 }}>Shortcuts</summary>
+        <pre style={{ margin: "4px 0 0", lineHeight: 1.6, whiteSpace: "pre", fontFamily: "monospace" }}>
+{`Space     Play/Pause
+\u2190 \u2192       Prev/Next frame (Shift: \u00b110)
+WASD      Pan camera
+QE        Orbit camera
+RF        Camera up/down
+1/2       Mapping/Offset mode
+L         Label frame
+Esc       Deselect`}
+        </pre>
+      </details>
 
       {/* Model transform controls */}
       <div style={{ marginTop: "auto" }}>

@@ -77,6 +77,10 @@ interface AppState {
   hoveredName: string | null;
   hoveredPosition: [number, number, number] | null;
 
+  // Follow camera
+  followCamera: boolean;
+  setFollowCamera: (follow: boolean) => void;
+
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: number[]; numFrames: number; numKeypoints: number }) => void;
@@ -146,6 +150,8 @@ export const useStore = create<AppState>((set) => ({
   ikStatus: null,
   hoveredName: null,
   hoveredPosition: null,
+  followCamera: false,
+  setFollowCamera: (follow) => set({ followCamera: follow }),
 
   setXmlData: (data) => set({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath }),
   setAcmData: (data) => set({

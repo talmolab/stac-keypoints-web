@@ -1,10 +1,12 @@
-import React, { Suspense, useState, useCallback } from "react";
+import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, Html } from "@react-three/drei";
+import { OrbitControls, Grid } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import ModelGizmo from "./ModelGizmo";
 import HoverTooltip from "./HoverTooltip";
+import FollowCamera from "./FollowCamera";
+import { CameraKeyboardControls } from "../hooks/useCameraControls";
 import { useStore } from "../store";
 
 export default function Viewport3D() {
@@ -34,6 +36,8 @@ export default function Viewport3D() {
         infiniteGrid
       />
       <OrbitControls makeDefault />
+      <CameraKeyboardControls />
+      <FollowCamera />
     </Canvas>
   );
 }
