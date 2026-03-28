@@ -5,6 +5,7 @@ import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import OffsetMarkers from "./OffsetMarkers";
 import OffsetGizmo from "./OffsetGizmo";
+import ModelGizmo from "./ModelGizmo";
 
 export default function Viewport3D() {
   return (
@@ -20,12 +21,8 @@ export default function Viewport3D() {
         <ACMSkeleton />
         <OffsetMarkers />
         <OffsetGizmo />
+        <ModelGizmo />
       </Suspense>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
-        <planeGeometry args={[2, 2]} />
-        <meshStandardMaterial color="#8b7355" roughness={0.9} metalness={0.0} />
-      </mesh>
-      <gridHelper args={[2, 20, "#666655", "#555544"]} position={[0, 0, 0]} />
       <OrbitControls makeDefault />
     </Canvas>
   );
