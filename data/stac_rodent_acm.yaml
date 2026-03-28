@@ -1,0 +1,229 @@
+# STAC-MJX configuration for Monsees ACM → MuJoCo rodent registration.
+# 21 keypoints (STAC rodent minus EarL/EarR which ACM lacks).
+# Loaded by stac_integration.py, NOT by Hydra.
+
+model:
+  MJCF_PATH: /home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml
+
+  FTOL: 1.0e-04
+  ROOT_FTOL: 1.0e-05
+  LIMB_FTOL: 1.0e-06
+
+  N_ITERS: 6
+  N_ITER_Q: 400
+  N_ITER_M: 2000
+
+  # Ordered keypoint names (must match order of kp_data columns)
+  KP_NAMES:
+    - Snout
+    - SpineF
+    - SpineM
+    - SpineL
+    - TailBase
+    - ShoulderL
+    - ElbowL
+    - WristL
+    - HandL
+    - ShoulderR
+    - ElbowR
+    - WristR
+    - HandR
+    - HipL
+    - KneeL
+    - AnkleL
+    - FootL
+    - HipR
+    - KneeR
+    - AnkleR
+    - FootR
+
+  # ACM keypoint → MuJoCo body mapping
+  # ACM joints are ARTICULATION CENTERS (where bones meet).
+  # In MuJoCo, joints are defined on CHILD bodies, so the child body
+  # origin IS the articulation center. Map ACM joints to child bodies.
+  # CRITICAL: Order MUST match KP_NAMES exactly.
+  KEYPOINT_MODEL_PAIRS:
+    Snout: skull                  # keep on skull so it constrains head pose; offset -> atlas
+    SpineF: vertebra_cervical_5  # anterior spine (OK as-is)
+    SpineM: torso                # mid spine — torso sits on flat plane with pelvis/cervical_5; vertebra_1 was 17mm above, causing nose-down pitch
+    SpineL: pelvis               # posterior spine (OK as-is)
+    TailBase: vertebra_C1        # tail base = first caudal vertebra
+    ShoulderL: upper_arm_L       # shoulder = glenohumeral joint = humerus head
+    ElbowL: lower_arm_L          # elbow = radius/ulna origin
+    WristL: hand_L               # wrist = hand origin
+    HandL: finger_L              # finger joint = finger origin
+    ShoulderR: upper_arm_R
+    ElbowR: lower_arm_R
+    WristR: hand_R
+    HandR: finger_R
+    HipL: upper_leg_L            # hip = femur head
+    KneeL: lower_leg_L           # knee = tibia origin
+    AnkleL: foot_L               # ankle = foot origin
+    FootL: toe_L                 # paw = toe origin
+    HipR: upper_leg_R
+    KneeR: lower_leg_R
+    AnkleR: foot_R
+    FootR: toe_R
+
+  # Initial body-local offsets in meters.
+  # All zero — STAC will learn offsets from the new (correct) body mapping.
+  # Previous offsets were for wrong bodies (parent instead of child).
+  KEYPOINT_INITIAL_OFFSETS:
+    Snout: -0.026 0. -0.002  # offset from skull center toward atlas junction
+    SpineF: 0. 0. -0.012     # ACM joint is ~12mm below MuJoCo body origin (internal vs dorsal)
+    SpineM: 0. 0. 0.         # torso body is well-aligned after remapping
+    SpineL: 0. 0. -0.017     # ACM pelvis joint is ~17mm below MuJoCo pelvis body origin
+    TailBase: 0. 0. 0.
+    ShoulderL: 0. 0. 0.
+    ShoulderR: 0. 0. 0.
+    ElbowL: 0. 0. 0.
+    ElbowR: 0. 0. 0.
+    WristL: 0. 0. 0.
+    WristR: 0. 0. 0.
+    HandL: 0. 0. 0.
+    HandR: 0. 0. 0.
+    HipL: 0. 0. 0.
+    HipR: 0. 0. 0.
+    KneeL: 0. 0. 0.
+    KneeR: 0. 0. 0.
+    AnkleL: 0. 0. 0.
+    AnkleR: 0. 0. 0.
+    FootL: 0. 0. 0.
+    FootR: 0. 0. 0.
+
+  ROOT_OPTIMIZATION_KEYPOINT: SpineL
+
+  TRUNK_OPTIMIZATION_KEYPOINTS:
+    - SpineF
+    - SpineL
+    - SpineM
+    - HipL
+    - HipR
+    - ShoulderL
+    - ShoulderR
+    - TailBase
+
+  INDIVIDUAL_PART_OPTIMIZATION:
+    r_leg:
+      - vertebra_1
+      - vertebra_2
+      - vertebra_3
+      - vertebra_4
+      - vertebra_5
+      - vertebra_6
+      - hip_R
+      - knee_R
+      - ankle_R
+      - foot_R
+    l_leg:
+      - vertebra_1
+      - vertebra_2
+      - vertebra_3
+      - vertebra_4
+      - vertebra_5
+      - vertebra_6
+      - hip_L
+      - knee_L
+      - ankle_L
+      - foot_L
+    r_arm:
+      - scapula_R
+      - shoulder_R
+      - elbow_R
+      - hand_R
+      - finger_R
+    l_arm:
+      - scapula_L
+      - shoulder_L
+      - elbow_L
+      - hand_L
+      - finger_L
+    head:
+      - atlas
+      - cervical
+      - atlant_extend
+
+  KEYPOINT_COLOR_PAIRS:
+    Snout: 0.8 0.8 0.8 1
+    SpineF: 0.8 0.8 0.8 1
+    SpineM: 0.8 0.8 0.8 1
+    SpineL: 0.8 0.8 0.8 1
+    TailBase: 0.8 0.8 0.8 1
+    ShoulderL: 0 0 0.8 1
+    ShoulderR: 0.8 0 0 1
+    ElbowL: 0 0 0.8 1
+    ElbowR: 0.8 0 0 1
+    WristL: 0 0 0.8 1
+    WristR: 0.8 0 0 1
+    HandL: 0 0 0.8 1
+    HandR: 0.8 0 0 1
+    HipL: 0 0 0.3 1
+    HipR: 0.3 0 0 1
+    KneeL: 0 0 0.3 1
+    KneeR: 0.3 0 0 1
+    AnkleL: 0 0 0.3 1
+    AnkleR: 0.3 0 0 1
+    FootL: 0 0 0.3 1
+    FootR: 0.3 0 0 1
+
+  SCALE_FACTOR: 0.9
+  MOCAP_SCALE_FACTOR: 0.01  # ACM data is in centimeters; 0.01 converts cm to meters
+
+  SITES_TO_REGULARIZE:
+    - SpineL
+    - SpineM
+    - SpineF
+    - Snout
+
+  RENDER_FPS: 50
+  N_SAMPLE_FRAMES: 100
+  M_REG_COEF: 2  # Stronger regularization to preserve spine Z-offsets
+
+stac:
+  fit_offsets_path: monsees_fit_offsets.h5
+  ik_only_path: monsees_ik_only.h5
+  data_path: ""  # Not used (we pass data directly)
+  num_clips: 0   # Computed at runtime
+  n_fit_frames: 600
+  n_frames_per_clip: 100  # 100Hz source / 2 decimate = 50Hz, 2s trial = 100 frames
+  skip_fit_offsets: false
+  skip_ik_only: false
+  infer_qvels: true
+  continuous: false
+  mujoco:
+    solver: cg
+    iterations: 1
+    ls_iterations: 4
+    dt: 0.002
+
+# ACM-specific metadata (not consumed by STAC, used by our pipeline)
+acm:
+  source_frame_rate: 100  # Hz (matches video fps, NOT 200)
+  target_frame_rate: 50
+  decimate_factor: 2  # 100Hz -> 50Hz
+  # Z-axis scale (1.0 = no scaling). Previously 2.5 when we thought
+  # ACM was in board units. Now that we know it's in cm, no Z-scale needed.
+  z_scale: 1.0
+  # ACM joint name → STAC keypoint name mapping
+  joint_to_stac:
+    joint_head_001: Snout
+    joint_spine_005: SpineF
+    joint_spine_003: SpineM
+    joint_spine_001: SpineL
+    joint_tail_005: TailBase
+    joint_shoulder_left: ShoulderL
+    joint_shoulder_right: ShoulderR
+    joint_elbow_left: ElbowL
+    joint_elbow_right: ElbowR
+    joint_wrist_left: WristL
+    joint_wrist_right: WristR
+    joint_finger_left_002: HandL
+    joint_finger_right_002: HandR
+    joint_hip_left: HipL
+    joint_hip_right: HipR
+    joint_knee_left: KneeL
+    joint_knee_right: KneeR
+    joint_ankle_left: AnkleL
+    joint_ankle_right: AnkleR
+    joint_paw_hind_left: FootL
+    joint_paw_hind_right: FootR
