@@ -28,6 +28,8 @@ export default function PropertiesPanel() {
   const setAutoIk = useStore((s) => s.setAutoIk);
   const modelOpacity = useStore((s) => s.modelOpacity);
   const setModelOpacity = useStore((s) => s.setModelOpacity);
+  const showErrorLines = useStore((s) => s.showErrorLines);
+  const setShowErrorLines = useStore((s) => s.setShowErrorLines);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -96,6 +98,10 @@ export default function PropertiesPanel() {
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: autoIk ? "#8f8" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={autoIk} onChange={(e) => setAutoIk(e.target.checked)} />
           Auto IK <span style={{ fontSize: 10, color: "#666" }}>(live on changes)</span>
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showErrorLines ? "#ff8844" : "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={showErrorLines} onChange={(e) => setShowErrorLines(e.target.checked)} />
+          Show Error Lines <span style={{ fontSize: 10, color: "#666" }}>(mapping quality)</span>
         </label>
         <div style={{ marginTop: 4 }}>
           <label style={{ fontSize: 11, color: "#888" }}>

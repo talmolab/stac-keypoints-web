@@ -70,6 +70,9 @@ interface AppState {
   // Global controls visibility
   showGlobalControls: boolean;
 
+  // Error visualization toggle
+  showErrorLines: boolean;
+
   // Segment scales (skeleton editor)
   segmentScales: Record<string, number>;
   adjustedPositions: Float32Array | null;
@@ -108,6 +111,7 @@ interface AppState {
   setModelScale: (scale: number) => void;
   setModelOpacity: (opacity: number) => void;
   setShowGlobalControls: (show: boolean) => void;
+  setShowErrorLines: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
   resetSegmentScales: () => void;
   setHoveredSegment: (key: string | null) => void;
@@ -158,6 +162,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   modelScale: 1.0,
   modelOpacity: 0.5,
   showGlobalControls: false,
+  showErrorLines: false,
   segmentScales: {},
   adjustedPositions: null,
   hoveredSegment: null,
@@ -207,6 +212,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   setModelScale: (scale) => set({ modelScale: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
+  setShowErrorLines: (show) => set({ showErrorLines: show }),
   setSegmentScale: (key, value) => set((state) => {
     const newScales = { ...state.segmentScales, [key]: value };
     const source = state.alignedPositions ?? state.acmPositions;
@@ -253,6 +259,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     modelOpacity: state.modelOpacity,
     // Preferences
     showGlobalControls: state.showGlobalControls,
+    showErrorLines: state.showErrorLines,
     autoIk: state.autoIk,
     followCamera: state.followCamera,
     mode: state.mode,

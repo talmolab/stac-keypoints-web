@@ -5,6 +5,7 @@ import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import ModelGizmo from "./ModelGizmo";
 import HoverTooltip from "./HoverTooltip";
+import ErrorLines from "./ErrorLines";
 import FollowCamera from "./FollowCamera";
 import { CameraKeyboardControls } from "../hooks/useCameraControls";
 import { useStore } from "../store";
@@ -24,6 +25,7 @@ export default function Viewport3D() {
         <ACMSkeleton />
         {showGlobalControls && <ModelGizmo />}
         <HoverTooltip />
+        <ErrorLines />
       </Suspense>
       <Grid
         args={[2, 2]}
