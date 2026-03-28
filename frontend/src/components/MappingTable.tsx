@@ -174,13 +174,21 @@ export default function MappingTable() {
           mappings.map((m) => (
             <div key={m.keypointName} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "4px 0", borderBottom: "1px solid #2a2a4a", fontSize: 12,
-            }}>
+              padding: "4px 4px", borderBottom: "1px solid #2a2a4a", fontSize: 12,
+              cursor: "pointer",
+              background: selectedKp === m.keypointName ? "#2a2a3a" : "transparent",
+            }}
+              onClick={() => {
+                // Click a mapping row to select that keypoint for reassignment
+                setSelectedKp(m.keypointName);
+              }}
+              title="Click to reassign this mapping"
+            >
               <span>
-                <span style={{ color: "#ffaa00" }}>{m.keypointName}</span>{" \u2192 "}
+                <span style={{ color: selectedKp === m.keypointName ? "#ffff00" : "#ffaa00" }}>{m.keypointName}</span>{" \u2192 "}
                 <span style={{ color: "#66bbff" }}>{m.bodyName}</span>
               </span>
-              <button onClick={() => removeMapping(m.keypointName)} style={{
+              <button onClick={(e) => { e.stopPropagation(); removeMapping(m.keypointName); }} style={{
                 background: "none", border: "none", color: "#ff4444", cursor: "pointer", fontSize: 14,
               }}>x</button>
             </div>

@@ -1,9 +1,10 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid } from "@react-three/drei";
+import { OrbitControls, Grid, Html } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import ModelGizmo from "./ModelGizmo";
+import HoverTooltip from "./HoverTooltip";
 
 export default function Viewport3D() {
   return (
@@ -18,6 +19,7 @@ export default function Viewport3D() {
         <MuJoCoModel />
         <ACMSkeleton />
         <ModelGizmo />
+        <HoverTooltip />
       </Suspense>
       <Grid
         args={[2, 2]}

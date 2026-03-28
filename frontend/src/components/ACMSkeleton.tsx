@@ -24,6 +24,7 @@ export default function ACMSkeleton() {
   const mode = useStore((s) => s.mode);
   const selectedKp = useStore((s) => s.selectedKeypoint);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
+  const setHover = useStore((s) => s.setHover);
 
   const framePositions = useMemo(() => {
     if (!positions || numKp === 0) return null;
@@ -69,9 +70,16 @@ export default function ACMSkeleton() {
         const color = isSelected ? "#ffff00" : KP_COLORS[name] || "#888888";
         const size = isSelected ? 0.005 : 0.003;
         return (
-          <mesh key={name} position={pos} onClick={(e) => { e.stopPropagation(); handleClick(name); }}>
+          <mesh
+            key={name}
+            position={pos}
+            renderOrder={11}
+            onClick={(e) => { e.stopPropagation(); handleClick(name); }}
+            onPointerOver={(e) => { e.stopPropagation(); setHover(`KP: ${name}`, [pos.x, pos.y, pos.z]); }}
+            onPointerOut={() => setHover(null)}
+          >
             <sphereGeometry args={[size, 12, 8]} />
-            <meshBasicMaterial color={color} />
+            <meshBasicMaterial color={color} depthTest={false} />
           </mesh>
         );
       })}

@@ -11,6 +11,7 @@ export default function OffsetMarkers() {
   const mode = useStore((s) => s.mode);
   const selectedKp = useStore((s) => s.selectedKeypoint);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
+  const setHover = useStore((s) => s.setHover);
 
   const markers = useMemo(() => {
     if (mode !== "offset" || bodyTransforms.length === 0) return [];
@@ -27,10 +28,11 @@ export default function OffsetMarkers() {
       ];
       return {
         keypointName: m.keypointName,
+        bodyName: m.bodyName,
         position: mjToThree(worldPos),
         isSelected: selectedKp === m.keypointName,
       };
-    }).filter(Boolean) as { keypointName: string; position: THREE.Vector3; isSelected: boolean }[];
+    }).filter(Boolean) as { keypointName: string; bodyName: string; position: THREE.Vector3; isSelected: boolean }[];
   }, [mappings, offsets, bodyTransforms, bodyNames, mode, selectedKp]);
 
   const handleClick = useCallback(
@@ -39,11 +41,21 @@ export default function OffsetMarkers() {
   );
 
   return (
-    <group>
+    <group renderOrder={10}>
       {markers.map((m) => (
-        <mesh key={m.keypointName} position={m.position} onClick={(e) => handleClick(e, m.keypointName)}>
-          <sphereGeometry args={[m.isSelected ? 0.004 : 0.003, 12, 8]} />
-          <meshBasicMaterial color={m.isSelected ? "#ffff00" : "#00ff88"} />
+        <mesh
+          key={m.keypointName}
+          position={m.position}
+          onClick={(e) => handleClick(e, m.keypointName)}
+          onPointerOver={(e) => { e.stopPropagation(); setHover(`Offset: ${m.keypointName} → ${m.bodyName}`, [m.position.x, m.position.y, m.position.z]); }}
+          onPointerOut={() => setHover(null)}
+          renderOrder={10}
+        >
+          <sphereGeometry args={[m.isSelected ? 0.005 : 0.004, 12, 8]} />
+          <meshBasicMaterial
+            color={m.isSelected ? "#ffff00" : "#00ff88"}
+            depthTest={false}
+          />
         </mesh>
       ))}
     </group>

@@ -62,6 +62,10 @@ interface AppState {
   // Model scale (uniform)
   modelScale: number;
 
+  // Hover tooltip
+  hoveredName: string | null;
+  hoveredPosition: [number, number, number] | null;
+
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: number[]; numFrames: number; numKeypoints: number }) => void;
@@ -79,6 +83,7 @@ interface AppState {
   setModelRotationY: (radians: number) => void;
   setModelPosition: (pos: [number, number, number]) => void;
   setModelScale: (scale: number) => void;
+  setHover: (name: string | null, position?: [number, number, number]) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
@@ -121,6 +126,8 @@ export const useStore = create<AppState>((set) => ({
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
+  hoveredName: null,
+  hoveredPosition: null,
 
   setXmlData: (data) => set({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath }),
   setAcmData: (data) => set({
@@ -159,6 +166,7 @@ export const useStore = create<AppState>((set) => ({
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
   setModelScale: (scale) => set({ modelScale: scale }),
+  setHover: (name, position) => set({ hoveredName: name, hoveredPosition: position || null }),
   setStacResults: (qpos, frameIndices, bodyTransforms) => set({
     stacQpos: qpos,
     stacFrameIndices: frameIndices || null,

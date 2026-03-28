@@ -20,6 +20,7 @@ export default function MuJoCoModel() {
   const modelRotationY = useStore((s) => s.modelRotationY);
   const modelPosition = useStore((s) => s.modelPosition);
   const modelScale = useStore((s) => s.modelScale);
+  const setHover = useStore((s) => s.setHover);
   const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
 
   // In offset mode, make bodies semi-transparent so keypoints are visible
@@ -99,9 +100,11 @@ export default function MuJoCoModel() {
                   }}
                   onPointerOver={(e) => {
                     e.stopPropagation();
-                    if (mode === "mapping" && selectedKp) setHoveredBody(bodyId);
+                    const bodyName = storeBodyNames[bodyId] || "";
+                    setHoveredBody(bodyId);
+                    if (e.point) setHover(`Body: ${bodyName}`, [e.point.x, e.point.y, e.point.z]);
                   }}
-                  onPointerOut={() => setHoveredBody(null)}
+                  onPointerOut={() => { setHoveredBody(null); setHover(null); }}
                 >
                   {bodyGeoms.map((geom, i) => {
                     const geometry = buildGeomGeometry(geom);
