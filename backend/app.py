@@ -100,18 +100,27 @@ async def load_matfile(file: UploadFile = File(None), path: str = Query(None)):
 @app.post("/api/align")
 async def align_endpoint(data: dict):
     """Align ACM keypoints to MuJoCo pose via Procrustes."""
-    positions = np.array(data["positions"]).reshape(
-        data["numFrames"], data["numKeypoints"], 3
-    )
-    result = align_acm_to_mujoco(
-        positions,
-        data["keypointNames"],
-        data["xmlPath"],
-        data["keypointModelPairs"],
-        scale_factor=data.get("scaleFactor", 0.9),
-        mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
-    )
-    return result
+    try:
+        positions = np.array(data["positions"]).reshape(
+            data["numFrames"], data["numKeypoints"], 3
+        )
+        # Use stored XML path if provided path is not a real file
+        xml_path = data.get("xmlPath", "")
+        if not xml_path or xml_path.startswith("(") or not __import__("os").path.exists(xml_path):
+            xml_path = _state.get("xml_path")
+        if not xml_path:
+            return JSONResponse({"error": "No XML model loaded"}, status_code=400)
+        result = align_acm_to_mujoco(
+            positions,
+            data["keypointNames"],
+            xml_path,
+            data["keypointModelPairs"],
+            scale_factor=data.get("scaleFactor", 0.9),
+            mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
+        )
+        return result
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.post("/api/load-config")

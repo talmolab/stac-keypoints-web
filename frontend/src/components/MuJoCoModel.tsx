@@ -42,6 +42,7 @@ export default function MuJoCoModel() {
   }, [geoms]);
 
   useEffect(() => {
+    if (!Array.isArray(bodyTransforms)) return;
     for (const t of bodyTransforms) {
       const group = bodyRefs.current.get(t.bodyId);
       if (group) {
@@ -55,7 +56,7 @@ export default function MuJoCoModel() {
 
   // Model center for pivot rotation + scale
   const modelCenter = useMemo(() => {
-    if (bodyTransforms.length === 0) return new THREE.Vector3(0, 0, 0);
+    if (!Array.isArray(bodyTransforms) || bodyTransforms.length === 0) return new THREE.Vector3(0, 0, 0);
     let sx = 0, sy = 0, sz = 0;
     for (const t of bodyTransforms) {
       const p = mjToThree(t.position as [number, number, number]);

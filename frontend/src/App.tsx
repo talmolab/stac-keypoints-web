@@ -41,7 +41,8 @@ export default function App() {
         const defaultQpos = new Array(xmlData.nq).fill(0);
         defaultQpos[3] = 1.0;
         const transforms = await api.bodyTransforms(defaultQpos);
-        setBodyTransforms(transforms);
+        if (Array.isArray(transforms)) setBodyTransforms(transforms);
+        else console.warn("[AutoLoad] bodyTransforms returned non-array:", transforms);
 
         // 2. Load config (bundled asset)
         console.log("[AutoLoad] Loading config...");

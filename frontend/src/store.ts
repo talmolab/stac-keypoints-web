@@ -206,7 +206,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     newLabeled.add(state.currentFrame);
     return { frameStatuses: newStatuses as FrameStatus[], labeledFrames: newLabeled };
   }),
-  setBodyTransforms: (transforms) => set({ bodyTransforms: transforms }),
+  setBodyTransforms: (transforms) => set({ bodyTransforms: Array.isArray(transforms) ? transforms : [] }),
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
   setModelScale: (scale) => set({ modelScale: scale }),

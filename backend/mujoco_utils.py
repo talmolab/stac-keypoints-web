@@ -59,7 +59,11 @@ def compute_body_transforms(xml_path: str, qpos: list[float]) -> list[dict]:
     """Given qpos, run FK and return world-frame body transforms."""
     model = mujoco.MjModel.from_xml_path(xml_path)
     data = mujoco.MjData(model)
-    data.qpos[:] = np.array(qpos, dtype=np.float64)
+    mujoco.mj_resetData(model, data)
+    # Handle qpos length mismatch: pad with defaults or truncate
+    q = np.array(qpos, dtype=np.float64)
+    n = min(len(q), model.nq)
+    data.qpos[:n] = q[:n]
     mujoco.mj_forward(model, data)
     transforms = []
     for b in range(model.nbody):

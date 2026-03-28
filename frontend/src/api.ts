@@ -24,8 +24,12 @@ async function checkBackend(): Promise<boolean> {
 // Check on module load
 const backendReady = checkBackend();
 
+// Default paths for backend mode
+const DEFAULT_XML = "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml";
+const DEFAULT_CONFIG = "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml";
+
 export async function loadXml(path?: string) {
-  if (await backendReady && path) return backend.loadXml(path);
+  if (await backendReady) return backend.loadXml(path || DEFAULT_XML);
   return local.loadXml(path);
 }
 
@@ -40,7 +44,7 @@ export async function loadMatFile(path: string) {
 }
 
 export async function loadConfig(path?: string) {
-  if (await backendReady && path) return backend.loadConfig(path);
+  if (await backendReady) return backend.loadConfig(path || DEFAULT_CONFIG);
   return local.loadConfig(path);
 }
 
