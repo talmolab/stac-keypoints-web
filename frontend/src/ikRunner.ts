@@ -24,7 +24,7 @@ export async function runIk(
 
   const positions = state.adjustedPositions ?? state.alignedPositions ?? state.acmPositions;
 
-  const result = await api.runQuickStac({
+  const result: any = await api.runQuickStac({
     positions: Array.from(positions),
     numFrames: state.acmNumFrames,
     numKeypoints: state.acmNumKeypoints,

@@ -9,9 +9,7 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAutoIk } from "./hooks/useAutoIk";
 import * as api from "./api";
 
-const DEFAULT_XML_PATH = "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml";
-const DEFAULT_CONFIG_PATH = "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml";
-const DEFAULT_ACM_TRIALS = 3;
+// In standalone mode, paths are ignored -- bundled assets are used automatically.
 
 export default function App() {
   useKeyboardShortcuts();
@@ -30,14 +28,14 @@ export default function App() {
       const setAlignedPositions = useStore.getState().setAlignedPositions;
 
       try {
-        // 1. Load XML
+        // 1. Load XML (bundled asset)
         console.log("[AutoLoad] Loading XML...");
-        const xmlData = await api.loadXml(DEFAULT_XML_PATH);
+        const xmlData: any = await api.loadXml();
         if (xmlData.error) {
           console.error("[AutoLoad] XML error:", xmlData.error);
           return;
         }
-        setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: DEFAULT_XML_PATH });
+        setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: "(bundled)" });
 
         // Get default body transforms
         const defaultQpos = new Array(xmlData.nq).fill(0);
@@ -45,18 +43,18 @@ export default function App() {
         const transforms = await api.bodyTransforms(defaultQpos);
         setBodyTransforms(transforms);
 
-        // 2. Load config
+        // 2. Load config (bundled asset)
         console.log("[AutoLoad] Loading config...");
-        const config = await api.loadConfig(DEFAULT_CONFIG_PATH);
+        const config: any = await api.loadConfig();
         if (config.error) {
           console.error("[AutoLoad] Config error:", config.error);
         } else {
           loadConfigAction(config);
         }
 
-        // 3. Load ACM data
+        // 3. Load ACM data (bundled asset)
         console.log("[AutoLoad] Loading ACM data...");
-        const acmData = await api.loadAcmTrials(DEFAULT_ACM_TRIALS);
+        const acmData: any = await api.loadAcmTrials();
         if (acmData.error) {
           console.error("[AutoLoad] ACM error:", acmData.error);
           return;
@@ -69,7 +67,7 @@ export default function App() {
           console.log("[AutoLoad] Running alignment...");
           const pairs: Record<string, string> = {};
           for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
-          const alignResult = await api.alignToMujoco({
+          const alignResult: any = await api.alignToMujoco({
             positions: Array.from(state.acmPositions),
             numFrames: state.acmNumFrames,
             numKeypoints: state.acmNumKeypoints,
@@ -81,7 +79,7 @@ export default function App() {
           });
           if (alignResult.error) {
             console.error("[AutoLoad] Alignment error:", alignResult.error);
-          } else {
+          } else if (alignResult.alignedPositions) {
             setAlignedPositions(alignResult.alignedPositions);
             console.log("[AutoLoad] Alignment complete, method:", alignResult.method || "procrustes");
           }

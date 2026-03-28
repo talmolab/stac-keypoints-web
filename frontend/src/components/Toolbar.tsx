@@ -1,7 +1,6 @@
 import React, { useCallback } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
-import { setApiBase, getCurrentApiBase } from "../api";
 import { runIk } from "../ikRunner";
 
 export default function Toolbar() {
@@ -14,39 +13,32 @@ export default function Toolbar() {
   const setIkStatus = useStore((s) => s.setIkStatus);
 
   const handleLoadXml = useCallback(async () => {
-    const path = prompt("Enter path to MuJoCo XML file:",
-      "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml");
-    if (!path) return;
-    const data = await api.loadXml(path);
-    if (data.error) { alert(data.error); return; }
-    setXmlData({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: path });
+    setIkStatus("Loading XML model...");
+    const data: any = await api.loadXml();
+    if (data.error) { setIkStatus("XML error: " + data.error); return; }
+    setXmlData({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: "(bundled)" });
     const defaultQpos = new Array(data.nq).fill(0);
     defaultQpos[3] = 1.0;
     const transforms = await api.bodyTransforms(defaultQpos);
     setBodyTransforms(transforms);
-  }, [setXmlData, setBodyTransforms]);
+    setIkStatus("XML loaded.");
+  }, [setXmlData, setBodyTransforms, setIkStatus]);
 
   const handleLoadAcm = useCallback(async () => {
-    const choice = prompt("Enter a .mat file path, or number of trials to auto-load:", "5");
-    if (!choice) return;
-    let data;
-    if (choice.endsWith(".mat")) {
-      data = await api.loadMatFile(choice);
-    } else {
-      data = await api.loadAcmTrials(parseInt(choice) || 5);
-    }
-    if (data.error) { alert(data.error); return; }
+    setIkStatus("Loading ACM data...");
+    const data: any = await api.loadAcmTrials();
+    if (data.error) { setIkStatus("ACM error: " + data.error); return; }
     setAcmData(data);
-  }, [setAcmData]);
+    setIkStatus("ACM data loaded (" + data.numFrames + " frames).");
+  }, [setAcmData, setIkStatus]);
 
   const handleLoadConfig = useCallback(async () => {
-    const path = prompt("Enter path to STAC YAML config:",
-      "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml");
-    if (!path) return;
-    const config = await api.loadConfig(path);
-    if (config.error) { alert(config.error); return; }
+    setIkStatus("Loading config...");
+    const config: any = await api.loadConfig();
+    if (config.error) { setIkStatus("Config error: " + config.error); return; }
     loadConfigAction(config);
-  }, [loadConfigAction]);
+    setIkStatus("Config loaded.");
+  }, [loadConfigAction, setIkStatus]);
 
   const handleAlign = useCallback(async () => {
     const state = useStore.getState();
@@ -54,9 +46,10 @@ export default function Toolbar() {
       setIkStatus("Load XML, ACM data, and set at least some mappings first.");
       return;
     }
+    setIkStatus("Running alignment...");
     const pairs: Record<string, string> = {};
     for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
-    const result = await api.alignToMujoco({
+    const result: any = await api.alignToMujoco({
       positions: Array.from(state.acmPositions),
       numFrames: state.acmNumFrames,
       numKeypoints: state.acmNumKeypoints,
@@ -86,26 +79,9 @@ export default function Toolbar() {
       kpNames: state.acmKeypointNames,
       segmentScales: state.segmentScales,
     };
-    const path = prompt("Export config to:", "/tmp/stac_retarget_config.yaml");
-    if (!path) return;
-    const result = await api.exportConfig(config, path);
+    const result: any = await api.exportConfig(config, "");
     if (result.error) setIkStatus("Export error: " + result.error);
-    else setIkStatus("Config exported to " + result.path);
-  }, [setIkStatus]);
-
-  const handleLoadStacOutput = useCallback(async () => {
-    const path = prompt("Enter path to STAC output H5:",
-      "/home/talmolab/Desktop/SalkResearch/monsees-retarget/output/monsees_ik_only.h5");
-    if (!path) return;
-    const data = await api.loadStacOutput(path);
-    if (data.error) { setIkStatus("Load error: " + data.error); return; }
-    const updateOffset = useStore.getState().updateOffset;
-    for (let i = 0; i < data.kpNames.length; i++) {
-      const name = data.kpNames[i];
-      const [x, y, z] = data.offsets[i];
-      updateOffset(name, x, y, z);
-    }
-    setIkStatus("Loaded " + data.kpNames.length + " learned offsets from IK output");
+    else setIkStatus("Config downloaded.");
   }, [setIkStatus]);
 
   const runIkOnFrames = useCallback(async (frameIndices: number[], maxIterations = 200) => {
@@ -149,16 +125,10 @@ export default function Toolbar() {
       <button style={btnStyle} onClick={handleLoadAcm}>Load ACM</button>
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
       <button style={btnStyle} onClick={handleAlign}>Align</button>
-      <button style={btnStyle} onClick={handleLoadStacOutput}>Load STAC H5</button>
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
       <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
       <button style={btnStyle} onClick={handleExport}>Export</button>
-      <button style={{...btnStyle, fontSize: 10, padding: "6px 8px", color: "#777"}} onClick={() => {
-        const current = getCurrentApiBase() || "(same origin)";
-        const url = prompt(`Backend API URL (current: ${current}).\nLeave empty for same-origin (dev mode):`, getCurrentApiBase());
-        if (url !== null) setApiBase(url);
-      }}>API</button>
       {ikStatus && (
         <span
           style={statusStyle}
