@@ -6,7 +6,6 @@ export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
   const offsets = useStore((s) => s.offsets);
   const mappings = useStore((s) => s.mappings);
-  const scaleFactor = useStore((s) => s.scaleFactor);
   const updateOffset = useStore((s) => s.updateOffset);
   const mode = useStore((s) => s.mode);
   const setMode = useStore((s) => s.setMode);
@@ -14,12 +13,15 @@ export default function PropertiesPanel() {
   const setModelRotationY = useStore((s) => s.setModelRotationY);
   const modelPosition = useStore((s) => s.modelPosition);
   const setModelPosition = useStore((s) => s.setModelPosition);
+  const modelScale = useStore((s) => s.modelScale);
+  const setModelScale = useStore((s) => s.setModelScale);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%", overflow: "auto" }}>
+      {/* Mode toggle */}
       <div>
         <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Mode</h3>
         <div style={{ display: "flex", gap: 4 }}>
@@ -33,8 +35,20 @@ export default function PropertiesPanel() {
             </button>
           ))}
         </div>
+        {/* Alignment direction hint */}
+        {mode === "offset" && (
+          <div style={{ fontSize: 11, color: "#77aaff", marginTop: 6, lineHeight: 1.4 }}>
+            Drag the <span style={{ color: "#00ff88" }}>green offset markers</span> on the MuJoCo model to align with the <span style={{ color: "#ffaa00" }}>ACM keypoints</span> (stationary).
+          </div>
+        )}
+        {mode === "mapping" && (
+          <div style={{ fontSize: 11, color: "#77aaff", marginTop: 6, lineHeight: 1.4 }}>
+            Click an ACM keypoint, then click a MuJoCo body (or pick from the body list).
+          </div>
+        )}
       </div>
 
+      {/* Selected keypoint info */}
       {selectedKp && (
         <div>
           <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>
@@ -72,12 +86,26 @@ export default function PropertiesPanel() {
         </div>
       )}
 
+      {/* Model transform controls */}
       <div style={{ marginTop: "auto" }}>
-        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Parameters</h3>
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>Scale: {scaleFactor}</div>
+        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Model Transform</h3>
+
+        {/* Scale */}
         <div style={{ marginBottom: 8 }}>
           <label style={{ fontSize: 12, color: "#888" }}>
-            Model Rotation: {Math.round(modelRotationY * 180 / Math.PI)}deg
+            Scale: {modelScale.toFixed(2)}x
+          </label>
+          <input type="range" min={0.5} max={2.0} step={0.01}
+            value={modelScale}
+            onChange={(e) => setModelScale(parseFloat(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
+
+        {/* Rotation */}
+        <div style={{ marginBottom: 8 }}>
+          <label style={{ fontSize: 12, color: "#888" }}>
+            Rotation: {Math.round(modelRotationY * 180 / Math.PI)}°
           </label>
           <input type="range" min={0} max={360} step={1}
             value={Math.round(modelRotationY * 180 / Math.PI)}
@@ -85,8 +113,10 @@ export default function PropertiesPanel() {
             style={{ width: "100%" }}
           />
         </div>
+
+        {/* Position */}
         <div>
-          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Model Position:</div>
+          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Position:</div>
           {(["x", "y", "z"] as const).map((axis, i) => (
             <div key={axis} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
               <label style={{ color: "#888", fontSize: 12, width: 12 }}>{axis.toUpperCase()}</label>

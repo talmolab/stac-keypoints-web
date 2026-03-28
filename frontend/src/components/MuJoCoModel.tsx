@@ -19,9 +19,12 @@ export default function MuJoCoModel() {
   const storeBodyNames = useStore((s) => s.bodyNames);
   const modelRotationY = useStore((s) => s.modelRotationY);
   const modelPosition = useStore((s) => s.modelPosition);
+  const modelScale = useStore((s) => s.modelScale);
   const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
 
-  // Group geoms by bodyId
+  // In offset mode, make bodies semi-transparent so keypoints are visible
+  const isOffsetMode = mode === "offset";
+
   const bodyGroups = useMemo(() => {
     if (geoms.length === 0) return [];
     const byBody = new Map<number, GeomData[]>();
@@ -35,7 +38,6 @@ export default function MuJoCoModel() {
     }));
   }, [geoms]);
 
-  // Update body world transforms when they change
   useEffect(() => {
     for (const t of bodyTransforms) {
       const group = bodyRefs.current.get(t.bodyId);
@@ -48,7 +50,7 @@ export default function MuJoCoModel() {
     }
   }, [bodyTransforms]);
 
-  // Compute model center from body transforms for pivot rotation
+  // Model center for pivot rotation + scale
   const modelCenter = useMemo(() => {
     if (bodyTransforms.length === 0) return new THREE.Vector3(0, 0, 0);
     let sx = 0, sy = 0, sz = 0;
@@ -67,65 +69,67 @@ export default function MuJoCoModel() {
   return (
     <group position={[cx, cy, cz]}>
       <group rotation={[0, modelRotationY, 0]}>
-        <group position={[-cx, -cy, -cz]}>
-          <group position={modelPosition}>
-            {bodyGroups.map(({ bodyId, geoms: bodyGeoms }) => (
-              <group
-                key={bodyId}
-                ref={(ref: THREE.Group | null) => {
-                  if (ref) bodyRefs.current.set(bodyId, ref);
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (mode === "mapping" && selectedKp) {
-                    const bodyName = storeBodyNames[bodyId] || "";
-                    addMapping(selectedKp, bodyName);
-
-                    // Capture click offset from body origin
-                    if (e.point && bodyTransforms[bodyId]) {
-                      const pt = e.point;
-                      // Three.js (x, y, z) -> MuJoCo (x, -z, y)
-                      const clickMj = [pt.x, -pt.z, pt.y];
-                      const bodyMj = bodyTransforms[bodyId].position;
-                      updateOffset(
-                        selectedKp,
-                        clickMj[0] - bodyMj[0],
-                        clickMj[1] - bodyMj[1],
-                        clickMj[2] - bodyMj[2]
-                      );
+        <group scale={[modelScale, modelScale, modelScale]}>
+          <group position={[-cx, -cy, -cz]}>
+            <group position={modelPosition}>
+              {bodyGroups.map(({ bodyId, geoms: bodyGeoms }) => (
+                <group
+                  key={bodyId}
+                  ref={(ref: THREE.Group | null) => {
+                    if (ref) bodyRefs.current.set(bodyId, ref);
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (mode === "mapping" && selectedKp) {
+                      const bodyName = storeBodyNames[bodyId] || "";
+                      addMapping(selectedKp, bodyName);
+                      if (e.point && bodyTransforms[bodyId]) {
+                        const pt = e.point;
+                        const clickMj = [pt.x, -pt.z, pt.y];
+                        const bodyMj = bodyTransforms[bodyId].position;
+                        updateOffset(
+                          selectedKp,
+                          clickMj[0] - bodyMj[0],
+                          clickMj[1] - bodyMj[1],
+                          clickMj[2] - bodyMj[2]
+                        );
+                      }
+                      setSelectedKp(null);
                     }
-
-                    setSelectedKp(null);
-                  }
-                }}
-                onPointerOver={(e) => {
-                  e.stopPropagation();
-                  if (mode === "mapping" && selectedKp) setHoveredBody(bodyId);
-                }}
-                onPointerOut={() => setHoveredBody(null)}
-              >
-                {bodyGeoms.map((geom, i) => {
-                  const geometry = buildGeomGeometry(geom);
-                  if (!geometry) return null;
-                  const localPos = mjToThree(geom.position as [number, number, number]);
-                  const localQuat = mjQuatToThree(geom.quaternion as [number, number, number, number]);
-                  return (
-                    <mesh key={i} geometry={geometry} position={localPos} quaternion={localQuat}>
-                      <meshStandardMaterial
-                        color={new THREE.Color(geom.color[0], geom.color[1], geom.color[2])}
-                        opacity={geom.color[3]}
-                        transparent={geom.color[3] < 1}
-                        roughness={0.7}
-                        emissive={hoveredBody === bodyId && mode === "mapping" && selectedKp ? "#444400" : "#000000"}
-                        emissiveIntensity={hoveredBody === bodyId ? 0.5 : 0}
-                      />
-                    </mesh>
-                  );
-                })}
-              </group>
-            ))}
-            <OffsetMarkers />
-            <OffsetGizmo />
+                  }}
+                  onPointerOver={(e) => {
+                    e.stopPropagation();
+                    if (mode === "mapping" && selectedKp) setHoveredBody(bodyId);
+                  }}
+                  onPointerOut={() => setHoveredBody(null)}
+                >
+                  {bodyGeoms.map((geom, i) => {
+                    const geometry = buildGeomGeometry(geom);
+                    if (!geometry) return null;
+                    const localPos = mjToThree(geom.position as [number, number, number]);
+                    const localQuat = mjQuatToThree(geom.quaternion as [number, number, number, number]);
+                    // Semi-transparent in offset mode
+                    const baseOpacity = geom.color[3];
+                    const opacity = isOffsetMode ? Math.min(baseOpacity, 0.3) : baseOpacity;
+                    return (
+                      <mesh key={i} geometry={geometry} position={localPos} quaternion={localQuat}>
+                        <meshStandardMaterial
+                          color={new THREE.Color(geom.color[0], geom.color[1], geom.color[2])}
+                          opacity={opacity}
+                          transparent={true}
+                          depthWrite={!isOffsetMode}
+                          roughness={0.7}
+                          emissive={hoveredBody === bodyId && mode === "mapping" && selectedKp ? "#444400" : "#000000"}
+                          emissiveIntensity={hoveredBody === bodyId ? 0.5 : 0}
+                        />
+                      </mesh>
+                    );
+                  })}
+                </group>
+              ))}
+              <OffsetMarkers />
+              <OffsetGizmo />
+            </group>
           </group>
         </group>
       </group>
