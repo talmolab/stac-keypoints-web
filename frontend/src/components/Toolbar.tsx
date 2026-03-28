@@ -8,6 +8,8 @@ export default function Toolbar() {
   const setAlignedPositions = useStore((s) => s.setAlignedPositions);
   const setBodyTransforms = useStore((s) => s.setBodyTransforms);
   const loadConfigAction = useStore((s) => s.loadConfig);
+  const ikStatus = useStore((s) => s.ikStatus);
+  const setIkStatus = useStore((s) => s.setIkStatus);
 
   const handleLoadXml = useCallback(async () => {
     const path = prompt("Enter path to MuJoCo XML file:",
@@ -47,7 +49,7 @@ export default function Toolbar() {
   const handleAlign = useCallback(async () => {
     const state = useStore.getState();
     if (!state.acmPositions || !state.xmlPath || state.mappings.length === 0) {
-      alert("Load XML, ACM data, and set at least some mappings first.");
+      setIkStatus("Load XML, ACM data, and set at least some mappings first.");
       return;
     }
     const pairs: Record<string, string> = {};
@@ -62,9 +64,10 @@ export default function Toolbar() {
       scaleFactor: state.scaleFactor,
       mocapScaleFactor: state.mocapScaleFactor,
     });
-    if (result.error) { alert(result.error); return; }
+    if (result.error) { setIkStatus("Align error: " + result.error); return; }
     setAlignedPositions(result.alignedPositions);
-  }, [setAlignedPositions]);
+    setIkStatus("Alignment complete.");
+  }, [setAlignedPositions, setIkStatus]);
 
   const handleExport = useCallback(async () => {
     const state = useStore.getState();
@@ -83,36 +86,38 @@ export default function Toolbar() {
     const path = prompt("Export config to:", "/tmp/stac_retarget_config.yaml");
     if (!path) return;
     const result = await api.exportConfig(config, path);
-    if (result.error) alert(result.error);
-    else alert("Config exported to " + result.path);
-  }, []);
+    if (result.error) setIkStatus("Export error: " + result.error);
+    else setIkStatus("Config exported to " + result.path);
+  }, [setIkStatus]);
 
   const handleLoadStacOutput = useCallback(async () => {
     const path = prompt("Enter path to STAC output H5:",
       "/home/talmolab/Desktop/SalkResearch/monsees-retarget/output/monsees_ik_only.h5");
     if (!path) return;
     const data = await api.loadStacOutput(path);
-    if (data.error) { alert(data.error); return; }
+    if (data.error) { setIkStatus("Load error: " + data.error); return; }
     const updateOffset = useStore.getState().updateOffset;
     for (let i = 0; i < data.kpNames.length; i++) {
       const name = data.kpNames[i];
       const [x, y, z] = data.offsets[i];
       updateOffset(name, x, y, z);
     }
-    alert("Loaded " + data.kpNames.length + " learned offsets from IK output");
-  }, []);
+    setIkStatus("Loaded " + data.kpNames.length + " learned offsets from IK output");
+  }, [setIkStatus]);
 
-  const runStacOnFrames = useCallback(async (frameIndices: number[]) => {
+  const runIkOnFrames = useCallback(async (frameIndices: number[], maxIterations = 200) => {
     const state = useStore.getState();
     if (!state.acmPositions || !state.xmlPath) {
-      alert("Load XML and ACM data first."); return;
+      setIkStatus("Load XML and ACM data first.");
+      return;
     }
     const pairs: Record<string, string> = {};
     for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
     const offsetMap: Record<string, [number, number, number]> = {};
     for (const o of state.offsets) offsetMap[o.keypointName] = [o.x, o.y, o.z];
 
-    const positions = state.alignedPositions ?? state.acmPositions;
+    // Use adjustedPositions (skeleton editor output) first, then aligned, then raw
+    const positions = state.adjustedPositions ?? state.alignedPositions ?? state.acmPositions;
     const result = await api.runQuickStac({
       positions: Array.from(positions),
       numFrames: state.acmNumFrames,
@@ -124,33 +129,66 @@ export default function Toolbar() {
       offsets: offsetMap,
       scaleFactor: state.scaleFactor,
       mocapScaleFactor: state.mocapScaleFactor,
+      maxIterations,
     });
-    if (result.error) { alert(result.error); return; }
+    if (result.error) { setIkStatus("IK error: " + result.error); return; }
+
+    // Store results
     state.setStacResults(result.qpos, result.frameIndices, result.bodyTransforms);
 
-    // Update 3D view with body transforms from the first frame
+    // Immediately apply body transforms for the current frame (or first result frame)
     if (result.bodyTransforms && result.bodyTransforms.length > 0) {
-      setBodyTransforms(result.bodyTransforms[0]);
+      const currentFrame = state.currentFrame;
+      const stacIdx = result.frameIndices
+        ? result.frameIndices.indexOf(currentFrame)
+        : -1;
+      if (stacIdx >= 0 && stacIdx < result.bodyTransforms.length) {
+        setBodyTransforms(result.bodyTransforms[stacIdx]);
+      } else {
+        setBodyTransforms(result.bodyTransforms[0]);
+      }
     } else if (result.qpos.length > 0) {
       const transforms = await api.bodyTransforms(result.qpos[0]);
       setBodyTransforms(transforms);
     }
 
-    alert("IK done on " + result.qpos.length + " frames. Mean error: " +
-      (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1) + "mm");
-  }, [setBodyTransforms]);
+    // Show inline status with error info
+    const meanError = result.errors && result.errors.length > 0
+      ? (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1)
+      : "N/A";
+    setIkStatus("IK done: " + result.qpos.length + " frames, mean error " + meanError + "mm");
+  }, [setBodyTransforms, setIkStatus]);
 
-  const handleRunStac = useCallback(async () => {
+  const handleRunIk = useCallback(async () => {
     const state = useStore.getState();
     const labeledFrames = Array.from(state.labeledFrames);
     const frames = labeledFrames.length > 0 ? labeledFrames : [state.currentFrame];
-    await runStacOnFrames(frames);
-  }, [runStacOnFrames]);
+    setIkStatus("Running IK on " + frames.length + " labeled frames...");
+    await runIkOnFrames(frames);
+  }, [runIkOnFrames, setIkStatus]);
 
-  const handleRunStacFrame = useCallback(async () => {
+  const handleRunIkFrame = useCallback(async () => {
     const state = useStore.getState();
-    await runStacOnFrames([state.currentFrame]);
-  }, [runStacOnFrames]);
+    setIkStatus("Running IK on frame " + state.currentFrame + "...");
+    await runIkOnFrames([state.currentFrame]);
+  }, [runIkOnFrames, setIkStatus]);
+
+  const handleRunIkSequence = useCallback(async () => {
+    const state = useStore.getState();
+    if (!state.acmPositions || !state.xmlPath) {
+      setIkStatus("Load XML and ACM data first.");
+      return;
+    }
+    const numFrames = state.acmNumFrames;
+    if (numFrames === 0) {
+      setIkStatus("No frames available.");
+      return;
+    }
+    const allFrames = Array.from({ length: numFrames }, (_, i) => i);
+    setIkStatus("Running IK on " + numFrames + " frames...");
+    // Use fewer iterations for sequence mode (speed)
+    await runIkOnFrames(allFrames, 50);
+  }, [runIkOnFrames, setIkStatus]);
 
   return (
     <>
@@ -159,9 +197,19 @@ export default function Toolbar() {
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
       <button style={btnStyle} onClick={handleAlign}>Align</button>
       <button style={btnStyle} onClick={handleLoadStacOutput}>Load STAC H5</button>
-      <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunStac}>Run IK</button>
-      <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunStacFrame}>IK Frame</button>
+      <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
+      <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
+      <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
       <button style={btnStyle} onClick={handleExport}>Export</button>
+      {ikStatus && (
+        <span
+          style={statusStyle}
+          onClick={() => setIkStatus(null)}
+          title="Click to dismiss"
+        >
+          {ikStatus}
+        </span>
+      )}
     </>
   );
 }
@@ -169,4 +217,10 @@ export default function Toolbar() {
 const btnStyle: React.CSSProperties = {
   background: "#2a2a4a", border: "1px solid #555", color: "#ccc",
   padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12,
+};
+
+const statusStyle: React.CSSProperties = {
+  color: "#8f8", fontSize: 12, marginLeft: 8, cursor: "pointer",
+  padding: "4px 8px", background: "#1a2a1a", borderRadius: 4,
+  border: "1px solid #3a5a3a",
 };

@@ -139,6 +139,7 @@ def run_quick_stac(
     mappings: dict[str, str] | None = None,
     scale_factor: float = 0.9,
     mocap_scale_factor: float = 0.01,
+    max_iterations: int = 200,
 ) -> dict:
     """Run IK on a subset of frames and return qpos + body transforms.
 
@@ -239,7 +240,7 @@ def run_quick_stac(
         if mappings:
             solved_qpos = _jacobian_ik(
                 model, data, target_m, kp_names, mappings,
-                offsets=offsets, max_iter=200, step=0.5, damping=0.01,
+                offsets=offsets, max_iter=max_iterations, step=0.5, damping=0.01,
             )
             data.qpos[:] = solved_qpos
         mujoco.mj_forward(model, data)

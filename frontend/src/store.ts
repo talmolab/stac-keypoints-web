@@ -70,6 +70,9 @@ interface AppState {
   segmentScales: Record<string, number>;
   adjustedPositions: Float32Array | null;
 
+  // IK status message (inline, replaces alert popups)
+  ikStatus: string | null;
+
   // Hover tooltip
   hoveredName: string | null;
   hoveredPosition: [number, number, number] | null;
@@ -94,6 +97,7 @@ interface AppState {
   setShowGlobalControls: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
   setHover: (name: string | null, position?: [number, number, number]) => void;
+  setIkStatus: (status: string | null) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
@@ -139,6 +143,7 @@ export const useStore = create<AppState>((set) => ({
   showGlobalControls: true,
   segmentScales: {},
   adjustedPositions: null,
+  ikStatus: null,
   hoveredName: null,
   hoveredPosition: null,
 
@@ -193,6 +198,7 @@ export const useStore = create<AppState>((set) => ({
     return { segmentScales: newScales, adjustedPositions: adjusted };
   }),
   setHover: (name, position) => set({ hoveredName: name, hoveredPosition: position || null }),
+  setIkStatus: (status) => set({ ikStatus: status }),
   setStacResults: (qpos, frameIndices, bodyTransforms) => set({
     stacQpos: qpos,
     stacFrameIndices: frameIndices || null,
