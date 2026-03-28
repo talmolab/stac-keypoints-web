@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from "react";
 import * as THREE from "three";
+import { Line } from "@react-three/drei";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
 import { segmentKey } from "../skeletonEditor";
@@ -63,22 +64,17 @@ export default function ACMSkeleton() {
     }
   }
 
-  // Build bone lines — highlighted segment gets a different color
-  const normalBonePoints: number[] = [];
-  const highlightBonePoints: number[] = [];
-  for (const bone of bones) {
+  // Build bone data for rendering
+  const boneData = bones.map((bone) => {
     const pi = nameToIdx[bone.parent];
     const ci = nameToIdx[bone.child];
-    if (pi === undefined || ci === undefined) continue;
+    if (pi === undefined || ci === undefined) return null;
     const p = framePositions[pi];
     const c = framePositions[ci];
     const key = segmentKey(bone.parent, bone.child);
-    if (key === hoveredSegment) {
-      highlightBonePoints.push(p.x, p.y, p.z, c.x, c.y, c.z);
-    } else {
-      normalBonePoints.push(p.x, p.y, p.z, c.x, c.y, c.z);
-    }
-  }
+    const isHl = key === hoveredSegment;
+    return { points: [[p.x, p.y, p.z], [c.x, c.y, c.z]] as [number, number, number][], color: isHl ? "#ffffff" : "#999999", lineWidth: isHl ? 3 : 1.5 };
+  }).filter(Boolean) as { points: [number, number, number][]; color: string; lineWidth: number }[];
 
   return (
     <group>
@@ -102,24 +98,17 @@ export default function ACMSkeleton() {
           </mesh>
         );
       })}
-      {/* Normal bone lines */}
-      {normalBonePoints.length > 0 && (
-        <lineSegments renderOrder={10}>
-          <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[new Float32Array(normalBonePoints), 3]} />
-          </bufferGeometry>
-          <lineBasicMaterial color="#999999" depthTest={false} />
-        </lineSegments>
-      )}
-      {/* Highlighted bone line */}
-      {highlightBonePoints.length > 0 && (
-        <lineSegments renderOrder={12}>
-          <bufferGeometry>
-            <bufferAttribute attach="attributes-position" args={[new Float32Array(highlightBonePoints), 3]} />
-          </bufferGeometry>
-          <lineBasicMaterial color="#ffffff" depthTest={false} />
-        </lineSegments>
-      )}
+      {/* Bone lines using drei Line (doesn't disappear on zoom) */}
+      {boneData.map((b, i) => (
+        <Line
+          key={i}
+          points={b.points}
+          color={b.color}
+          lineWidth={b.lineWidth}
+          depthTest={false}
+          renderOrder={10}
+        />
+      ))}
     </group>
   );
 }

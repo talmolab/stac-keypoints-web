@@ -20,6 +20,7 @@ export default function MuJoCoModel() {
   const modelRotationY = useStore((s) => s.modelRotationY);
   const modelPosition = useStore((s) => s.modelPosition);
   const modelScale = useStore((s) => s.modelScale);
+  const modelOpacity = useStore((s) => s.modelOpacity);
   const setHover = useStore((s) => s.setHover);
   const mappings = useStore((s) => s.mappings);
   const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
@@ -114,7 +115,7 @@ export default function MuJoCoModel() {
                     const localQuat = mjQuatToThree(geom.quaternion as [number, number, number, number]);
                     // Semi-transparent in offset mode
                     const baseOpacity = geom.color[3];
-                    const opacity = isTransparentMode ? Math.min(baseOpacity, 0.3) : baseOpacity;
+                    const opacity = isTransparentMode ? Math.min(baseOpacity, modelOpacity) : baseOpacity;
 
                     const isHighlighted = (() => {
                       // Highlight if hovered in mapping mode

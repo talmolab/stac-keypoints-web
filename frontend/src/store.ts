@@ -63,6 +63,9 @@ interface AppState {
   // Model scale (uniform)
   modelScale: number;
 
+  // Model opacity (0-1)
+  modelOpacity: number;
+
   // Global controls visibility
   showGlobalControls: boolean;
 
@@ -102,6 +105,7 @@ interface AppState {
   setModelRotationY: (radians: number) => void;
   setModelPosition: (pos: [number, number, number]) => void;
   setModelScale: (scale: number) => void;
+  setModelOpacity: (opacity: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
   resetSegmentScales: () => void;
@@ -151,6 +155,7 @@ export const useStore = create<AppState>((set) => ({
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
+  modelOpacity: 0.5,
   showGlobalControls: false,
   segmentScales: {},
   adjustedPositions: null,
@@ -199,6 +204,7 @@ export const useStore = create<AppState>((set) => ({
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
   setModelScale: (scale) => set({ modelScale: scale }),
+  setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
   setSegmentScale: (key, value) => set((state) => {
     const newScales = { ...state.segmentScales, [key]: value };

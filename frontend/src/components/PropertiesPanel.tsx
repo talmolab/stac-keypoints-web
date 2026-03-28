@@ -26,6 +26,8 @@ export default function PropertiesPanel() {
   const setFollowCamera = useStore((s) => s.setFollowCamera);
   const autoIk = useStore((s) => s.autoIk);
   const setAutoIk = useStore((s) => s.setAutoIk);
+  const modelOpacity = useStore((s) => s.modelOpacity);
+  const setModelOpacity = useStore((s) => s.setModelOpacity);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -95,6 +97,16 @@ export default function PropertiesPanel() {
           <input type="checkbox" checked={autoIk} onChange={(e) => setAutoIk(e.target.checked)} />
           Auto IK <span style={{ fontSize: 10, color: "#666" }}>(live on changes)</span>
         </label>
+        <div style={{ marginTop: 4 }}>
+          <label style={{ fontSize: 11, color: "#888" }}>
+            Model Opacity: {Math.round(modelOpacity * 100)}%
+          </label>
+          <input type="range" min={0.05} max={1.0} step={0.05}
+            value={modelOpacity}
+            onChange={(e) => setModelOpacity(parseFloat(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
       </div>
 
       {/* Selected keypoint info */}
