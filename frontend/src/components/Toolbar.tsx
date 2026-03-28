@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
+import { runIk } from "../ikRunner";
 
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
@@ -106,58 +107,8 @@ export default function Toolbar() {
   }, [setIkStatus]);
 
   const runIkOnFrames = useCallback(async (frameIndices: number[], maxIterations = 200) => {
-    const state = useStore.getState();
-    if (!state.acmPositions || !state.xmlPath) {
-      setIkStatus("Load XML and ACM data first.");
-      return;
-    }
-    const pairs: Record<string, string> = {};
-    for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
-    const offsetMap: Record<string, [number, number, number]> = {};
-    for (const o of state.offsets) offsetMap[o.keypointName] = [o.x, o.y, o.z];
-
-    // Use adjustedPositions (skeleton editor output) first, then aligned, then raw
-    const positions = state.adjustedPositions ?? state.alignedPositions ?? state.acmPositions;
-    const result = await api.runQuickStac({
-      positions: Array.from(positions),
-      numFrames: state.acmNumFrames,
-      numKeypoints: state.acmNumKeypoints,
-      keypointNames: state.acmKeypointNames,
-      xmlPath: state.xmlPath,
-      frameIndices,
-      mappings: pairs,
-      offsets: offsetMap,
-      scaleFactor: state.scaleFactor,
-      mocapScaleFactor: state.mocapScaleFactor,
-      maxIterations,
-    });
-    if (result.error) { setIkStatus("IK error: " + result.error); return; }
-
-    // Store results
-    state.setStacResults(result.qpos, result.frameIndices, result.bodyTransforms);
-
-    // Immediately apply body transforms for the current frame (or first result frame)
-    if (result.bodyTransforms && result.bodyTransforms.length > 0) {
-      const currentFrame = state.currentFrame;
-      const stacIdx = result.frameIndices
-        ? result.frameIndices.indexOf(currentFrame)
-        : -1;
-      if (stacIdx >= 0 && stacIdx < result.bodyTransforms.length) {
-        setBodyTransforms(result.bodyTransforms[stacIdx]);
-      } else {
-        setBodyTransforms(result.bodyTransforms[0]);
-      }
-    } else if (result.qpos.length > 0) {
-      const transforms = await api.bodyTransforms(result.qpos[0]);
-      setBodyTransforms(transforms);
-    }
-
-    // Show inline status with error info
-    const meanError = result.errors && result.errors.length > 0
-      ? (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1)
-      : "N/A";
-    setIkStatus("IK done: " + result.qpos.length + " frames, mean error " + meanError + "mm");
-  }, [setBodyTransforms, setIkStatus]);
+    await runIk(frameIndices, maxIterations);
+  }, []);
 
   const handleRunIk = useCallback(async () => {
     const state = useStore.getState();

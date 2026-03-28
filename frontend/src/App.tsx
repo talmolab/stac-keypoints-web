@@ -6,6 +6,7 @@ import PropertiesPanel from "./components/PropertiesPanel";
 import Toolbar from "./components/Toolbar";
 import { useStore } from "./store";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { useAutoIk } from "./hooks/useAutoIk";
 import * as api from "./api";
 
 const DEFAULT_XML_PATH = "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml";
@@ -14,6 +15,7 @@ const DEFAULT_ACM_TRIALS = 3;
 
 export default function App() {
   useKeyboardShortcuts();
+  useAutoIk();
   const hasAutoLoaded = useRef(false);
 
   useEffect(() => {

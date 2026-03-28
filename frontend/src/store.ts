@@ -73,6 +73,9 @@ interface AppState {
   // IK status message (inline, replaces alert popups)
   ikStatus: string | null;
 
+  // Auto IK toggle
+  autoIk: boolean;
+
   // Hover tooltip
   hoveredName: string | null;
   hoveredPosition: [number, number, number] | null;
@@ -100,6 +103,7 @@ interface AppState {
   setModelScale: (scale: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
+  setAutoIk: (enabled: boolean) => void;
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setIkStatus: (status: string | null) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
@@ -148,6 +152,7 @@ export const useStore = create<AppState>((set) => ({
   segmentScales: {},
   adjustedPositions: null,
   ikStatus: null,
+  autoIk: false,
   hoveredName: null,
   hoveredPosition: null,
   followCamera: false,
@@ -203,6 +208,7 @@ export const useStore = create<AppState>((set) => ({
     );
     return { segmentScales: newScales, adjustedPositions: adjusted };
   }),
+  setAutoIk: (enabled) => set({ autoIk: enabled }),
   setHover: (name, position) => set({ hoveredName: name, hoveredPosition: position || null }),
   setIkStatus: (status) => set({ ikStatus: status }),
   setStacResults: (qpos, frameIndices, bodyTransforms) => set({

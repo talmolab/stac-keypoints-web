@@ -22,6 +22,8 @@ export default function PropertiesPanel() {
   const setSegmentScale = useStore((s) => s.setSegmentScale);
   const followCamera = useStore((s) => s.followCamera);
   const setFollowCamera = useStore((s) => s.setFollowCamera);
+  const autoIk = useStore((s) => s.autoIk);
+  const setAutoIk = useStore((s) => s.setAutoIk);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -55,11 +57,17 @@ export default function PropertiesPanel() {
         )}
       </div>
 
-      {/* Follow camera toggle */}
-      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer" }}>
-        <input type="checkbox" checked={followCamera} onChange={(e) => setFollowCamera(e.target.checked)} />
-        Follow Rodent
-      </label>
+      {/* Toggle options */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={followCamera} onChange={(e) => setFollowCamera(e.target.checked)} />
+          Follow Rodent
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: autoIk ? "#8f8" : "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={autoIk} onChange={(e) => setAutoIk(e.target.checked)} />
+          Auto IK <span style={{ fontSize: 10, color: "#666" }}>(live on changes)</span>
+        </label>
+      </div>
 
       {/* Selected keypoint info */}
       {selectedKp && (
