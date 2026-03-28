@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import type {
   KPMapping,
   KPOffset,
@@ -122,7 +123,7 @@ interface AppState {
   }) => void;
 }
 
-export const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>()(persist((set) => ({
   xmlPath: null,
   geoms: [],
   bodyNames: [],
@@ -236,4 +237,41 @@ export const useStore = create<AppState>((set) => ({
     scaleFactor: config.scaleFactor,
     mocapScaleFactor: config.mocapScaleFactor,
   }),
+}), {
+  name: "stac-retarget-ui-state",
+  storage: createJSONStorage(() => localStorage),
+  // Only persist settings that should survive refresh — NOT transient state
+  partialize: (state) => ({
+    // User's work
+    mappings: state.mappings,
+    offsets: state.offsets,
+    segmentScales: state.segmentScales,
+    // Model transform
+    modelRotationY: state.modelRotationY,
+    modelPosition: state.modelPosition,
+    modelScale: state.modelScale,
+    modelOpacity: state.modelOpacity,
+    // Preferences
+    showGlobalControls: state.showGlobalControls,
+    autoIk: state.autoIk,
+    followCamera: state.followCamera,
+    mode: state.mode,
+    // Scale factors
+    scaleFactor: state.scaleFactor,
+    mocapScaleFactor: state.mocapScaleFactor,
+    // Current frame position
+    currentFrame: state.currentFrame,
+    // Labeled frames (convert Set to array for JSON)
+    labeledFrames: Array.from(state.labeledFrames) as unknown as Set<number>,
+    frameStatuses: state.frameStatuses,
+  }),
+  // Handle Set<number> deserialization
+  merge: (persisted: any, current: AppState) => {
+    const merged = { ...current, ...(persisted as Partial<AppState>) };
+    // Restore Set from array
+    if (persisted && Array.isArray((persisted as any).labeledFrames)) {
+      merged.labeledFrames = new Set((persisted as any).labeledFrames);
+    }
+    return merged;
+  },
 }));
