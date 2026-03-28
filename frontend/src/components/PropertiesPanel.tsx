@@ -12,6 +12,8 @@ export default function PropertiesPanel() {
   const setSpineBlend = useStore((s) => s.setSpineBlend);
   const mode = useStore((s) => s.mode);
   const setMode = useStore((s) => s.setMode);
+  const modelRotationY = useStore((s) => s.modelRotationY);
+  const setModelRotationY = useStore((s) => s.setModelRotationY);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -80,6 +82,16 @@ export default function PropertiesPanel() {
           />
         </div>
         <div style={{ fontSize: 12, color: "#666" }}>Scale: {scaleFactor}</div>
+        <div style={{ marginTop: 8 }}>
+          <label style={{ fontSize: 12, color: "#888" }}>
+            Model Rotation: {Math.round(modelRotationY * 180 / Math.PI)}deg
+          </label>
+          <input type="range" min={0} max={360} step={1}
+            value={Math.round(modelRotationY * 180 / Math.PI)}
+            onChange={(e) => setModelRotationY(parseFloat(e.target.value) * Math.PI / 180)}
+            style={{ width: "100%" }}
+          />
+        </div>
       </div>
     </div>
   );

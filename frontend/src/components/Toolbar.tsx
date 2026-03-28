@@ -130,10 +130,20 @@ export default function Toolbar() {
       mocapScaleFactor: state.mocapScaleFactor,
     });
     if (result.error) { alert(result.error); return; }
-    state.setStacResults(result.qpos);
+    state.setStacResults(result.qpos, result.frameIndices, result.bodyTransforms);
+
+    // Update 3D view with body transforms from the first frame
+    if (result.bodyTransforms && result.bodyTransforms.length > 0) {
+      setBodyTransforms(result.bodyTransforms[0]);
+    } else if (result.qpos.length > 0) {
+      // Fallback: compute body transforms from the first qpos via the API
+      const transforms = await api.bodyTransforms(result.qpos[0]);
+      setBodyTransforms(transforms);
+    }
+
     alert("Quick STAC done on " + result.qpos.length + " frames. Mean error: " +
       (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1) + "mm");
-  }, []);
+  }, [setBodyTransforms]);
 
   return (
     <>

@@ -49,8 +49,13 @@ interface AppState {
 
   // STAC
   stacQpos: number[][] | null;
+  stacFrameIndices: number[] | null;
+  stacBodyTransforms: BodyTransform[][] | null;
   stacRunning: boolean;
   stacProgress: number;
+
+  // Model rotation (Y-axis in Three.js = yaw)
+  modelRotationY: number;
 
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string }) => void;
@@ -67,7 +72,8 @@ interface AppState {
   togglePlay: () => void;
   labelCurrentFrame: () => void;
   setBodyTransforms: (transforms: BodyTransform[]) => void;
-  setStacResults: (qpos: number[][]) => void;
+  setModelRotationY: (radians: number) => void;
+  setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
     keypointInitialOffsets: Record<string, [number, number, number]>;
@@ -104,8 +110,11 @@ export const useStore = create<AppState>((set) => ({
   frameStatuses: [],
   labeledFrames: new Set(),
   stacQpos: null,
+  stacFrameIndices: null,
+  stacBodyTransforms: null,
   stacRunning: false,
   stacProgress: 0,
+  modelRotationY: 0,
 
   setXmlData: (data) => set({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath }),
   setAcmData: (data) => set({
@@ -142,7 +151,14 @@ export const useStore = create<AppState>((set) => ({
     return { frameStatuses: newStatuses as FrameStatus[], labeledFrames: newLabeled };
   }),
   setBodyTransforms: (transforms) => set({ bodyTransforms: transforms }),
-  setStacResults: (qpos) => set({ stacQpos: qpos, stacRunning: false, stacProgress: 1.0 }),
+  setModelRotationY: (radians) => set({ modelRotationY: radians }),
+  setStacResults: (qpos, frameIndices, bodyTransforms) => set({
+    stacQpos: qpos,
+    stacFrameIndices: frameIndices || null,
+    stacBodyTransforms: bodyTransforms || null,
+    stacRunning: false,
+    stacProgress: 1.0,
+  }),
   loadConfig: (config) => set({
     mappings: Object.entries(config.keypointModelPairs).map(([kp, body]) => ({ keypointName: kp, bodyName: body })),
     offsets: Object.entries(config.keypointInitialOffsets).map(([kp, [x, y, z]]) => ({ keypointName: kp, x, y, z })),

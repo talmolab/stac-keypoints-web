@@ -14,6 +14,7 @@ export default function MuJoCoModel() {
   const addMapping = useStore((s) => s.addMapping);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const storeBodyNames = useStore((s) => s.bodyNames);
+  const modelRotationY = useStore((s) => s.modelRotationY);
   const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
 
   // Group geoms by bodyId
@@ -44,7 +45,7 @@ export default function MuJoCoModel() {
   }, [bodyTransforms]);
 
   return (
-    <group>
+    <group rotation={[0, modelRotationY, 0]}>
       {bodyGroups.map(({ bodyId, geoms: bodyGeoms }) => (
         <group
           key={bodyId}

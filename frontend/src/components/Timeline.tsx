@@ -12,6 +12,33 @@ export default function Timeline() {
   const labelCurrentFrame = useStore((s) => s.labelCurrentFrame);
   const acmPositions = useStore((s) => s.acmPositions);
   const acmNumKeypoints = useStore((s) => s.acmNumKeypoints);
+  const stacFrameIndices = useStore((s) => s.stacFrameIndices);
+  const stacBodyTransforms = useStore((s) => s.stacBodyTransforms);
+  const stacQpos = useStore((s) => s.stacQpos);
+  const setBodyTransforms = useStore((s) => s.setBodyTransforms);
+
+  // When current frame changes and we have STAC results, update body transforms
+  useEffect(() => {
+    if (!stacFrameIndices || !stacBodyTransforms) return;
+    const stacIdx = stacFrameIndices.indexOf(currentFrame);
+    if (stacIdx >= 0 && stacIdx < stacBodyTransforms.length) {
+      setBodyTransforms(stacBodyTransforms[stacIdx]);
+    } else if (stacQpos && stacQpos.length > 0) {
+      // Find nearest labeled frame and use its transforms
+      let nearest = 0;
+      let minDist = Infinity;
+      for (let i = 0; i < stacFrameIndices.length; i++) {
+        const dist = Math.abs(stacFrameIndices[i] - currentFrame);
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = i;
+        }
+      }
+      if (nearest < stacBodyTransforms.length) {
+        setBodyTransforms(stacBodyTransforms[nearest]);
+      }
+    }
+  }, [currentFrame, stacFrameIndices, stacBodyTransforms, stacQpos, setBodyTransforms]);
 
   const animRef = useRef<number>(0);
   useEffect(() => {
