@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
+import { setApiBase, getCurrentApiBase } from "../api";
 import { runIk } from "../ikRunner";
 
 export default function Toolbar() {
@@ -153,6 +154,11 @@ export default function Toolbar() {
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
       <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
       <button style={btnStyle} onClick={handleExport}>Export</button>
+      <button style={{...btnStyle, fontSize: 10, padding: "6px 8px", color: "#777"}} onClick={() => {
+        const current = getCurrentApiBase() || "(same origin)";
+        const url = prompt(`Backend API URL (current: ${current}).\nLeave empty for same-origin (dev mode):`, getCurrentApiBase());
+        if (url !== null) setApiBase(url);
+      }}>API</button>
       {ikStatus && (
         <span
           style={statusStyle}

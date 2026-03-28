@@ -19,7 +19,11 @@ app = FastAPI(title="STAC Retarget UI")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:4173",  # vite preview
+        "https://talmolab.github.io",  # GitHub Pages
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )

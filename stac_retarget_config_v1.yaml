@@ -1,0 +1,81 @@
+model:
+  MJCF_PATH: /home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml
+  SCALE_FACTOR: 0.9
+  MOCAP_SCALE_FACTOR: 0.01
+  KP_NAMES:
+  - Snout
+  - SpineF
+  - SpineM
+  - SpineL
+  - TailBase
+  - ShoulderL
+  - ElbowL
+  - WristL
+  - HandL
+  - ShoulderR
+  - ElbowR
+  - WristR
+  - HandR
+  - HipL
+  - KneeL
+  - AnkleL
+  - FootL
+  - HipR
+  - KneeR
+  - AnkleR
+  - FootR
+  KEYPOINT_MODEL_PAIRS:
+    SpineF: vertebra_cervical_5
+    SpineM: torso
+    SpineL: pelvis
+    TailBase: vertebra_C1
+    ShoulderR: upper_arm_R
+    ElbowR: lower_arm_R
+    WristR: hand_R
+    HandR: finger_R
+    HipL: upper_leg_L
+    KneeL: lower_leg_L
+    AnkleL: foot_L
+    FootL: toe_L
+    HipR: upper_leg_R
+    KneeR: lower_leg_R
+    AnkleR: foot_R
+    FootR: toe_R
+    Snout: skull
+    ShoulderL: upper_arm_L
+    WristL: lower_arm_L
+    HandL: finger_L
+    ElbowL: upper_arm_L
+  KEYPOINT_INITIAL_OFFSETS:
+    SpineF: 0 0 -0.012
+    SpineM: 0 0 0
+    SpineL: 0 0 -0.017
+    TailBase: 0 0 0
+    ShoulderR: 0 0 0
+    ElbowR: 0 0 0
+    WristR: 0 0 0
+    HandR: 0 0 0
+    HipL: 0 0 0
+    HipR: 0 0 0
+    KneeL: 0 0 0
+    KneeR: 0 0 0
+    AnkleL: 0 0 0
+    AnkleR: 0 0 0
+    FootL: 0 0 0
+    FootR: 0 0 0
+    Snout: 0.02106393700214504 -0.0009145983257630927 -0.023814398267832715
+    ShoulderL: 0.0010792526814315806 0.006368629808869694 0.005466286022708267
+    WristL: 0.031168974471848535 0.004759931641214616 -0.005857162426697843
+    HandL: 0.0033109341650523205 0.003572901694952422 0.004030272198443263
+    ElbowL: 0.002923163515410984 0.024715501615361304 -0.02382641815645184
+skeleton_editor:
+  segment_scales:
+    "SpineL\u2192SpineM": 0.71
+    "SpineM\u2192SpineF": 0.55
+    "SpineF\u2192Snout": 0.3
+    "SpineL\u2192TailBase": 0.3
+    "SpineL\u2192HipL": 0.77
+    "SpineL\u2192HipR": 0.79
+    "WristL\u2192HandL": 0.42
+    "ElbowL\u2192WristL": 0.61
+    "ShoulderL\u2192ElbowL": 0.42

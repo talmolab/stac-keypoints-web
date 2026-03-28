@@ -1,4 +1,32 @@
-const BASE = "";
+/**
+ * API base URL. In dev mode (Vite proxy), this is empty.
+ * When deployed to GitHub Pages, set via localStorage or URL param
+ * to point to the local backend (e.g., "http://localhost:8000").
+ */
+function getApiBase(): string {
+  // Check URL param first: ?api=http://localhost:8000
+  const params = new URLSearchParams(window.location.search);
+  const urlParam = params.get("api");
+  if (urlParam) return urlParam;
+  // Check localStorage
+  const stored = localStorage.getItem("stac-retarget-api-base");
+  if (stored) return stored;
+  // Default: same origin (works with Vite proxy in dev)
+  return "";
+}
+
+const BASE = getApiBase();
+
+/** Update the API base URL and reload. */
+export function setApiBase(url: string) {
+  localStorage.setItem("stac-retarget-api-base", url);
+  window.location.reload();
+}
+
+/** Get current API base URL. */
+export function getCurrentApiBase(): string {
+  return BASE;
+}
 
 export async function loadXml(path: string) {
   const resp = await fetch(`${BASE}/api/load-xml?path=${encodeURIComponent(path)}`, { method: "POST" });
