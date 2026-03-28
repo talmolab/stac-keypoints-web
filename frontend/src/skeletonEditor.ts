@@ -27,8 +27,8 @@ export const RETARGET_TREE: Bone[] = [
   { parent: "AnkleR", child: "FootR" },
 ];
 
-/** Spine/branching segments (the ones user typically wants to adjust) */
-export const SPINE_SEGMENTS = new Set([
+/** Primary segments (spine/branching — shown by default) */
+export const PRIMARY_SEGMENTS = new Set([
   "SpineL\u2192SpineM",
   "SpineM\u2192SpineF",
   "SpineF\u2192Snout",

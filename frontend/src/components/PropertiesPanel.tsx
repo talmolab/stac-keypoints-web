@@ -1,7 +1,7 @@
 import React from "react";
 import { useStore } from "../store";
 import type { InteractionMode } from "../types";
-import { SPINE_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
+import { PRIMARY_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
 
 export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -161,14 +161,15 @@ export default function PropertiesPanel() {
         <div style={{ fontSize: 11, color: "#77aaff", marginBottom: 6 }}>
           Adjust segment lengths. Downstream keypoints propagate.
         </div>
-        {RETARGET_TREE.filter((b) => SPINE_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
+        {/* Primary segments (spine/branching) — always visible */}
+        {RETARGET_TREE.filter((b) => PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
           const key = segmentKey(bone.parent, bone.child);
           const value = segmentScales[key] ?? 1.0;
           const isModified = Math.abs(value - 1.0) > 0.01;
           return (
             <div
               key={key}
-              style={{ marginBottom: 4, padding: "2px 4px", borderRadius: 3, background: "transparent" }}
+              style={{ marginBottom: 2, padding: "2px 4px", borderRadius: 3 }}
               onMouseEnter={() => setHoveredSegment(key)}
               onMouseLeave={() => setHoveredSegment(null)}
             >
@@ -183,6 +184,34 @@ export default function PropertiesPanel() {
             </div>
           );
         })}
+        {/* Fine-tune: limb segments — collapsible */}
+        <details style={{ marginTop: 4 }}>
+          <summary style={{ cursor: "pointer", color: "#777", fontSize: 11 }}>Fine-tune limb segments</summary>
+          <div style={{ marginTop: 4 }}>
+            {RETARGET_TREE.filter((b) => !PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
+              const key = segmentKey(bone.parent, bone.child);
+              const value = segmentScales[key] ?? 1.0;
+              const isModified = Math.abs(value - 1.0) > 0.01;
+              return (
+                <div
+                  key={key}
+                  style={{ marginBottom: 2, padding: "2px 4px", borderRadius: 3 }}
+                  onMouseEnter={() => setHoveredSegment(key)}
+                  onMouseLeave={() => setHoveredSegment(null)}
+                >
+                  <label style={{ fontSize: 10, color: isModified ? "#ffaa00" : "#777" }}>
+                    {bone.parent} {"\u2192"} {bone.child}: {value.toFixed(2)}x
+                  </label>
+                  <input type="range" min={0.3} max={2.0} step={0.01}
+                    value={value}
+                    onChange={(e) => setSegmentScale(key, parseFloat(e.target.value))}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </details>
       </div>
 
       {/* Keyboard shortcuts reference */}

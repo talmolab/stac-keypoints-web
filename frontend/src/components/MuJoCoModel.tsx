@@ -102,9 +102,7 @@ export default function MuJoCoModel() {
                   }}
                   onPointerOver={(e) => {
                     e.stopPropagation();
-                    const bodyName = storeBodyNames[bodyId] || "";
                     setHoveredBody(bodyId);
-                    if (e.point) setHover(`Body: ${bodyName}`, [e.point.x, e.point.y, e.point.z]);
                   }}
                   onPointerOut={() => { setHoveredBody(null); setHover(null); }}
                 >
@@ -128,8 +126,19 @@ export default function MuJoCoModel() {
                       return null;
                     })();
 
+                    const geomLabel = `${storeBodyNames[bodyId] || "?"} [${geom.type}${bodyGeoms.length > 1 ? " #" + i : ""}]`;
                     return (
-                      <mesh key={i} geometry={geometry} position={localPos} quaternion={localQuat}>
+                      <mesh
+                        key={i}
+                        geometry={geometry}
+                        position={localPos}
+                        quaternion={localQuat}
+                        onPointerOver={(e) => {
+                          e.stopPropagation();
+                          if (e.point) setHover(geomLabel, [e.point.x, e.point.y, e.point.z]);
+                        }}
+                        onPointerOut={(e) => { e.stopPropagation(); setHover(null); }}
+                      >
                         <meshStandardMaterial
                           color={new THREE.Color(geom.color[0], geom.color[1], geom.color[2])}
                           opacity={opacity}
