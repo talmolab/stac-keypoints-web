@@ -99,7 +99,7 @@ export default function Toolbar() {
       const [x, y, z] = data.offsets[i];
       updateOffset(name, x, y, z);
     }
-    alert("Loaded " + data.kpNames.length + " learned offsets from STAC output");
+    alert("Loaded " + data.kpNames.length + " learned offsets from IK output");
   }, []);
 
   const runStacOnFrames = useCallback(async (frameIndices: number[]) => {
@@ -136,7 +136,7 @@ export default function Toolbar() {
       setBodyTransforms(transforms);
     }
 
-    alert("Quick STAC done on " + result.qpos.length + " frames. Mean error: " +
+    alert("IK done on " + result.qpos.length + " frames. Mean error: " +
       (result.errors.reduce((a: number, b: number) => a + b, 0) / result.errors.length * 1000).toFixed(1) + "mm");
   }, [setBodyTransforms]);
 
@@ -159,8 +159,8 @@ export default function Toolbar() {
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
       <button style={btnStyle} onClick={handleAlign}>Align</button>
       <button style={btnStyle} onClick={handleLoadStacOutput}>Load STAC H5</button>
-      <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunStac}>Run STAC</button>
-      <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunStacFrame}>STAC Frame</button>
+      <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunStac}>Run IK</button>
+      <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunStacFrame}>IK Frame</button>
       <button style={btnStyle} onClick={handleExport}>Export</button>
     </>
   );

@@ -21,6 +21,7 @@ export default function MuJoCoModel() {
   const modelPosition = useStore((s) => s.modelPosition);
   const modelScale = useStore((s) => s.modelScale);
   const setHover = useStore((s) => s.setHover);
+  const mappings = useStore((s) => s.mappings);
   const [hoveredBody, setHoveredBody] = React.useState<number | null>(null);
 
   // In offset mode, make bodies semi-transparent so keypoints are visible
@@ -114,6 +115,18 @@ export default function MuJoCoModel() {
                     // Semi-transparent in offset mode
                     const baseOpacity = geom.color[3];
                     const opacity = isOffsetMode ? Math.min(baseOpacity, 0.3) : baseOpacity;
+
+                    const isHighlighted = (() => {
+                      // Highlight if hovered in mapping mode
+                      if (hoveredBody === bodyId && mode === "mapping" && selectedKp) return "hover";
+                      // Highlight if this body is the target of the selected keypoint's mapping
+                      if (selectedKp) {
+                        const mapping = mappings.find((m) => m.keypointName === selectedKp);
+                        if (mapping && storeBodyNames[bodyId] === mapping.bodyName) return "selected";
+                      }
+                      return null;
+                    })();
+
                     return (
                       <mesh key={i} geometry={geometry} position={localPos} quaternion={localQuat}>
                         <meshStandardMaterial
@@ -122,8 +135,8 @@ export default function MuJoCoModel() {
                           transparent={true}
                           depthWrite={!isOffsetMode}
                           roughness={0.7}
-                          emissive={hoveredBody === bodyId && mode === "mapping" && selectedKp ? "#444400" : "#000000"}
-                          emissiveIntensity={hoveredBody === bodyId ? 0.5 : 0}
+                          emissive={isHighlighted === "hover" ? "#444400" : isHighlighted === "selected" ? "#004400" : "#000000"}
+                          emissiveIntensity={isHighlighted ? 0.6 : 0}
                         />
                       </mesh>
                     );

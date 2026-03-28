@@ -5,8 +5,10 @@ import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import ModelGizmo from "./ModelGizmo";
 import HoverTooltip from "./HoverTooltip";
+import { useStore } from "../store";
 
 export default function Viewport3D() {
+  const showGlobalControls = useStore((s) => s.showGlobalControls);
   return (
     <Canvas
       camera={{ position: [0.5, 0.3, 0.5], fov: 45, near: 0.001, far: 100 }}
@@ -18,7 +20,7 @@ export default function Viewport3D() {
       <Suspense fallback={null}>
         <MuJoCoModel />
         <ACMSkeleton />
-        <ModelGizmo />
+        {showGlobalControls && <ModelGizmo />}
         <HoverTooltip />
       </Suspense>
       <Grid

@@ -17,7 +17,7 @@ const KP_COLORS: Record<string, string> = {
 export default function ACMSkeleton() {
   const kpNames = useStore((s) => s.acmKeypointNames);
   const bones = useStore((s) => s.acmBones);
-  const positions = useStore((s) => s.alignedPositions ?? s.acmPositions);
+  const positions = useStore((s) => s.adjustedPositions ?? s.alignedPositions ?? s.acmPositions);
   const numKp = useStore((s) => s.acmNumKeypoints);
   const currentFrame = useStore((s) => s.currentFrame);
   const mocapScale = useStore((s) => s.mocapScaleFactor);

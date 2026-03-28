@@ -8,6 +8,7 @@ import type {
   GeomData,
   BodyTransform,
 } from "./types";
+import { adjustAllFrames } from "./skeletonEditor";
 
 interface AppState {
   // MuJoCo model
@@ -62,6 +63,13 @@ interface AppState {
   // Model scale (uniform)
   modelScale: number;
 
+  // Global controls visibility
+  showGlobalControls: boolean;
+
+  // Segment scales (skeleton editor)
+  segmentScales: Record<string, number>;
+  adjustedPositions: Float32Array | null;
+
   // Hover tooltip
   hoveredName: string | null;
   hoveredPosition: [number, number, number] | null;
@@ -83,6 +91,8 @@ interface AppState {
   setModelRotationY: (radians: number) => void;
   setModelPosition: (pos: [number, number, number]) => void;
   setModelScale: (scale: number) => void;
+  setShowGlobalControls: (show: boolean) => void;
+  setSegmentScale: (key: string, value: number) => void;
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
   loadConfig: (config: {
@@ -126,6 +136,9 @@ export const useStore = create<AppState>((set) => ({
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
+  showGlobalControls: true,
+  segmentScales: {},
+  adjustedPositions: null,
   hoveredName: null,
   hoveredPosition: null,
 
@@ -166,6 +179,19 @@ export const useStore = create<AppState>((set) => ({
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
   setModelScale: (scale) => set({ modelScale: scale }),
+  setShowGlobalControls: (show) => set({ showGlobalControls: show }),
+  setSegmentScale: (key, value) => set((state) => {
+    const newScales = { ...state.segmentScales, [key]: value };
+    const source = state.alignedPositions ?? state.acmPositions;
+    if (!source || state.acmNumKeypoints === 0) return { segmentScales: newScales };
+    const hasNonDefault = Object.values(newScales).some((v) => Math.abs(v - 1.0) > 0.001);
+    if (!hasNonDefault) return { segmentScales: newScales, adjustedPositions: null };
+    const adjusted = adjustAllFrames(
+      source, state.acmNumFrames, state.acmNumKeypoints,
+      state.acmKeypointNames, newScales,
+    );
+    return { segmentScales: newScales, adjustedPositions: adjusted };
+  }),
   setHover: (name, position) => set({ hoveredName: name, hoveredPosition: position || null }),
   setStacResults: (qpos, frameIndices, bodyTransforms) => set({
     stacQpos: qpos,

@@ -1,6 +1,7 @@
 import React from "react";
 import { useStore } from "../store";
 import type { InteractionMode } from "../types";
+import { SPINE_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
 
 export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -15,6 +16,10 @@ export default function PropertiesPanel() {
   const setModelPosition = useStore((s) => s.setModelPosition);
   const modelScale = useStore((s) => s.modelScale);
   const setModelScale = useStore((s) => s.setModelScale);
+  const showGlobalControls = useStore((s) => s.showGlobalControls);
+  const setShowGlobalControls = useStore((s) => s.setShowGlobalControls);
+  const segmentScales = useStore((s) => s.segmentScales);
+  const setSegmentScale = useStore((s) => s.setSegmentScale);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -86,54 +91,91 @@ export default function PropertiesPanel() {
         </div>
       )}
 
-      {/* Model transform controls */}
-      <div style={{ marginTop: "auto" }}>
-        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Model Transform</h3>
-
-        {/* Scale */}
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 12, color: "#888" }}>
-            Scale: {modelScale.toFixed(2)}x
-          </label>
-          <input type="range" min={0.5} max={2.0} step={0.01}
-            value={modelScale}
-            onChange={(e) => setModelScale(parseFloat(e.target.value))}
-            style={{ width: "100%" }}
-          />
+      {/* Skeleton Editor */}
+      <div>
+        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>Skeleton Editor</h3>
+        <div style={{ fontSize: 11, color: "#77aaff", marginBottom: 6 }}>
+          Adjust segment lengths. Downstream keypoints propagate.
         </div>
-
-        {/* Rotation */}
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ fontSize: 12, color: "#888" }}>
-            Rotation: {Math.round(modelRotationY * 180 / Math.PI)}°
-          </label>
-          <input type="range" min={0} max={360} step={1}
-            value={Math.round(modelRotationY * 180 / Math.PI)}
-            onChange={(e) => setModelRotationY(parseFloat(e.target.value) * Math.PI / 180)}
-            style={{ width: "100%" }}
-          />
-        </div>
-
-        {/* Position */}
-        <div>
-          <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Position:</div>
-          {(["x", "y", "z"] as const).map((axis, i) => (
-            <div key={axis} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <label style={{ color: "#888", fontSize: 12, width: 12 }}>{axis.toUpperCase()}</label>
-              <input
-                type="number" step={0.01}
-                value={modelPosition[i]}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  const newPos: [number, number, number] = [...modelPosition];
-                  newPos[i] = val;
-                  setModelPosition(newPos);
-                }}
-                style={inputStyle}
+        {RETARGET_TREE.filter((b) => SPINE_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
+          const key = segmentKey(bone.parent, bone.child);
+          const value = segmentScales[key] ?? 1.0;
+          return (
+            <div key={key} style={{ marginBottom: 4 }}>
+              <label style={{ fontSize: 11, color: "#888" }}>
+                {bone.parent} {"\u2192"} {bone.child}: {value.toFixed(2)}x
+              </label>
+              <input type="range" min={0.3} max={2.0} step={0.01}
+                value={value}
+                onChange={(e) => setSegmentScale(key, parseFloat(e.target.value))}
+                style={{ width: "100%" }}
               />
             </div>
-          ))}
-        </div>
+          );
+        })}
+      </div>
+
+      {/* Model transform controls */}
+      <div style={{ marginTop: "auto" }}>
+        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={showGlobalControls}
+              onChange={(e) => setShowGlobalControls(e.target.checked)}
+            />
+            Show Global Controls
+          </label>
+        </h3>
+
+        {showGlobalControls && (
+          <>
+            {/* Scale */}
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontSize: 12, color: "#888" }}>
+                Scale: {modelScale.toFixed(2)}x
+              </label>
+              <input type="range" min={0.5} max={2.0} step={0.01}
+                value={modelScale}
+                onChange={(e) => setModelScale(parseFloat(e.target.value))}
+                style={{ width: "100%" }}
+              />
+            </div>
+
+            {/* Rotation */}
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ fontSize: 12, color: "#888" }}>
+                Rotation: {Math.round(modelRotationY * 180 / Math.PI)}°
+              </label>
+              <input type="range" min={0} max={360} step={1}
+                value={Math.round(modelRotationY * 180 / Math.PI)}
+                onChange={(e) => setModelRotationY(parseFloat(e.target.value) * Math.PI / 180)}
+                style={{ width: "100%" }}
+              />
+            </div>
+
+            {/* Position */}
+            <div>
+              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Position:</div>
+              {(["x", "y", "z"] as const).map((axis, i) => (
+                <div key={axis} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <label style={{ color: "#888", fontSize: 12, width: 12 }}>{axis.toUpperCase()}</label>
+                  <input
+                    type="number" step={0.01}
+                    value={modelPosition[i]}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0;
+                      const newPos: [number, number, number] = [...modelPosition];
+                      newPos[i] = val;
+                      setModelPosition(newPos);
+                    }}
+                    style={inputStyle}
+                  />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
