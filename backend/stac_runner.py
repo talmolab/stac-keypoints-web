@@ -55,7 +55,7 @@ def _jacobian_ik(
     -------
     qpos copy after IK.
     """
-    nq = model.nq
+    nv = model.nv
 
     # Resolve body IDs and active keypoint indices once
     active: list[tuple[int, int, np.ndarray]] = []  # (kp_idx, body_id, offset)
@@ -80,7 +80,7 @@ def _jacobian_ik(
         mujoco.mj_forward(model, data)
 
         total_error = 0.0
-        grad = np.zeros(nq)
+        grad_nv = np.zeros(nv)
 
         for kp_idx, body_id, off in active:
             target = target_positions[kp_idx]
@@ -88,12 +88,12 @@ def _jacobian_ik(
             error = target - current
             total_error += np.linalg.norm(error)
 
-            # Positional Jacobian for this body
-            jacp = np.zeros((3, nq))
+            # Positional Jacobian for this body: shape (3, nv)
+            jacp = np.zeros((3, nv))
             mujoco.mj_jacBody(model, data, jacp, None, body_id)
 
-            # Accumulate gradient: J^T @ error
-            grad += jacp.T @ error
+            # Accumulate gradient in velocity space: J^T @ error
+            grad_nv += jacp.T @ error
 
         # Track best solution
         if total_error < best_error:
@@ -104,8 +104,10 @@ def _jacobian_ik(
         if total_error / len(active) < 0.001:
             break
 
-        # Only update joint DOFs (skip root position [0:3] and quaternion [3:7])
-        joint_grad = grad[7:]
+        # Only update joint DOFs: skip freejoint 6 DOFs in vel space (indices 0:6),
+        # which correspond to qpos[0:7] (3 pos + 4 quat).
+        # Joint angles qpos[7:] map 1:1 to qvel[6:].
+        joint_grad = grad_nv[6:]
         grad_norm = np.linalg.norm(joint_grad)
         if grad_norm > 1e-10:
             data.qpos[7:] += step * joint_grad / (grad_norm + damping)
@@ -222,7 +224,7 @@ def run_quick_stac(
             # Convert rotation to quaternion
             quat = _rotation_matrix_to_quat(R)
 
-            # Set root position and quaternion
+            # Set root position and quaternion from Procrustes alignment
             data.qpos[0:3] = t
             data.qpos[3:7] = quat
         else:
@@ -276,9 +278,19 @@ def run_quick_stac(
         all_errors.append(mean_error)
         all_body_transforms.append(frame_transforms)
 
+    # Compute model center from last frame body positions (for frontend positioning)
+    model_center = [0.0, 0.0, 0.0]
+    if all_body_transforms:
+        last_frame = all_body_transforms[-1]
+        if last_frame:
+            positions_arr = np.array([bt["position"] for bt in last_frame])
+            center = positions_arr.mean(axis=0)
+            model_center = center.tolist()
+
     return {
         "qpos": all_qpos,
         "errors": all_errors,
         "frameIndices": frame_indices[:len(all_qpos)],
         "bodyTransforms": all_body_transforms,
+        "modelCenter": model_center,
     }

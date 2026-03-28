@@ -1,6 +1,6 @@
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import MuJoCoModel from "./MuJoCoModel";
 import ACMSkeleton from "./ACMSkeleton";
 import OffsetMarkers from "./OffsetMarkers";
@@ -21,13 +21,11 @@ export default function Viewport3D() {
         <OffsetMarkers />
         <OffsetGizmo />
       </Suspense>
-      <Grid
-        args={[10, 10]}
-        cellSize={0.05}
-        sectionSize={0.25}
-        fadeDistance={5}
-        position={[0, 0, 0]}
-      />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
+        <planeGeometry args={[2, 2]} />
+        <meshStandardMaterial color="#8b7355" roughness={0.9} metalness={0.0} />
+      </mesh>
+      <gridHelper args={[2, 20, "#666655", "#555544"]} position={[0, 0, 0]} />
       <OrbitControls makeDefault />
     </Canvas>
   );

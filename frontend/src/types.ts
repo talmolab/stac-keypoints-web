@@ -47,5 +47,4 @@ export interface STACConfig {
   keypointInitialOffsets: Record<string, [number, number, number]>;
   scaleFactor: number;
   mocapScaleFactor: number;
-  spineBlend: number;
 }

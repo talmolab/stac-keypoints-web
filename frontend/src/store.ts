@@ -34,7 +34,6 @@ interface AppState {
   offsets: KPOffset[];
   scaleFactor: number;
   mocapScaleFactor: number;
-  spineBlend: number;
 
   // Interaction
   mode: InteractionMode;
@@ -57,6 +56,9 @@ interface AppState {
   // Model rotation (Y-axis in Three.js = yaw)
   modelRotationY: number;
 
+  // Model position offset [x, y, z]
+  modelPosition: [number, number, number];
+
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: number[]; numFrames: number; numKeypoints: number }) => void;
@@ -68,18 +70,17 @@ interface AppState {
   addMapping: (kp: string, body: string) => void;
   removeMapping: (kp: string) => void;
   updateOffset: (kp: string, x: number, y: number, z: number) => void;
-  setSpineBlend: (val: number) => void;
   togglePlay: () => void;
   labelCurrentFrame: () => void;
   setBodyTransforms: (transforms: BodyTransform[]) => void;
   setModelRotationY: (radians: number) => void;
+  setModelPosition: (pos: [number, number, number]) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
     keypointInitialOffsets: Record<string, [number, number, number]>;
     scaleFactor: number;
     mocapScaleFactor: number;
-    spineBlend: number;
   }) => void;
 }
 
@@ -101,7 +102,6 @@ export const useStore = create<AppState>((set) => ({
   offsets: [],
   scaleFactor: 0.9,
   mocapScaleFactor: 0.01,
-  spineBlend: 0.4,
   mode: "mapping",
   selectedKeypoint: null,
   selectedBody: null,
@@ -115,6 +115,7 @@ export const useStore = create<AppState>((set) => ({
   stacRunning: false,
   stacProgress: 0,
   modelRotationY: 0,
+  modelPosition: [0, 0, 0] as [number, number, number],
 
   setXmlData: (data) => set({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath }),
   setAcmData: (data) => set({
@@ -141,7 +142,6 @@ export const useStore = create<AppState>((set) => ({
     const filtered = state.offsets.filter((o) => o.keypointName !== kp);
     return { offsets: [...filtered, { keypointName: kp, x, y, z }] };
   }),
-  setSpineBlend: (val) => set({ spineBlend: val }),
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
   labelCurrentFrame: () => set((state) => {
     const newStatuses = [...state.frameStatuses];
@@ -152,6 +152,7 @@ export const useStore = create<AppState>((set) => ({
   }),
   setBodyTransforms: (transforms) => set({ bodyTransforms: transforms }),
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
+  setModelPosition: (pos) => set({ modelPosition: pos }),
   setStacResults: (qpos, frameIndices, bodyTransforms) => set({
     stacQpos: qpos,
     stacFrameIndices: frameIndices || null,
@@ -164,6 +165,5 @@ export const useStore = create<AppState>((set) => ({
     offsets: Object.entries(config.keypointInitialOffsets).map(([kp, [x, y, z]]) => ({ keypointName: kp, x, y, z })),
     scaleFactor: config.scaleFactor,
     mocapScaleFactor: config.mocapScaleFactor,
-    spineBlend: config.spineBlend,
   }),
 }));

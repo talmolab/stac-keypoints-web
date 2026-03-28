@@ -4,11 +4,14 @@ import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
 
 const KP_COLORS: Record<string, string> = {
-  Snout: "#ff8800", SpineF: "#ff6600", SpineM: "#ff4400", SpineL: "#ff2200", TailBase: "#cc4400",
-  ShoulderL: "#0066ff", ElbowL: "#0055dd", WristL: "#0044bb", HandL: "#003399",
-  ShoulderR: "#ff0044", ElbowR: "#dd0033", WristR: "#bb0022", HandR: "#990011",
-  HipL: "#003366", KneeL: "#002255", AnkleL: "#001144", FootL: "#001133",
-  HipR: "#660011", KneeR: "#550011", AnkleR: "#440011", FootR: "#330011",
+  // Spine (orange/yellow)
+  Snout: "#ffcc00", SpineF: "#ffaa00", SpineM: "#ff8800", SpineL: "#ff6600", TailBase: "#ee5500",
+  // Left side (bright blue/cyan)
+  ShoulderL: "#4488ff", ElbowL: "#3399ff", WristL: "#22aaff", HandL: "#11bbff",
+  HipL: "#44aadd", KneeL: "#33bbcc", AnkleL: "#22ccbb", FootL: "#11ddaa",
+  // Right side (bright red/pink)
+  ShoulderR: "#ff4466", ElbowR: "#ff3377", WristR: "#ff2288", HandR: "#ff1199",
+  HipR: "#ff6644", KneeR: "#ff5533", AnkleR: "#ff4422", FootR: "#ff3311",
 };
 
 export default function ACMSkeleton() {
@@ -77,7 +80,7 @@ export default function ACMSkeleton() {
           <bufferGeometry>
             <bufferAttribute attach="attributes-position" args={[new Float32Array(bonePoints), 3]} />
           </bufferGeometry>
-          <lineBasicMaterial color="#666666" />
+          <lineBasicMaterial color="#999999" />
         </lineSegments>
       )}
     </group>

@@ -25,7 +25,6 @@ def load_stac_yaml(path: str) -> dict:
         "keypointInitialOffsets": offsets,
         "scaleFactor": float(model.get("SCALE_FACTOR", 0.9)),
         "mocapScaleFactor": float(model.get("MOCAP_SCALE_FACTOR", 0.01)),
-        "spineBlend": float(raw.get("acm", {}).get("spine_blend", 0.4)),
         "kpNames": list(model.get("KP_NAMES", [])),
         "xmlPath": model.get("MJCF_PATH", ""),
     }
