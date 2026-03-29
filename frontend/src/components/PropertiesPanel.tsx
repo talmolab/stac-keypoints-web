@@ -36,15 +36,38 @@ export default function PropertiesPanel() {
 
   const [showGuide, setShowGuide] = React.useState(true);
 
+  const segmentSlider = (bone: { parent: string; child: string }, small?: boolean) => {
+    const key = segmentKey(bone.parent, bone.child);
+    const value = segmentScales[key] ?? 1.0;
+    const isModified = Math.abs(value - 1.0) > 0.01;
+    return (
+      <div
+        key={key}
+        style={{ marginBottom: 2, padding: "2px 4px", borderRadius: 3 }}
+        onMouseEnter={() => setHoveredSegment(key)}
+        onMouseLeave={() => setHoveredSegment(null)}
+      >
+        <label style={{ fontSize: small ? 10 : 11, color: isModified ? "#ffaa00" : small ? "#777" : "#888" }}>
+          {bone.parent} {"\u2192"} {bone.child}: {value.toFixed(2)}x
+        </label>
+        <input type="range" min={0.1} max={2.0} step={0.01}
+          value={value}
+          onChange={(e) => setSegmentScale(key, parseFloat(e.target.value))}
+          style={{ width: "100%" }}
+        />
+      </div>
+    );
+  };
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, height: "100%", overflow: "auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", overflowY: "auto", overflowX: "hidden", paddingBottom: 20 }}>
       {/* Workflow Guide */}
       <div>
         <h3
           style={{ margin: "0 0 4px", fontSize: 14, color: "#aaa", cursor: "pointer", userSelect: "none" }}
           onClick={() => setShowGuide(!showGuide)}
         >
-          {showGuide ? "▾" : "▸"} Workflow Guide
+          {showGuide ? "\u25be" : "\u25b8"} Workflow Guide
         </h3>
         {showGuide && (
           <div style={{ fontSize: 11, color: "#999", lineHeight: 1.6, padding: "4px 0" }}>
@@ -76,7 +99,6 @@ export default function PropertiesPanel() {
             </button>
           ))}
         </div>
-        {/* Alignment direction hint */}
         {mode === "offset" && (
           <div style={{ fontSize: 11, color: "#77aaff", marginTop: 6, lineHeight: 1.4 }}>
             Drag the <span style={{ color: "#00ff88" }}>green offset markers</span> on the MuJoCo model to align with the <span style={{ color: "#ffaa00" }}>ACM keypoints</span> (stationary).
@@ -89,7 +111,7 @@ export default function PropertiesPanel() {
         )}
       </div>
 
-      {/* Toggle options */}
+      {/* Toggle options + sliders (always visible) */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={followCamera} onChange={(e) => setFollowCamera(e.target.checked)} />
@@ -101,9 +123,21 @@ export default function PropertiesPanel() {
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showErrorLines ? "#ff8844" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={showErrorLines} onChange={(e) => setShowErrorLines(e.target.checked)} />
-          Show Error Lines <span style={{ fontSize: 10, color: "#666" }}>(mapping quality)</span>
+          Show Error Lines
         </label>
+        {/* Model scale — always visible */}
         <div style={{ marginTop: 4 }}>
+          <label style={{ fontSize: 11, color: "#888" }}>
+            Model Scale: {modelScale.toFixed(2)}x
+          </label>
+          <input type="range" min={0.3} max={3.0} step={0.01}
+            value={modelScale}
+            onChange={(e) => setModelScale(parseFloat(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
+        {/* Model opacity — always visible */}
+        <div>
           <label style={{ fontSize: 11, color: "#888" }}>
             Model Opacity: {Math.round(modelOpacity * 100)}%
           </label>
@@ -167,65 +201,21 @@ export default function PropertiesPanel() {
         <div style={{ fontSize: 11, color: "#77aaff", marginBottom: 6 }}>
           Adjust segment lengths. Downstream keypoints propagate.
         </div>
-        {/* Primary segments (spine/branching) — always visible */}
-        {RETARGET_TREE.filter((b) => PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
-          const key = segmentKey(bone.parent, bone.child);
-          const value = segmentScales[key] ?? 1.0;
-          const isModified = Math.abs(value - 1.0) > 0.01;
-          return (
-            <div
-              key={key}
-              style={{ marginBottom: 2, padding: "2px 4px", borderRadius: 3 }}
-              onMouseEnter={() => setHoveredSegment(key)}
-              onMouseLeave={() => setHoveredSegment(null)}
-            >
-              <label style={{ fontSize: 11, color: isModified ? "#ffaa00" : "#888" }}>
-                {bone.parent} {"\u2192"} {bone.child}: {value.toFixed(2)}x
-              </label>
-              <input type="range" min={0.3} max={2.0} step={0.01}
-                value={value}
-                onChange={(e) => setSegmentScale(key, parseFloat(e.target.value))}
-                style={{ width: "100%" }}
-              />
-            </div>
-          );
-        })}
-        {/* Fine-tune: limb segments — collapsible */}
+        {RETARGET_TREE.filter((b) => PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => segmentSlider(bone))}
         <details style={{ marginTop: 4 }}>
           <summary style={{ cursor: "pointer", color: "#777", fontSize: 11 }}>Fine-tune limb segments</summary>
           <div style={{ marginTop: 4 }}>
-            {RETARGET_TREE.filter((b) => !PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => {
-              const key = segmentKey(bone.parent, bone.child);
-              const value = segmentScales[key] ?? 1.0;
-              const isModified = Math.abs(value - 1.0) > 0.01;
-              return (
-                <div
-                  key={key}
-                  style={{ marginBottom: 2, padding: "2px 4px", borderRadius: 3 }}
-                  onMouseEnter={() => setHoveredSegment(key)}
-                  onMouseLeave={() => setHoveredSegment(null)}
-                >
-                  <label style={{ fontSize: 10, color: isModified ? "#ffaa00" : "#777" }}>
-                    {bone.parent} {"\u2192"} {bone.child}: {value.toFixed(2)}x
-                  </label>
-                  <input type="range" min={0.3} max={2.0} step={0.01}
-                    value={value}
-                    onChange={(e) => setSegmentScale(key, parseFloat(e.target.value))}
-                    style={{ width: "100%" }}
-                  />
-                </div>
-              );
-            })}
+            {RETARGET_TREE.filter((b) => !PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => segmentSlider(bone, true))}
           </div>
         </details>
       </div>
 
       {/* Keyboard shortcuts reference */}
-      <details style={{ fontSize: 11, color: "#666", marginTop: 8 }}>
+      <details style={{ fontSize: 11, color: "#666" }}>
         <summary style={{ cursor: "pointer", color: "#888", fontSize: 12 }}>Shortcuts</summary>
         <pre style={{ margin: "4px 0 0", lineHeight: 1.6, whiteSpace: "pre", fontFamily: "monospace" }}>
 {`Space     Play/Pause
-\u2190 \u2192       Prev/Next frame (Shift: \u00b110)
+\u2190 \u2192       Prev/Next (Shift: \u00b110)
 WASD      Pan camera
 QE        Orbit camera
 RF        Camera up/down
@@ -235,68 +225,43 @@ Esc       Deselect`}
         </pre>
       </details>
 
-      {/* Model transform controls */}
-      <div style={{ marginTop: "auto" }}>
-        <h3 style={{ margin: "0 0 8px", fontSize: 14, color: "#aaa" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={showGlobalControls}
-              onChange={(e) => setShowGlobalControls(e.target.checked)}
+      {/* Global Controls (rotation/position — collapsible) */}
+      <details>
+        <summary style={{ cursor: "pointer", color: "#888", fontSize: 12 }}>
+          Global Controls (rotation/position)
+        </summary>
+        <div style={{ marginTop: 8 }}>
+          <div style={{ marginBottom: 8 }}>
+            <label style={{ fontSize: 11, color: "#888" }}>
+              Rotation: {Math.round(modelRotationY * 180 / Math.PI)}°
+            </label>
+            <input type="range" min={0} max={360} step={1}
+              value={Math.round(modelRotationY * 180 / Math.PI)}
+              onChange={(e) => setModelRotationY(parseFloat(e.target.value) * Math.PI / 180)}
+              style={{ width: "100%" }}
             />
-            Show Global Controls
-          </label>
-        </h3>
-
-        {showGlobalControls && (
-          <>
-            {/* Scale */}
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ fontSize: 12, color: "#888" }}>
-                Scale: {modelScale.toFixed(2)}x
-              </label>
-              <input type="range" min={0.5} max={2.0} step={0.01}
-                value={modelScale}
-                onChange={(e) => setModelScale(parseFloat(e.target.value))}
-                style={{ width: "100%" }}
-              />
-            </div>
-
-            {/* Rotation */}
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ fontSize: 12, color: "#888" }}>
-                Rotation: {Math.round(modelRotationY * 180 / Math.PI)}°
-              </label>
-              <input type="range" min={0} max={360} step={1}
-                value={Math.round(modelRotationY * 180 / Math.PI)}
-                onChange={(e) => setModelRotationY(parseFloat(e.target.value) * Math.PI / 180)}
-                style={{ width: "100%" }}
-              />
-            </div>
-
-            {/* Position */}
-            <div>
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 4 }}>Position:</div>
-              {(["x", "y", "z"] as const).map((axis, i) => (
-                <div key={axis} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                  <label style={{ color: "#888", fontSize: 12, width: 12 }}>{axis.toUpperCase()}</label>
-                  <input
-                    type="number" step={0.01}
-                    value={modelPosition[i]}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value) || 0;
-                      const newPos: [number, number, number] = [...modelPosition];
-                      newPos[i] = val;
-                      setModelPosition(newPos);
-                    }}
-                    style={inputStyle}
-                  />
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "#aaa", marginBottom: 4 }}>Position:</div>
+            {(["x", "y", "z"] as const).map((axis, i) => (
+              <div key={axis} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <label style={{ color: "#888", fontSize: 12, width: 12 }}>{axis.toUpperCase()}</label>
+                <input
+                  type="number" step={0.01}
+                  value={modelPosition[i]}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value) || 0;
+                    const newPos: [number, number, number] = [...modelPosition];
+                    newPos[i] = val;
+                    setModelPosition(newPos);
+                  }}
+                  style={inputStyle}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </details>
     </div>
   );
 }
