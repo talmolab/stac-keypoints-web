@@ -15,6 +15,7 @@ export function useAutoIk() {
   const mappings = useStore((s) => s.mappings);
   const xmlPath = useStore((s) => s.xmlPath);
   const acmPositions = useStore((s) => s.acmPositions);
+  const modelScale = useStore((s) => s.modelScale);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runningRef = useRef(false);
@@ -58,5 +59,6 @@ export function useAutoIk() {
     mappingFingerprint,
     xmlPath,
     acmPositions,
+    modelScale,
   ]);
 }

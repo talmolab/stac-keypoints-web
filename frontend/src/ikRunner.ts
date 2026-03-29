@@ -33,7 +33,7 @@ export async function runIk(
     frameIndices,
     mappings: pairs,
     offsets: offsetMap,
-    scaleFactor: state.scaleFactor,
+    scaleFactor: state.scaleFactor * state.modelScale,
     mocapScaleFactor: state.mocapScaleFactor,
     maxIterations,
   });
