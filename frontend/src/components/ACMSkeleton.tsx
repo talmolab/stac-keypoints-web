@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useRef } from "react";
 import * as THREE from "three";
 import { Line } from "@react-three/drei";
 import { useStore } from "../store";
@@ -6,15 +6,27 @@ import { mjToThree } from "../mujocoLoader";
 import { segmentKey } from "../skeletonEditor";
 
 const KP_COLORS: Record<string, string> = {
-  // Spine (orange/yellow)
   Snout: "#ffcc00", SpineF: "#ffaa00", SpineM: "#ff8800", SpineL: "#ff6600", TailBase: "#ee5500",
-  // Left side (bright blue/cyan)
   ShoulderL: "#4488ff", ElbowL: "#3399ff", WristL: "#22aaff", HandL: "#11bbff",
   HipL: "#44aadd", KneeL: "#33bbcc", AnkleL: "#22ccbb", FootL: "#11ddaa",
-  // Right side (bright red/pink)
   ShoulderR: "#ff4466", ElbowR: "#ff3377", WristR: "#ff2288", HandR: "#ff1199",
   HipR: "#ff6644", KneeR: "#ff5533", AnkleR: "#ff4422", FootR: "#ff3311",
 };
+
+// Shared geometries — created once, reused across renders
+const _smallSphere = new THREE.SphereGeometry(0.003, 12, 8);
+const _largeSphere = new THREE.SphereGeometry(0.005, 12, 8);
+
+// Shared material cache (by color string)
+const _materialCache = new Map<string, THREE.MeshBasicMaterial>();
+function getMaterial(color: string): THREE.MeshBasicMaterial {
+  let mat = _materialCache.get(color);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({ color, depthTest: false });
+    _materialCache.set(color, mat);
+  }
+  return mat;
+}
 
 export default function ACMSkeleton() {
   const kpNames = useStore((s) => s.acmKeypointNames);
@@ -28,6 +40,9 @@ export default function ACMSkeleton() {
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const setHover = useStore((s) => s.setHover);
   const hoveredSegment = useStore((s) => s.hoveredSegment);
+
+  // Cache mesh refs for imperative position updates (avoids re-render)
+  const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
 
   const framePositions = useMemo(() => {
     if (!positions || numKp === 0) return null;
@@ -54,7 +69,6 @@ export default function ACMSkeleton() {
   const nameToIdx: Record<string, number> = {};
   kpNames.forEach((n, i) => { nameToIdx[n] = i; });
 
-  // Build set of keypoint names involved in hovered segment
   const highlightedKps = new Set<string>();
   if (hoveredSegment) {
     const parts = hoveredSegment.split("\u2192");
@@ -64,7 +78,6 @@ export default function ACMSkeleton() {
     }
   }
 
-  // Build bone data for rendering
   const boneData = bones.map((bone) => {
     const pi = nameToIdx[bone.parent];
     const ci = nameToIdx[bone.child];
@@ -83,22 +96,21 @@ export default function ACMSkeleton() {
         const isSelected = selectedKp === name;
         const isHighlighted = highlightedKps.has(name);
         const color = isSelected ? "#ffff00" : isHighlighted ? "#ffffff" : KP_COLORS[name] || "#888888";
-        const size = isSelected ? 0.005 : isHighlighted ? 0.005 : 0.003;
+        const geom = (isSelected || isHighlighted) ? _largeSphere : _smallSphere;
         return (
           <mesh
             key={name}
+            ref={(ref: THREE.Mesh | null) => { if (ref) meshRefs.current.set(name, ref); }}
             position={pos}
+            geometry={geom}
+            material={getMaterial(color)}
             renderOrder={11}
             onClick={(e) => { e.stopPropagation(); handleClick(name); }}
             onPointerOver={(e) => { e.stopPropagation(); setHover(`KP: ${name}`, [pos.x, pos.y, pos.z]); }}
             onPointerOut={() => setHover(null)}
-          >
-            <sphereGeometry args={[size, 12, 8]} />
-            <meshBasicMaterial color={color} depthTest={false} />
-          </mesh>
+          />
         );
       })}
-      {/* Bone lines using drei Line (doesn't disappear on zoom) */}
       {boneData.map((b, i) => (
         <Line
           key={i}

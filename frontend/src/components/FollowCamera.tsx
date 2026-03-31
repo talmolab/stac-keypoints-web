@@ -1,7 +1,12 @@
+import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
+
+// Reusable objects to avoid per-frame allocation
+const _targetVec = new THREE.Vector3();
+const _tempVec = new THREE.Vector3();
 
 export default function FollowCamera() {
   const followCamera = useStore((s) => s.followCamera);
@@ -12,16 +17,21 @@ export default function FollowCamera() {
   const kpNames = useStore((s) => s.acmKeypointNames);
   const { controls } = useThree();
 
+  // Cache name→idx mapping
+  const nameToIdxRef = useRef<Record<string, number>>({});
+  if (kpNames.length > 0 && Object.keys(nameToIdxRef.current).length !== kpNames.length) {
+    const map: Record<string, number> = {};
+    kpNames.forEach((n, i) => { map[n] = i; });
+    nameToIdxRef.current = map;
+  }
+
   useFrame(() => {
     if (!followCamera || !positions || numKp === 0) return;
     const orbitControls = controls as any;
     if (!orbitControls?.target) return;
 
-    // Compute center of spine keypoints for current frame
+    const nameToIdx = nameToIdxRef.current;
     const spineKps = ["SpineL", "SpineM", "SpineF"];
-    const nameToIdx: Record<string, number> = {};
-    kpNames.forEach((n, i) => { nameToIdx[n] = i; });
-
     const offset = currentFrame * numKp * 3;
     let cx = 0, cy = 0, cz = 0, count = 0;
     for (const name of spineKps) {
@@ -30,16 +40,16 @@ export default function FollowCamera() {
       const x = positions[offset + idx * 3 + 0] * mocapScale;
       const y = positions[offset + idx * 3 + 1] * mocapScale;
       const z = positions[offset + idx * 3 + 2] * mocapScale;
-      const p = mjToThree([x, y, z]);
-      cx += p.x; cy += p.y; cz += p.z;
+      // Inline mjToThree to avoid creating Vector3
+      cx += x; cy += z; cz += -y;
       count++;
     }
     if (count === 0) return;
     cx /= count; cy /= count; cz /= count;
 
-    // Smoothly interpolate target to spine center
-    const target = orbitControls.target as THREE.Vector3;
-    target.lerp(new THREE.Vector3(cx, cy, cz), 0.1);
+    // Lerp using reusable vector (no allocation)
+    _targetVec.set(cx, cy, cz);
+    (orbitControls.target as THREE.Vector3).lerp(_targetVec, 0.1);
     orbitControls.update();
   });
 

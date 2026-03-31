@@ -18,6 +18,12 @@ if (typeof window !== "undefined") {
   window.addEventListener("blur", () => keysPressed.clear());
 }
 
+// Reusable vectors — avoids allocating new Vector3 every frame
+const _forward = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _offset = new THREE.Vector3();
+const _yAxis = new THREE.Vector3(0, 1, 0);
+
 export function CameraKeyboardControls() {
   const { camera, controls } = useThree();
 
@@ -29,30 +35,27 @@ export function CameraKeyboardControls() {
     const speed = keysPressed.has("ShiftLeft") || keysPressed.has("ShiftRight")
       ? MOVE_SPEED * FAST_MULT : MOVE_SPEED;
 
-    // Forward/backward (W/S) -- move along camera look direction
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
-    forward.y = 0; // keep horizontal
-    forward.normalize();
+    camera.getWorldDirection(_forward);
+    _forward.y = 0;
+    _forward.normalize();
 
-    const right = new THREE.Vector3();
-    right.crossVectors(forward, camera.up).normalize();
+    _right.crossVectors(_forward, camera.up).normalize();
 
     if (keysPressed.has("KeyW")) {
-      camera.position.addScaledVector(forward, speed);
-      orbitControls.target.addScaledVector(forward, speed);
+      camera.position.addScaledVector(_forward, speed);
+      orbitControls.target.addScaledVector(_forward, speed);
     }
     if (keysPressed.has("KeyS")) {
-      camera.position.addScaledVector(forward, -speed);
-      orbitControls.target.addScaledVector(forward, -speed);
+      camera.position.addScaledVector(_forward, -speed);
+      orbitControls.target.addScaledVector(_forward, -speed);
     }
     if (keysPressed.has("KeyA")) {
-      camera.position.addScaledVector(right, -speed);
-      orbitControls.target.addScaledVector(right, -speed);
+      camera.position.addScaledVector(_right, -speed);
+      orbitControls.target.addScaledVector(_right, -speed);
     }
     if (keysPressed.has("KeyD")) {
-      camera.position.addScaledVector(right, speed);
-      orbitControls.target.addScaledVector(right, speed);
+      camera.position.addScaledVector(_right, speed);
+      orbitControls.target.addScaledVector(_right, speed);
     }
     if (keysPressed.has("KeyR")) {
       camera.position.y += speed;
@@ -63,12 +66,12 @@ export function CameraKeyboardControls() {
       orbitControls.target.y -= speed;
     }
 
-    // Orbit rotation (Q/E) -- rotate around target
+    // Orbit rotation (Q/E)
     if (keysPressed.has("KeyQ") || keysPressed.has("KeyE")) {
       const angle = keysPressed.has("KeyE") ? ROTATE_SPEED : -ROTATE_SPEED;
-      const offset = camera.position.clone().sub(orbitControls.target);
-      offset.applyAxisAngle(new THREE.Vector3(0, 1, 0), angle);
-      camera.position.copy(orbitControls.target).add(offset);
+      _offset.copy(camera.position).sub(orbitControls.target);
+      _offset.applyAxisAngle(_yAxis, angle);
+      camera.position.copy(orbitControls.target).add(_offset);
       camera.lookAt(orbitControls.target);
     }
 

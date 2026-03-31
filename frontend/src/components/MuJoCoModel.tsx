@@ -28,38 +28,49 @@ export default function MuJoCoModel() {
   // Make bodies semi-transparent in both mapping and offset modes so keypoints are always visible
   const isTransparentMode = mode === "offset" || mode === "mapping";
 
+  // Pre-build geometry + local transforms once (they never change)
   const bodyGroups = useMemo(() => {
     if (geoms.length === 0) return [];
-    const byBody = new Map<number, GeomData[]>();
+    const byBody = new Map<number, { geom: GeomData; geometry: THREE.BufferGeometry; localPos: THREE.Vector3; localQuat: THREE.Quaternion }[]>();
     for (const geom of geoms) {
+      const geometry = buildGeomGeometry(geom);
+      if (!geometry) continue;
+      const localPos = mjToThree(geom.position as [number, number, number]);
+      const localQuat = mjQuatToThree(geom.quaternion as [number, number, number, number]);
       if (!byBody.has(geom.bodyId)) byBody.set(geom.bodyId, []);
-      byBody.get(geom.bodyId)!.push(geom);
+      byBody.get(geom.bodyId)!.push({ geom, geometry, localPos, localQuat });
     }
-    return Array.from(byBody.entries()).map(([bodyId, bodyGeoms]) => ({
+    return Array.from(byBody.entries()).map(([bodyId, items]) => ({
       bodyId,
-      geoms: bodyGeoms,
+      items,
     }));
   }, [geoms]);
 
+  // Reusable objects for imperative updates (avoid per-frame allocation)
+  const _pos = useMemo(() => new THREE.Vector3(), []);
+  const _quat = useMemo(() => new THREE.Quaternion(), []);
+
   useEffect(() => {
+    if (!Array.isArray(bodyTransforms)) return;
     for (const t of bodyTransforms) {
       const group = bodyRefs.current.get(t.bodyId);
       if (group) {
-        const pos = mjToThree(t.position as [number, number, number]);
-        const quat = mjQuatToThree(t.quaternion as [number, number, number, number]);
-        group.position.copy(pos);
-        group.quaternion.copy(quat);
+        // Inline coordinate conversion to avoid creating new Vector3/Quaternion
+        _pos.set(t.position[0], t.position[2], -t.position[1]);
+        _quat.set(t.quaternion[1], t.quaternion[3], -t.quaternion[2], t.quaternion[0]);
+        group.position.copy(_pos);
+        group.quaternion.copy(_quat);
       }
     }
-  }, [bodyTransforms]);
+  }, [bodyTransforms, _pos, _quat]);
 
   // Model center for pivot rotation + scale
   const modelCenter = useMemo(() => {
-    if (bodyTransforms.length === 0) return new THREE.Vector3(0, 0, 0);
+    if (!Array.isArray(bodyTransforms) || bodyTransforms.length === 0) return new THREE.Vector3(0, 0, 0);
     let sx = 0, sy = 0, sz = 0;
     for (const t of bodyTransforms) {
-      const p = mjToThree(t.position as [number, number, number]);
-      sx += p.x; sy += p.y; sz += p.z;
+      // Inline mjToThree: (x, z, -y)
+      sx += t.position[0]; sy += t.position[2]; sz += -t.position[1];
     }
     const n = bodyTransforms.length;
     return new THREE.Vector3(sx / n, sy / n, sz / n);
@@ -75,7 +86,7 @@ export default function MuJoCoModel() {
         <group scale={[modelScale, modelScale, modelScale]}>
           <group position={[-cx, -cy, -cz]}>
             <group position={modelPosition}>
-              {bodyGroups.map(({ bodyId, geoms: bodyGeoms }) => (
+              {bodyGroups.map(({ bodyId, items }) => (
                 <group
                   key={bodyId}
                   ref={(ref: THREE.Group | null) => {
@@ -106,19 +117,12 @@ export default function MuJoCoModel() {
                   }}
                   onPointerOut={() => { setHoveredBody(null); setHover(null); }}
                 >
-                  {bodyGeoms.map((geom, i) => {
-                    const geometry = buildGeomGeometry(geom);
-                    if (!geometry) return null;
-                    const localPos = mjToThree(geom.position as [number, number, number]);
-                    const localQuat = mjQuatToThree(geom.quaternion as [number, number, number, number]);
-                    // Semi-transparent in offset mode
+                  {items.map(({ geom, geometry, localPos, localQuat }, i) => {
                     const baseOpacity = geom.color[3];
                     const opacity = isTransparentMode ? Math.min(baseOpacity, modelOpacity) : baseOpacity;
 
                     const isHighlighted = (() => {
-                      // Highlight if hovered in mapping mode
                       if (hoveredBody === bodyId && mode === "mapping" && selectedKp) return "hover";
-                      // Highlight if this body is the target of the selected keypoint's mapping
                       if (selectedKp) {
                         const mapping = mappings.find((m) => m.keypointName === selectedKp);
                         if (mapping && storeBodyNames[bodyId] === mapping.bodyName) return "selected";
@@ -126,7 +130,7 @@ export default function MuJoCoModel() {
                       return null;
                     })();
 
-                    const geomLabel = `${storeBodyNames[bodyId] || "?"} [${geom.type}${bodyGeoms.length > 1 ? " #" + i : ""}]`;
+                    const geomLabel = `${storeBodyNames[bodyId] || "?"} [${geom.type}${items.length > 1 ? " #" + i : ""}]`;
                     return (
                       <mesh
                         key={i}
