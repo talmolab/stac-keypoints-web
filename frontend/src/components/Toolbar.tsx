@@ -101,11 +101,30 @@ export default function Toolbar() {
     if (data.error) { setIkStatus("Load error: " + data.error); return; }
 
     // Load learned offsets
-    const updateOffset = useStore.getState().updateOffset;
+    const state = useStore.getState();
     for (let i = 0; i < data.kpNames.length; i++) {
       const name = data.kpNames[i];
       const [x, y, z] = data.offsets[i];
-      updateOffset(name, x, y, z);
+      state.updateOffset(name, x, y, z);
+    }
+
+    // Replace ACM keypoints with the actual STAC target positions (kp_data)
+    // so the reference trajectory aligns with the STAC poses
+    if (data.stacTargets) {
+      const targets = data.stacTargets;
+      setIkStatus(`Syncing ${targets.numFrames} STAC target frames...`);
+      // Use setAcmData to replace the ACM positions with STAC targets (in cm)
+      // This ensures the ACM skeleton overlay matches exactly what STAC was fitting to
+      const bones = state.acmBones.length > 0 ? state.acmBones : [];
+      setAcmData({
+        keypointNames: data.kpNames,
+        bones,
+        positions: targets.positions,
+        numFrames: targets.numFrames,
+        numKeypoints: targets.numKeypoints,
+      });
+      // Clear any previous alignment/adjustment (STAC targets are already in the right frame)
+      useStore.getState().setAlignedPositions(targets.positions);
     }
 
     // Batch compute body transforms for all frames in ONE request
@@ -125,7 +144,12 @@ export default function Toolbar() {
       setBodyTransforms(allTransforms[0]);
     }
 
-    setIkStatus(`Loaded STAC: ${data.qpos.length} frames, ${data.kpNames.length} keypoints with offsets`);
+    // Reset model transform — STAC output is already in the correct frame
+    useStore.getState().setModelPosition([0, 0, 0]);
+    useStore.getState().setModelRotationY(0);
+    useStore.getState().setModelScale(1.0);
+
+    setIkStatus(`Loaded STAC: ${data.qpos.length} frames, ${data.kpNames.length} kps, targets synced`);
   }, [setIkStatus, setBodyTransforms]);
 
   const runIkOnFrames = useCallback(async (frameIndices: number[], maxIterations = 200) => {

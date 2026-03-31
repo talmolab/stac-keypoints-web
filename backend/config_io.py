@@ -56,16 +56,34 @@ def export_stac_yaml(config: dict, output_path: str) -> None:
 
 
 def load_stac_output_h5(h5_path: str) -> dict:
-    """Load STAC output H5 and return offsets + qpos for visualization."""
+    """Load STAC output H5 and return offsets + qpos + kp_data for visualization.
+
+    kp_data contains the actual target keypoints STAC was fitting to (in meters,
+    flattened as N x 63). We reshape and convert back to cm (÷ MOCAP_SCALE_FACTOR)
+    so the web UI can display them aligned with the STAC poses.
+    """
     with h5py.File(h5_path, "r") as f:
+        kp_names = [
+            n.decode() if isinstance(n, bytes) else str(n)
+            for n in f["kp_names"][:]
+        ]
         result = {
             "offsets": f["offsets"][:].tolist(),
             "qpos": f["qpos"][:].tolist(),
-            "kpNames": [
-                n.decode() if isinstance(n, bytes) else str(n)
-                for n in f["kp_names"][:]
-            ],
+            "kpNames": kp_names,
         }
         if "marker_sites" in f:
             result["markerSites"] = f["marker_sites"][:].tolist()
+        # Load kp_data: the actual targets STAC optimized against (meters, flat)
+        if "kp_data" in f:
+            kp_data = f["kp_data"][:]  # (N, n_kp*3) in meters
+            n_kp = len(kp_names)
+            n_frames = kp_data.shape[0]
+            # Reshape to (N, n_kp, 3) and convert meters → cm (÷ 0.01)
+            kp_3d = kp_data.reshape(n_frames, n_kp, 3) / 0.01  # meters → cm
+            result["stacTargets"] = {
+                "positions": kp_3d.flatten().tolist(),
+                "numFrames": int(n_frames),
+                "numKeypoints": int(n_kp),
+            }
     return result
