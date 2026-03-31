@@ -56,6 +56,15 @@ export async function bodyTransforms(qpos: number[]) {
   return resp.json();
 }
 
+export async function batchBodyTransforms(qposList: number[][]) {
+  const resp = await fetch(`${BASE}/api/batch-body-transforms`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qpos: qposList }),
+  });
+  return resp.json();
+}
+
 export async function loadStacOutput(path: string) {
   const resp = await fetch(`${BASE}/api/load-stac-output?path=${encodeURIComponent(path)}`, { method: "POST" });
   return resp.json();

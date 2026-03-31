@@ -108,23 +108,14 @@ export default function Toolbar() {
       updateOffset(name, x, y, z);
     }
 
-    // Compute body transforms for all frames (batch via qpos)
-    setIkStatus(`Loading poses: ${data.qpos.length} frames...`);
-    const allTransforms: any[][] = [];
-    const frameIndices: number[] = [];
-    // Compute transforms for every frame (batch in chunks for speed)
-    const batchSize = 50;
-    for (let start = 0; start < data.qpos.length; start += batchSize) {
-      const end = Math.min(start + batchSize, data.qpos.length);
-      for (let i = start; i < end; i++) {
-        const transforms = await api.bodyTransforms(data.qpos[i]);
-        if (Array.isArray(transforms)) {
-          allTransforms.push(transforms);
-          frameIndices.push(i);
-        }
-      }
-      setIkStatus(`Loading poses: ${Math.min(end, data.qpos.length)}/${data.qpos.length}...`);
+    // Batch compute body transforms for all frames in ONE request
+    setIkStatus(`Computing poses for ${data.qpos.length} frames...`);
+    const allTransforms = await api.batchBodyTransforms(data.qpos);
+    if (!Array.isArray(allTransforms)) {
+      setIkStatus("Error computing poses: " + (allTransforms?.error || "unknown"));
+      return;
     }
+    const frameIndices = Array.from({ length: data.qpos.length }, (_, i) => i);
 
     // Store results for timeline scrubbing
     useStore.getState().setStacResults(data.qpos, frameIndices, allTransforms);

@@ -63,6 +63,17 @@ async def body_transforms(qpos: list[float]):
     return transforms
 
 
+@app.post("/api/batch-body-transforms")
+async def batch_body_transforms(data: dict):
+    """Compute body transforms for multiple qpos in one call."""
+    if not _state["xml_path"]:
+        return JSONResponse({"error": "No XML loaded"}, status_code=400)
+    from backend.mujoco_utils import compute_body_transforms_batch
+    qpos_list = data["qpos"]  # list of lists
+    transforms = compute_body_transforms_batch(_state["xml_path"], qpos_list)
+    return transforms
+
+
 @app.post("/api/load-acm")
 async def load_acm(max_trials: int = Query(5), decimate: int = Query(2)):
     """Load ACM gap-crossing trials, run FK, return STAC keypoints."""

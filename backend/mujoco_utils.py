@@ -69,3 +69,27 @@ def compute_body_transforms(xml_path: str, qpos: list[float]) -> list[dict]:
             "quaternion": [float(data.xquat[b, i]) for i in range(4)],
         })
     return transforms
+
+
+def compute_body_transforms_batch(
+    xml_path: str, qpos_list: list[list[float]]
+) -> list[list[dict]]:
+    """Compute body transforms for many qpos in one call (no HTTP overhead)."""
+    model = mujoco.MjModel.from_xml_path(xml_path)
+    data = mujoco.MjData(model)
+    all_transforms = []
+    for qpos in qpos_list:
+        mujoco.mj_resetData(model, data)
+        q = np.array(qpos, dtype=np.float64)
+        n = min(len(q), model.nq)
+        data.qpos[:n] = q[:n]
+        mujoco.mj_forward(model, data)
+        frame = []
+        for b in range(model.nbody):
+            frame.append({
+                "bodyId": b,
+                "position": [float(data.xpos[b, i]) for i in range(3)],
+                "quaternion": [float(data.xquat[b, i]) for i in range(4)],
+            })
+        all_transforms.append(frame)
+    return all_transforms
