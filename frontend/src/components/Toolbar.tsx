@@ -96,16 +96,46 @@ export default function Toolbar() {
     const path = prompt("Enter path to STAC output H5:",
       "/home/talmolab/Desktop/SalkResearch/monsees-retarget/output/monsees_ik_only.h5");
     if (!path) return;
+    setIkStatus("Loading STAC H5...");
     const data = await api.loadStacOutput(path);
     if (data.error) { setIkStatus("Load error: " + data.error); return; }
+
+    // Load learned offsets
     const updateOffset = useStore.getState().updateOffset;
     for (let i = 0; i < data.kpNames.length; i++) {
       const name = data.kpNames[i];
       const [x, y, z] = data.offsets[i];
       updateOffset(name, x, y, z);
     }
-    setIkStatus("Loaded " + data.kpNames.length + " learned offsets from IK output");
-  }, [setIkStatus]);
+
+    // Compute body transforms for all frames (batch via qpos)
+    setIkStatus(`Loading poses: ${data.qpos.length} frames...`);
+    const allTransforms: any[][] = [];
+    const frameIndices: number[] = [];
+    // Compute transforms for every frame (batch in chunks for speed)
+    const batchSize = 50;
+    for (let start = 0; start < data.qpos.length; start += batchSize) {
+      const end = Math.min(start + batchSize, data.qpos.length);
+      for (let i = start; i < end; i++) {
+        const transforms = await api.bodyTransforms(data.qpos[i]);
+        if (Array.isArray(transforms)) {
+          allTransforms.push(transforms);
+          frameIndices.push(i);
+        }
+      }
+      setIkStatus(`Loading poses: ${Math.min(end, data.qpos.length)}/${data.qpos.length}...`);
+    }
+
+    // Store results for timeline scrubbing
+    useStore.getState().setStacResults(data.qpos, frameIndices, allTransforms);
+
+    // Apply first frame
+    if (allTransforms.length > 0) {
+      setBodyTransforms(allTransforms[0]);
+    }
+
+    setIkStatus(`Loaded STAC: ${data.qpos.length} frames, ${data.kpNames.length} keypoints with offsets`);
+  }, [setIkStatus, setBodyTransforms]);
 
   const runIkOnFrames = useCallback(async (frameIndices: number[], maxIterations = 200) => {
     await runIk(frameIndices, maxIterations);

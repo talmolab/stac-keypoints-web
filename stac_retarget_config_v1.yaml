@@ -1,0 +1,88 @@
+model:
+  MJCF_PATH: /home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml
+  SCALE_FACTOR: 0.9
+  MOCAP_SCALE_FACTOR: 0.01
+  KP_NAMES:
+  - Snout
+  - SpineF
+  - SpineM
+  - SpineL
+  - TailBase
+  - ShoulderL
+  - ElbowL
+  - WristL
+  - HandL
+  - ShoulderR
+  - ElbowR
+  - WristR
+  - HandR
+  - HipL
+  - KneeL
+  - AnkleL
+  - FootL
+  - HipR
+  - KneeR
+  - AnkleR
+  - FootR
+  KEYPOINT_MODEL_PAIRS:
+    SpineF: vertebra_cervical_5
+    ShoulderL: upper_arm_L
+    ElbowL: lower_arm_L
+    WristL: hand_L
+    HandL: finger_L
+    ShoulderR: upper_arm_R
+    ElbowR: lower_arm_R
+    WristR: hand_R
+    HandR: finger_R
+    KneeR: lower_leg_R
+    AnkleR: foot_R
+    FootR: toe_R
+    Snout: skull
+    SpineM: torso
+    HipR: pelvis
+    HipL: pelvis
+    KneeL: upper_leg_L
+    SpineL: vertebra_C1
+    TailBase: vertebra_C14
+    AnkleL: upper_leg_L
+    FootL: toe_L
+  KEYPOINT_INITIAL_OFFSETS:
+    SpineF: 0 0 -0.012
+    ShoulderL: 0 0 0
+    ShoulderR: 0 0 0
+    ElbowL: 0 0 0
+    ElbowR: 0 0 0
+    WristL: 0 0 0
+    WristR: 0 0 0
+    HandL: 0 0 0
+    HandR: 0 0 0
+    KneeR: 0 0 0
+    AnkleR: 0 0 0
+    FootR: 0 0 0
+    Snout: 0.03059824844521132 0.006495095370431532 -0.016346784929952916
+    SpineM: -0.006032821260413157 0.008956302439008156 0.024234072164798885
+    HipR: 0.012139454319637174 -0.014818273843451267 -0.011964792244912911
+    HipL: 0.016639132224081206 0.014156642014774557 -0.012743357718763976
+    KneeL: -0.0012293682198443734 0.009332640786150839 -0.041913080977204045
+    SpineL: -0.009098682992534593 0.007163878281027797 0.00422083683873424
+    TailBase: -0.0015519848228955357 -0.0008515713552144505 0.00037185072082646185
+    AnkleL: 0.014643543803779774 -0.016133258859187163 -0.029569866405975753
+    FootL: -0.018273915407273106 0.0023962361489718587 0.0015598302766205302
+skeleton_editor:
+  segment_scales:
+    "SpineF\u2192Snout": 0.19
+    "SpineM\u2192SpineF": 0.79
+    "SpineL\u2192SpineM": 0.84
+    "SpineF\u2192ShoulderR": 0.65
+    "WristR\u2192HandR": 0.94
+    "ElbowR\u2192WristR": 0.43
+    "ShoulderR\u2192ElbowR": 0.6
+    "AnkleL\u2192FootL": 0.8
+    "KneeL\u2192AnkleL": 1.11
+    "HipL\u2192KneeL": 0.76
+    "HipR\u2192KneeR": 0.64
+    "AnkleR\u2192FootR": 0.71
+    "WristL\u2192HandL": 0.53
+    "ElbowL\u2192WristL": 0.88
+    "ShoulderL\u2192ElbowL": 0.41
+    "SpineL\u2192TailBase": 0.61
