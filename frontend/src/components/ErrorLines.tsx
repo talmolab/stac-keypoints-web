@@ -4,6 +4,8 @@ import { Line, Html } from "@react-three/drei";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
 
+const EMPTY_ERRORS: { keypointName: string; errorMm: number }[] = [];
+
 /**
  * Draws line segments from each MuJoCo body+offset position to the corresponding
  * ACM keypoint position. Line color encodes error magnitude:
@@ -92,7 +94,7 @@ export default function ErrorLines() {
 
   useEffect(() => {
     if (!showErrorLines || lines.length === 0) {
-      setPerKeypointErrors([]);
+      setPerKeypointErrors(EMPTY_ERRORS);
       return;
     }
     setPerKeypointErrors(
@@ -116,7 +118,7 @@ export default function ErrorLines() {
             depthTest={false}
             renderOrder={15}
           />
-          {(
+          {l.errorMm > 1 && (
             <Html position={l.mid} center style={{ pointerEvents: "none" }}>
               <div style={{
                 background: "rgba(0,0,0,0.7)",
