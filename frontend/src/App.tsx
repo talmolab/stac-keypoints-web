@@ -113,7 +113,7 @@ export default function App() {
           <PropertiesPanel />
         </div>
       </div>
-      <div style={{ height: 64, background: "#1a1a2e", borderTop: "1px solid #333", display: "flex", alignItems: "center", padding: "0 16px", color: "#888" }}>
+      <div style={{ height: 64, background: "#1a1a2e", borderTop: "1px solid #333", display: "flex", alignItems: "center", padding: "0 16px", color: "#888", minWidth: 0, overflow: "hidden" }}>
         <Timeline />
       </div>
     </div>
