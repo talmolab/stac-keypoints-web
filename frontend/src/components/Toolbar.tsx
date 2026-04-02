@@ -113,9 +113,14 @@ export default function Toolbar() {
     if (data.stacTargets) {
       const targets = data.stacTargets;
       setIkStatus(`Syncing ${targets.numFrames} STAC target frames...`);
-      // Use setAcmData to replace the ACM positions with STAC targets (in cm)
-      // This ensures the ACM skeleton overlay matches exactly what STAC was fitting to
-      const bones = state.acmBones.length > 0 ? state.acmBones : [];
+
+      const state2 = useStore.getState();
+      const bones = state2.acmBones.length > 0 ? state2.acmBones : [];
+
+      // Reset skeleton editor — STAC targets are already in the correct frame
+      useStore.getState().resetSegmentScales();
+
+      // setAcmData now clears adjustedPositions & alignedPositions
       setAcmData({
         keypointNames: data.kpNames,
         bones,
@@ -123,7 +128,8 @@ export default function Toolbar() {
         numFrames: targets.numFrames,
         numKeypoints: targets.numKeypoints,
       });
-      // Clear any previous alignment/adjustment (STAC targets are already in the right frame)
+
+      // Set aligned positions (STAC targets are already aligned)
       useStore.getState().setAlignedPositions(targets.positions);
     }
 

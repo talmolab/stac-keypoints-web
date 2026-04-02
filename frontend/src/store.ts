@@ -181,6 +181,10 @@ export const useStore = create<AppState>()(persist((set) => ({
     acmNumFrames: data.numFrames,
     acmNumKeypoints: data.numKeypoints,
     frameStatuses: new Array(data.numFrames).fill("unlabeled") as FrameStatus[],
+    // Clear derived positions — they were computed from the OLD dataset
+    adjustedPositions: null,
+    alignedPositions: null,
+    isAligned: false,
   }),
   setAlignedPositions: (positions) => set({ alignedPositions: new Float32Array(positions), isAligned: true }),
   setCurrentFrame: (frame) => set({ currentFrame: frame }),
