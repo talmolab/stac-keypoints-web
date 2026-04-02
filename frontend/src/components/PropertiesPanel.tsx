@@ -30,6 +30,8 @@ export default function PropertiesPanel() {
   const setModelOpacity = useStore((s) => s.setModelOpacity);
   const showErrorLines = useStore((s) => s.showErrorLines);
   const setShowErrorLines = useStore((s) => s.setShowErrorLines);
+  const showOffsetMarkers = useStore((s) => s.showOffsetMarkers);
+  const setShowOffsetMarkers = useStore((s) => s.setShowOffsetMarkers);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -124,6 +126,10 @@ export default function PropertiesPanel() {
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showErrorLines ? "#ff8844" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={showErrorLines} onChange={(e) => setShowErrorLines(e.target.checked)} />
           Show Error Lines
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showOffsetMarkers ? "#00cccc" : "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={showOffsetMarkers} onChange={(e) => setShowOffsetMarkers(e.target.checked)} />
+          Show Offset Points
         </label>
         {/* Model scale — always visible */}
         <div style={{ marginTop: 4 }}>
