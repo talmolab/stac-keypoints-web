@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import * as THREE from "three";
 import { Line, Html } from "@react-three/drei";
 import { useStore } from "../store";
@@ -88,6 +88,18 @@ export default function ErrorLines() {
     }[];
   }, [showErrorLines, mappings, offsets, bodyTransforms, bodyNames, positions, numKp, currentFrame, mocapScale, kpNames]);
 
+  const setPerKeypointErrors = useStore((s) => s.setPerKeypointErrors);
+
+  useEffect(() => {
+    if (!showErrorLines || lines.length === 0) {
+      setPerKeypointErrors([]);
+      return;
+    }
+    setPerKeypointErrors(
+      lines.map((l) => ({ keypointName: l.keypointName, errorMm: l.errorMm }))
+    );
+  }, [lines, showErrorLines, setPerKeypointErrors]);
+
   if (!showErrorLines || lines.length === 0) return null;
 
   // Compute mean error for summary
@@ -104,7 +116,7 @@ export default function ErrorLines() {
             depthTest={false}
             renderOrder={15}
           />
-          {l.errorMm > 3 && (
+          {(
             <Html position={l.mid} center style={{ pointerEvents: "none" }}>
               <div style={{
                 background: "rgba(0,0,0,0.7)",

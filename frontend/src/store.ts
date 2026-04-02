@@ -92,6 +92,10 @@ interface AppState {
   hoveredName: string | null;
   hoveredPosition: [number, number, number] | null;
 
+  // Per-keypoint errors (transient, not persisted)
+  perKeypointErrors: { keypointName: string; errorMm: number }[];
+  setPerKeypointErrors: (errors: { keypointName: string; errorMm: number }[]) => void;
+
   // Follow camera
   followCamera: boolean;
   setFollowCamera: (follow: boolean) => void;
@@ -175,6 +179,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   autoIk: true,
   hoveredName: null,
   hoveredPosition: null,
+  perKeypointErrors: [],
+  setPerKeypointErrors: (errors) => set({ perKeypointErrors: errors }),
   followCamera: true,
   setFollowCamera: (follow) => set({ followCamera: follow }),
 
