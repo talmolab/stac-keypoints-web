@@ -60,7 +60,7 @@ export default function PropertiesPanel() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", overflowY: "auto", overflowX: "hidden", paddingBottom: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", minHeight: 0, overflowY: "auto", overflowX: "hidden", paddingBottom: 20 }}>
       {/* Workflow Guide */}
       <div>
         <h3
