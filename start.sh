@@ -64,8 +64,10 @@ else
     tmux kill-session -t "$SESSION" 2>/dev/null || true
 
     # Create tmux session with backend in pane 0
+    ACTIVATE=""
+    [ -n "$VENV" ] && ACTIVATE="source $VENV && "
     tmux new-session -d -s "$SESSION" -n "servers" \
-        "source $VENV && PYTHONPATH=$MONSEES_RETARGET:\$PYTHONPATH uvicorn backend.app:app --reload --host 0.0.0.0 --port $BACKEND_PORT; read"
+        "${ACTIVATE}PYTHONPATH=$MONSEES_RETARGET:\$PYTHONPATH uvicorn backend.app:app --reload --host 0.0.0.0 --port $BACKEND_PORT; read"
 
     # Split and run frontend in pane 1
     tmux split-window -t "$SESSION" -h \
