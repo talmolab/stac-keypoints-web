@@ -13,8 +13,8 @@ export default function Toolbar() {
   const setIkStatus = useStore((s) => s.setIkStatus);
 
   const handleLoadXml = useCallback(async () => {
-    const path = prompt("Enter path to MuJoCo XML file:",
-      "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml");
+    const defaults = await api.getDefaults();
+    const path = prompt("Enter path to MuJoCo XML file:", defaults.xmlPath ?? "");
     if (!path) return;
     const data = await api.loadXml(path);
     if (data.error) { alert(data.error); return; }
@@ -39,8 +39,8 @@ export default function Toolbar() {
   }, [setAcmData]);
 
   const handleLoadConfig = useCallback(async () => {
-    const path = prompt("Enter path to STAC YAML config:",
-      "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml");
+    const defaults = await api.getDefaults();
+    const path = prompt("Enter path to STAC YAML config:", defaults.configPath ?? "");
     if (!path) return;
     const config = await api.loadConfig(path);
     if (config.error) { alert(config.error); return; }
@@ -93,8 +93,8 @@ export default function Toolbar() {
   }, [setIkStatus]);
 
   const handleLoadStacOutput = useCallback(async () => {
-    const path = prompt("Enter path to STAC output H5:",
-      "/home/talmolab/Desktop/SalkResearch/monsees-retarget/output/monsees_ik_only.h5");
+    const defaults = await api.getDefaults();
+    const path = prompt("Enter path to STAC output H5:", defaults.stacOutputPath ?? "");
     if (!path) return;
     setIkStatus("Loading STAC H5...");
     const data = await api.loadStacOutput(path);

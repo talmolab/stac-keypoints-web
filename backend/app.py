@@ -1,12 +1,18 @@
 """FastAPI backend for STAC Retarget UI."""
 from __future__ import annotations
 
+import os
 import tempfile
+from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, File, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+# Repo root = parent of `backend/`. Bundled defaults live in <repo>/data/.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_BUNDLED_DATA = _REPO_ROOT / "data"
 
 from backend.mujoco_utils import compute_body_transforms, extract_model_geometry
 from backend.acm_processing import load_acm_trials, load_single_matfile, apply_retargeting
@@ -31,6 +37,34 @@ _state = {"xml_path": None}
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+def _resolve_default(env_var: str, bundled: Path) -> str | None:
+    """Pick env override if set, else bundled path if it exists, else None."""
+    override = os.environ.get(env_var)
+    if override:
+        return override
+    return str(bundled) if bundled.exists() else None
+
+
+@app.get("/api/defaults")
+def defaults():
+    """Default file paths the frontend should auto-load on startup.
+
+    Each value is overridable via env var. Falls back to files bundled in
+    the repo's `data/` directory if present, otherwise null.
+    """
+    return {
+        "xmlPath": _resolve_default(
+            "STAC_KEYPOINTS_XML", _BUNDLED_DATA / "rodent_relaxed.xml"
+        ),
+        "configPath": _resolve_default(
+            "STAC_KEYPOINTS_CONFIG", _BUNDLED_DATA / "stac_rodent_acm.yaml"
+        ),
+        "stacOutputPath": os.environ.get("STAC_KEYPOINTS_STAC_OUTPUT"),
+        "acmTrials": int(os.environ.get("STAC_KEYPOINTS_ACM_TRIALS", "3")),
+        "monseesRetarget": os.environ.get("MONSEES_RETARGET"),
+    }
 
 
 @app.post("/api/load-xml")

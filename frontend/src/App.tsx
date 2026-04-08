@@ -9,10 +9,6 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAutoIk } from "./hooks/useAutoIk";
 import * as api from "./api";
 
-const DEFAULT_XML_PATH = "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml";
-const DEFAULT_CONFIG_PATH = "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml";
-const DEFAULT_ACM_TRIALS = 3;
-
 export default function App() {
   useKeyboardShortcuts();
   useAutoIk();
@@ -30,14 +26,22 @@ export default function App() {
       const setAlignedPositions = useStore.getState().setAlignedPositions;
 
       try {
+        // 0. Fetch defaults from backend (env-overridable, falls back to bundled data/)
+        const defaults = await api.getDefaults();
+        console.log("[AutoLoad] Defaults:", defaults);
+
         // 1. Load XML
-        console.log("[AutoLoad] Loading XML...");
-        const xmlData = await api.loadXml(DEFAULT_XML_PATH);
+        if (!defaults.xmlPath) {
+          console.warn("[AutoLoad] No default XML path. Use the toolbar to load one manually.");
+          return;
+        }
+        console.log("[AutoLoad] Loading XML:", defaults.xmlPath);
+        const xmlData = await api.loadXml(defaults.xmlPath);
         if (xmlData.error) {
           console.error("[AutoLoad] XML error:", xmlData.error);
           return;
         }
-        setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: DEFAULT_XML_PATH });
+        setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: defaults.xmlPath });
 
         // Get default body transforms
         const defaultQpos = new Array(xmlData.nq).fill(0);
@@ -45,18 +49,25 @@ export default function App() {
         const transforms = await api.bodyTransforms(defaultQpos);
         setBodyTransforms(transforms);
 
-        // 2. Load config
-        console.log("[AutoLoad] Loading config...");
-        const config = await api.loadConfig(DEFAULT_CONFIG_PATH);
-        if (config.error) {
-          console.error("[AutoLoad] Config error:", config.error);
-        } else {
-          loadConfigAction(config);
+        // 2. Load config (optional)
+        if (defaults.configPath) {
+          console.log("[AutoLoad] Loading config:", defaults.configPath);
+          const config = await api.loadConfig(defaults.configPath);
+          if (config.error) {
+            console.error("[AutoLoad] Config error:", config.error);
+          } else {
+            loadConfigAction(config);
+          }
         }
 
-        // 3. Load ACM data
+        // 3. Load ACM data (requires monsees-retarget; skip if unavailable)
+        if (!defaults.monseesRetarget) {
+          console.warn("[AutoLoad] MONSEES_RETARGET not set; skipping ACM autoload.");
+          console.log("[AutoLoad] Done (no ACM).");
+          return;
+        }
         console.log("[AutoLoad] Loading ACM data...");
-        const acmData = await api.loadAcmTrials(DEFAULT_ACM_TRIALS);
+        const acmData = await api.loadAcmTrials(defaults.acmTrials);
         if (acmData.error) {
           console.error("[AutoLoad] ACM error:", acmData.error);
           return;

@@ -1,5 +1,23 @@
 const BASE = "";
 
+export interface Defaults {
+  xmlPath: string | null;
+  configPath: string | null;
+  stacOutputPath: string | null;
+  acmTrials: number;
+  monseesRetarget: string | null;
+}
+
+let _defaultsCache: Defaults | null = null;
+
+export async function getDefaults(): Promise<Defaults> {
+  if (_defaultsCache) return _defaultsCache;
+  const resp = await fetch(`${BASE}/api/defaults`);
+  if (!resp.ok) throw new Error(`getDefaults: HTTP ${resp.status}`);
+  _defaultsCache = await resp.json();
+  return _defaultsCache!;
+}
+
 export async function loadXml(path: string) {
   const resp = await fetch(`${BASE}/api/load-xml?path=${encodeURIComponent(path)}`, { method: "POST" });
   return resp.json();
