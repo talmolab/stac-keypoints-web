@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Viewport3D from "./components/Viewport3D";
 import Timeline from "./components/Timeline";
 import MappingTable from "./components/MappingTable";
@@ -13,6 +13,7 @@ export default function App() {
   useKeyboardShortcuts();
   useAutoIk();
   const hasAutoLoaded = useRef(false);
+  const [banner, setBanner] = useState<{ kind: "error" | "warn"; text: string } | null>(null);
 
   useEffect(() => {
     if (hasAutoLoaded.current) return;
@@ -25,20 +26,34 @@ export default function App() {
       const setAcmData = useStore.getState().setAcmData;
       const setAlignedPositions = useStore.getState().setAlignedPositions;
 
+      // 0. Fetch defaults from backend (env-overridable, falls back to bundled data/)
+      // This doubles as a backend reachability check.
+      let defaults: api.Defaults;
       try {
-        // 0. Fetch defaults from backend (env-overridable, falls back to bundled data/)
-        const defaults = await api.getDefaults();
-        console.log("[AutoLoad] Defaults:", defaults);
+        defaults = await api.getDefaults();
+      } catch (err) {
+        const msg = (err as Error).message;
+        console.error("[AutoLoad] Backend unreachable:", msg);
+        setBanner({
+          kind: "error",
+          text: `Backend unreachable at /api (${msg}). Is uvicorn running on :8000? Check the terminal running start.sh.`,
+        });
+        return;
+      }
+      console.log("[AutoLoad] Defaults:", defaults);
+
+      try {
 
         // 1. Load XML
         if (!defaults.xmlPath) {
-          console.warn("[AutoLoad] No default XML path. Use the toolbar to load one manually.");
+          setBanner({ kind: "warn", text: "No default model. Use 'Load XML' in the toolbar." });
           return;
         }
         console.log("[AutoLoad] Loading XML:", defaults.xmlPath);
         const xmlData = await api.loadXml(defaults.xmlPath);
         if (xmlData.error) {
           console.error("[AutoLoad] XML error:", xmlData.error);
+          setBanner({ kind: "error", text: `Failed to load default XML: ${xmlData.error}` });
           return;
         }
         setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: defaults.xmlPath });
@@ -62,7 +77,10 @@ export default function App() {
 
         // 3. Load ACM data (requires monsees-retarget; skip if unavailable)
         if (!defaults.monseesRetarget) {
-          console.warn("[AutoLoad] MONSEES_RETARGET not set; skipping ACM autoload.");
+          setBanner({
+            kind: "warn",
+            text: "MONSEES_RETARGET not set — ACM autoload skipped. Load a .mat file manually, or set the env var and restart the backend.",
+          });
           console.log("[AutoLoad] Done (no ACM).");
           return;
         }
@@ -101,6 +119,7 @@ export default function App() {
         console.log("[AutoLoad] Done.");
       } catch (err) {
         console.error("[AutoLoad] Exception:", err);
+        setBanner({ kind: "error", text: `Autoload failed: ${(err as Error).message}` });
       }
     };
 
@@ -113,6 +132,23 @@ export default function App() {
         <span style={{ fontWeight: 600, fontSize: 16 }}>STAC Retarget UI</span>
         <Toolbar />
       </div>
+      {banner && (
+        <div
+          onClick={() => setBanner(null)}
+          title="Click to dismiss"
+          style={{
+            padding: "8px 16px",
+            background: banner.kind === "error" ? "#4a1a1a" : "#4a3a1a",
+            color: banner.kind === "error" ? "#ffb0b0" : "#ffe0a0",
+            borderBottom: `1px solid ${banner.kind === "error" ? "#a44" : "#a84"}`,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          <strong>{banner.kind === "error" ? "Error: " : "Notice: "}</strong>
+          {banner.text}
+        </div>
+      )}
       <div style={{ flex: 1, display: "flex" }}>
         <div style={{ flex: 3 }}>
           <Viewport3D />
