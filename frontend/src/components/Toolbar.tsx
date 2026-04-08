@@ -55,10 +55,9 @@ export default function Toolbar() {
   }, [setAcmData]);
 
   const handleLoadConfig = useCallback(async () => {
-    const defaults = await api.getDefaults();
-    const path = prompt("Enter path to STAC YAML config:", defaults.configPath ?? "");
-    if (!path) return;
-    const config = await api.loadConfig(path);
+    const file = await pickFile(".yaml,.yml");
+    if (!file) return;
+    const config = await api.uploadConfig(file);
     if (config.error) { alert(config.error); return; }
     loadConfigAction(config);
   }, [loadConfigAction]);
@@ -122,11 +121,10 @@ export default function Toolbar() {
   }, [setIkStatus]);
 
   const handleLoadStacOutput = useCallback(async () => {
-    const defaults = await api.getDefaults();
-    const path = prompt("Enter path to STAC output H5:", defaults.stacOutputPath ?? "");
-    if (!path) return;
-    setIkStatus("Loading STAC H5...");
-    const data = await api.loadStacOutput(path);
+    const file = await pickFile(".h5");
+    if (!file) return;
+    setIkStatus("Uploading STAC H5...");
+    const data = await api.uploadStacOutput(file);
     if (data.error) { setIkStatus("Load error: " + data.error); return; }
 
     // Load learned offsets

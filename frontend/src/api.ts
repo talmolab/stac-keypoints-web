@@ -52,6 +52,13 @@ export async function loadConfig(path: string) {
   return resp.json();
 }
 
+export async function uploadConfig(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  const resp = await fetch(`${BASE}/api/load-config`, { method: "POST", body: form });
+  return resp.json();
+}
+
 /** Returns the YAML body as a string, or throws on error. */
 export async function exportConfig(config: Record<string, unknown>): Promise<string> {
   const resp = await fetch(`${BASE}/api/export-config`, {
@@ -108,6 +115,13 @@ export async function batchBodyTransforms(qposList: number[][]) {
 
 export async function loadStacOutput(path: string) {
   const resp = await fetch(`${BASE}/api/load-stac-output?path=${encodeURIComponent(path)}`, { method: "POST" });
+  return resp.json();
+}
+
+export async function uploadStacOutput(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  const resp = await fetch(`${BASE}/api/load-stac-output`, { method: "POST", body: form });
   return resp.json();
 }
 

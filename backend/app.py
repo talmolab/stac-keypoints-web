@@ -159,12 +159,25 @@ async def align_endpoint(data: dict):
 
 
 @app.post("/api/load-config")
-async def load_config(path: str = Query(...)):
-    """Load STAC YAML config."""
+async def load_config(file: UploadFile = File(None), path: str = Query(None)):
+    """Load STAC YAML config from a server-side path or an uploaded file."""
+    tmp_path: str | None = None
+    if path:
+        cfg_path = path
+    elif file:
+        tmp = tempfile.NamedTemporaryFile(suffix=".yaml", delete=False)
+        tmp.write(await file.read())
+        tmp.close()
+        cfg_path = tmp_path = tmp.name
+    else:
+        return JSONResponse({"error": "Provide file or path"}, status_code=400)
     try:
-        return load_stac_yaml(path)
+        return load_stac_yaml(cfg_path)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
+    finally:
+        if tmp_path:
+            os.unlink(tmp_path)
 
 
 @app.post("/api/export-config")
@@ -182,12 +195,27 @@ async def export_config(data: dict):
 
 
 @app.post("/api/load-stac-output")
-async def load_stac_output(path: str = Query(...)):
-    """Load STAC output H5 (offsets, qpos)."""
+async def load_stac_output(file: UploadFile = File(None), path: str = Query(None)):
+    """Load STAC output H5 from a server-side path or an uploaded file."""
+    tmp_path: str | None = None
+    if path:
+        h5_path = path
+    elif file:
+        tmp = tempfile.NamedTemporaryFile(suffix=".h5", delete=False)
+        # Stream in chunks — STAC H5s can be hundreds of MB.
+        while chunk := await file.read(1 << 20):
+            tmp.write(chunk)
+        tmp.close()
+        h5_path = tmp_path = tmp.name
+    else:
+        return JSONResponse({"error": "Provide file or path"}, status_code=400)
     try:
-        return load_stac_output_h5(path)
+        return load_stac_output_h5(h5_path)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
+    finally:
+        if tmp_path:
+            os.unlink(tmp_path)
 
 
 @app.post("/api/suggest-frames")
