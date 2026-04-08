@@ -6,9 +6,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# --- Configuration (edit these if your paths differ) ---
-VENV="${VENV:-/home/talmolab/Desktop/SalkResearch/mimic-mjx/bin/activate}"
-MONSEES_RETARGET="${MONSEES_RETARGET:-/home/talmolab/Desktop/SalkResearch/monsees-retarget}"
+# --- Configuration (override via env vars if your paths differ) ---
+# VENV: path to a virtualenv 'activate' script. If unset, uses current Python env.
+VENV="${VENV:-}"
+# MONSEES_RETARGET: optional path to monsees-retarget checkout (enables ACM features).
+MONSEES_RETARGET="${MONSEES_RETARGET:-}"
 BACKEND_PORT=8000
 FRONTEND_PORT=5173
 # -------------------------------------------------------
@@ -18,11 +20,12 @@ if ! command -v node &>/dev/null; then
     echo "Error: Node.js not found. Install via: https://nodejs.org/ or nvm"
     exit 1
 fi
-if [ ! -f "$VENV" ]; then
+if [ -n "$VENV" ] && [ ! -f "$VENV" ]; then
     echo "Error: Python venv not found at $VENV"
-    echo "Set VENV env var to your virtualenv activate script."
+    echo "Unset VENV to use the current Python environment, or point it at a valid activate script."
     exit 1
 fi
+export MONSEES_RETARGET
 
 # Install frontend deps if needed
 if [ ! -d frontend/node_modules ]; then
@@ -31,8 +34,14 @@ if [ ! -d frontend/node_modules ]; then
 fi
 
 # Install backend in dev mode if needed
-source "$VENV"
+[ -n "$VENV" ] && source "$VENV"
 pip show stac-keypoints-web &>/dev/null 2>&1 || pip install -e ".[dev]"
+
+# Auto-fallback to --no-tmux if tmux is not installed
+if [ "$1" != "--no-tmux" ] && ! command -v tmux &>/dev/null; then
+    echo "Note: tmux not found, running without tmux. (Install tmux for split-pane mode.)"
+    set -- --no-tmux
+fi
 
 if [ "$1" = "--no-tmux" ]; then
     # Run without tmux (two background processes)
@@ -49,17 +58,6 @@ if [ "$1" = "--no-tmux" ]; then
     trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null" EXIT
     wait
 else
-    # Check tmux
-    if ! command -v tmux &>/dev/null; then
-        echo "Error: tmux not found."
-        echo "Install it:"
-        echo "  Ubuntu/Debian: sudo apt install tmux"
-        echo "  macOS:         brew install tmux"
-        echo ""
-        echo "Or run without tmux: ./start.sh --no-tmux"
-        exit 1
-    fi
-
     SESSION="stac-retarget-ui"
 
     # Kill existing session if any

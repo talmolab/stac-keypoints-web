@@ -1,12 +1,14 @@
 """ACM data loading, FK, and retargeting — wraps monsees_retarget."""
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 import numpy as np
 
-_MONSEES_ROOT = Path("/home/talmolab/Desktop/SalkResearch/monsees-retarget")
-if str(_MONSEES_ROOT) not in sys.path:
+_DEFAULT_MONSEES_ROOT = Path("/home/talmolab/Desktop/SalkResearch/monsees-retarget")
+_MONSEES_ROOT = Path(os.environ.get("MONSEES_RETARGET", _DEFAULT_MONSEES_ROOT))
+if _MONSEES_ROOT.exists() and str(_MONSEES_ROOT) not in sys.path:
     sys.path.insert(0, str(_MONSEES_ROOT))
 
 from monsees_retarget.acm_loader import acm_forward_kinematics, load_motiondata
