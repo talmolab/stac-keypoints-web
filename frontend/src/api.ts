@@ -1,5 +1,11 @@
 const BASE = "";
 
+export async function health(): Promise<{ status: string }> {
+  const resp = await fetch(`${BASE}/api/health`);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  return resp.json();
+}
+
 export interface Defaults {
   xmlPath: string | null;
   configPath: string | null;

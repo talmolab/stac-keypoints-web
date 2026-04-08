@@ -26,11 +26,9 @@ export default function App() {
       const setAcmData = useStore.getState().setAcmData;
       const setAlignedPositions = useStore.getState().setAlignedPositions;
 
-      // 0. Fetch defaults from backend (env-overridable, falls back to bundled data/)
-      // This doubles as a backend reachability check.
-      let defaults: api.Defaults;
+      // 0. Reachability check via the dedicated health endpoint.
       try {
-        defaults = await api.getDefaults();
+        await api.health();
       } catch (err) {
         const msg = (err as Error).message;
         console.error("[AutoLoad] Backend unreachable:", msg);
@@ -40,6 +38,9 @@ export default function App() {
         });
         return;
       }
+
+      // Fetch defaults (env-overridable, falls back to bundled data/).
+      const defaults = await api.getDefaults();
       console.log("[AutoLoad] Defaults:", defaults);
 
       try {
