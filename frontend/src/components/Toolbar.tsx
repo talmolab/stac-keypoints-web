@@ -3,6 +3,18 @@ import { useStore } from "../store";
 import * as api from "../api";
 import { runIk } from "../ikRunner";
 
+/** Open a transient native file picker and resolve with the chosen File. */
+function pickFile(accept: string): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = accept;
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.oncancel = () => resolve(null);
+    input.click();
+  });
+}
+
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
   const setAcmData = useStore((s) => s.setAcmData);
@@ -13,27 +25,31 @@ export default function Toolbar() {
   const setIkStatus = useStore((s) => s.setIkStatus);
 
   const handleLoadXml = useCallback(async () => {
-    const defaults = await api.getDefaults();
-    const path = prompt("Enter path to MuJoCo XML file:", defaults.xmlPath ?? "");
-    if (!path) return;
-    const data = await api.loadXml(path);
+    const file = await pickFile(".xml");
+    if (!file) return;
+    const data = await api.uploadXml(file);
     if (data.error) { alert(data.error); return; }
-    setXmlData({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: path });
+    // Backend stored the upload in a temp file; track that path so subsequent
+    // body-transform / align calls reuse the same model.
+    setXmlData({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath ?? file.name });
     const defaultQpos = new Array(data.nq).fill(0);
     defaultQpos[3] = 1.0;
     const transforms = await api.bodyTransforms(defaultQpos);
     setBodyTransforms(transforms);
   }, [setXmlData, setBodyTransforms]);
 
+  const handleLoadMat = useCallback(async () => {
+    const file = await pickFile(".mat");
+    if (!file) return;
+    const data = await api.uploadMatFile(file);
+    if (data.error) { alert(data.error); return; }
+    setAcmData(data);
+  }, [setAcmData]);
+
   const handleLoadAcm = useCallback(async () => {
-    const choice = prompt("Enter a .mat file path, or number of trials to auto-load:", "5");
+    const choice = prompt("Number of ACM trials to auto-load:", "5");
     if (!choice) return;
-    let data;
-    if (choice.endsWith(".mat")) {
-      data = await api.loadMatFile(choice);
-    } else {
-      data = await api.loadAcmTrials(parseInt(choice) || 5);
-    }
+    const data = await api.loadAcmTrials(parseInt(choice) || 5);
     if (data.error) { alert(data.error); return; }
     setAcmData(data);
   }, [setAcmData]);
@@ -85,11 +101,24 @@ export default function Toolbar() {
       kpNames: state.acmKeypointNames,
       segmentScales: state.segmentScales,
     };
-    const path = prompt("Export config to:", "/tmp/stac_retarget_config.yaml");
-    if (!path) return;
-    const result = await api.exportConfig(config, path);
-    if (result.error) setIkStatus("Export error: " + result.error);
-    else setIkStatus("Config exported to " + result.path);
+    let yamlBody: string;
+    try {
+      yamlBody = await api.exportConfig(config);
+    } catch (e) {
+      setIkStatus("Export error: " + (e as Error).message);
+      return;
+    }
+    // Trigger a browser download — no server-side filesystem write involved.
+    const blob = new Blob([yamlBody], { type: "application/x-yaml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "stac_retarget_config.yaml";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setIkStatus("Config downloaded.");
   }, [setIkStatus]);
 
   const handleLoadStacOutput = useCallback(async () => {
@@ -190,6 +219,7 @@ export default function Toolbar() {
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
+      <button style={btnStyle} onClick={handleLoadMat}>Load .mat</button>
       <button style={btnStyle} onClick={handleLoadAcm}>Load ACM</button>
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
       <button style={btnStyle} onClick={handleAlign}>Align</button>

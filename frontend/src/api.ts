@@ -23,6 +23,13 @@ export async function loadXml(path: string) {
   return resp.json();
 }
 
+export async function uploadXml(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  const resp = await fetch(`${BASE}/api/load-xml`, { method: "POST", body: form });
+  return resp.json();
+}
+
 export async function loadAcmTrials(maxTrials = 5, decimate = 2) {
   const resp = await fetch(`${BASE}/api/load-acm?max_trials=${maxTrials}&decimate=${decimate}`, { method: "POST" });
   return resp.json();
@@ -33,18 +40,34 @@ export async function loadMatFile(path: string) {
   return resp.json();
 }
 
+export async function uploadMatFile(file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  const resp = await fetch(`${BASE}/api/load-matfile`, { method: "POST", body: form });
+  return resp.json();
+}
+
 export async function loadConfig(path: string) {
   const resp = await fetch(`${BASE}/api/load-config?path=${encodeURIComponent(path)}`, { method: "POST" });
   return resp.json();
 }
 
-export async function exportConfig(config: Record<string, unknown>, outputPath: string) {
+/** Returns the YAML body as a string, or throws on error. */
+export async function exportConfig(config: Record<string, unknown>): Promise<string> {
   const resp = await fetch(`${BASE}/api/export-config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ config, outputPath }),
+    body: JSON.stringify({ config }),
   });
-  return resp.json();
+  if (!resp.ok) {
+    let msg = `HTTP ${resp.status}`;
+    try {
+      const err = await resp.json();
+      if (err?.error) msg = err.error;
+    } catch { /* not JSON */ }
+    throw new Error(msg);
+  }
+  return resp.text();
 }
 
 export async function alignToMujoco(data: Record<string, unknown>) {

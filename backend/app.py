@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 from fastapi import FastAPI, File, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 # Repo root = parent of `backend/`. Bundled defaults live in <repo>/data/.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -17,7 +17,7 @@ _BUNDLED_DATA = _REPO_ROOT / "data"
 from backend.mujoco_utils import compute_body_transforms, extract_model_geometry
 from backend.acm_processing import load_acm_trials, load_single_matfile, apply_retargeting
 from backend.alignment import align_acm_to_mujoco
-from backend.config_io import load_stac_yaml, export_stac_yaml, load_stac_output_h5
+from backend.config_io import load_stac_yaml, dump_stac_yaml, load_stac_output_h5
 from backend.frame_selector import suggest_frames
 from backend.stac_runner import run_quick_stac
 
@@ -85,6 +85,9 @@ async def load_xml(file: UploadFile = File(None), path: str = Query(None)):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     _state["xml_path"] = xml_path
+    # Echo the resolved server-side path so the frontend can pass it back
+    # to endpoints that need it (e.g. /api/align).
+    geometry["xmlPath"] = xml_path
     return geometry
 
 
@@ -166,13 +169,16 @@ async def load_config(path: str = Query(...)):
 
 @app.post("/api/export-config")
 async def export_config(data: dict):
-    """Export updated config to YAML."""
-    output_path = data.get("outputPath", "/tmp/stac_config_export.yaml")
+    """Serialize the UI state as STAC YAML and return the document body.
+
+    The browser is expected to save this as a file via a download link.
+    The backend never writes to its own filesystem.
+    """
     try:
-        export_stac_yaml(data["config"], output_path)
+        body = dump_stac_yaml(data["config"])
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
-    return {"path": output_path}
+    return PlainTextResponse(body, media_type="application/x-yaml")
 
 
 @app.post("/api/load-stac-output")
