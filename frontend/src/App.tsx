@@ -22,6 +22,10 @@ export default function App() {
     if (hasAutoLoaded.current) return;
     hasAutoLoaded.current = true;
 
+    // Skip auto-load if ?noauto or ?walker= is in the URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("noauto") || params.has("walker")) return;
+
     const autoLoad = async () => {
       const setXmlData = useStore.getState().setXmlData;
       const setBodyTransforms = useStore.getState().setBodyTransforms;

@@ -1,7 +1,7 @@
 import React from "react";
 import { useStore } from "../store";
 import type { InteractionMode } from "../types";
-import { PRIMARY_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
+import { getRetargetTree, getPrimarySegments, segmentKey } from "../skeletonEditor";
 import ErrorDistribution from "./ErrorDistribution";
 
 export default function PropertiesPanel() {
@@ -33,6 +33,10 @@ export default function PropertiesPanel() {
   const setShowErrorLines = useStore((s) => s.setShowErrorLines);
   const showOffsetMarkers = useStore((s) => s.showOffsetMarkers);
   const setShowOffsetMarkers = useStore((s) => s.setShowOffsetMarkers);
+  const kpNames = useStore((s) => s.acmKeypointNames);
+
+  const activeTree = React.useMemo(() => getRetargetTree(kpNames), [kpNames]);
+  const activePrimary = React.useMemo(() => getPrimarySegments(kpNames), [kpNames]);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -118,7 +122,7 @@ export default function PropertiesPanel() {
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={followCamera} onChange={(e) => setFollowCamera(e.target.checked)} />
-          Follow Rodent
+          Follow Walker
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: autoIk ? "#8f8" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={autoIk} onChange={(e) => setAutoIk(e.target.checked)} />
@@ -210,11 +214,11 @@ export default function PropertiesPanel() {
         <div style={{ fontSize: 11, color: "#77aaff", marginBottom: 6 }}>
           Adjust segment lengths. Downstream keypoints propagate.
         </div>
-        {RETARGET_TREE.filter((b) => PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => segmentSlider(bone))}
+        {activeTree.filter((b) => activePrimary.has(segmentKey(b.parent, b.child))).map((bone) => segmentSlider(bone))}
         <details style={{ marginTop: 4 }}>
           <summary style={{ cursor: "pointer", color: "#777", fontSize: 11 }}>Fine-tune limb segments</summary>
           <div style={{ marginTop: 4 }}>
-            {RETARGET_TREE.filter((b) => !PRIMARY_SEGMENTS.has(segmentKey(b.parent, b.child))).map((bone) => segmentSlider(bone, true))}
+            {activeTree.filter((b) => !activePrimary.has(segmentKey(b.parent, b.child))).map((bone) => segmentSlider(bone, true))}
           </div>
         </details>
       </div>

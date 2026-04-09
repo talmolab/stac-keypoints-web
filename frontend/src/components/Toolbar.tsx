@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
 import { runIk } from "../ikRunner";
+import { getRetargetTree } from "../skeletonEditor";
 
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
@@ -94,13 +95,46 @@ export default function Toolbar() {
 
   const handleLoadStacOutput = useCallback(async () => {
     const path = prompt("Enter path to STAC output H5:",
-      "/home/talmolab/Desktop/SalkResearch/monsees-retarget/output/monsees_ik_only.h5");
+      "/home/talmolab/Desktop/SalkResearch/data/stick/stick_bug_fit_offsets.h5");
     if (!path) return;
     setIkStatus("Loading STAC H5...");
     const data = await api.loadStacOutput(path);
     if (data.error) { setIkStatus("Load error: " + data.error); return; }
 
-    // Load learned offsets
+    // If H5 has embedded config, auto-load XML and config
+    if (data.embeddedConfig) {
+      const cfg = data.embeddedConfig;
+      setIkStatus("Auto-configuring from embedded config...");
+
+      // Load XML model
+      if (cfg.xmlPath) {
+        const xmlData = await api.loadXml(cfg.xmlPath);
+        if (xmlData.error) {
+          // Prompt for manual XML path
+          const manualXml = prompt(
+            `XML not found at: ${cfg.xmlPath}\nEnter correct XML path:`
+          );
+          if (manualXml) {
+            const xmlData2 = await api.loadXml(manualXml);
+            if (!xmlData2.error) {
+              setXmlData({ geoms: xmlData2.geoms, bodyNames: xmlData2.bodyNames, nq: xmlData2.nq, xmlPath: manualXml });
+            }
+          }
+        } else {
+          setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: cfg.xmlPath });
+        }
+      }
+
+      // Load config (mappings, offsets, scale factors)
+      loadConfigAction({
+        keypointModelPairs: cfg.keypointModelPairs,
+        keypointInitialOffsets: cfg.keypointInitialOffsets,
+        scaleFactor: cfg.scaleFactor,
+        mocapScaleFactor: cfg.mocapScaleFactor,
+      });
+    }
+
+    // Load learned offsets from H5 (overrides config offsets with fitted values)
     const state = useStore.getState();
     for (let i = 0; i < data.kpNames.length; i++) {
       const name = data.kpNames[i];
@@ -114,8 +148,8 @@ export default function Toolbar() {
       const targets = data.stacTargets;
       setIkStatus(`Syncing ${targets.numFrames} STAC target frames...`);
 
-      const state2 = useStore.getState();
-      const bones = state2.acmBones.length > 0 ? state2.acmBones : [];
+      // Derive bone connectivity from keypoint names
+      const bones = getRetargetTree(data.kpNames);
 
       // Reset skeleton editor — STAC targets are already in the correct frame
       useStore.getState().resetSegmentScales();
@@ -155,8 +189,12 @@ export default function Toolbar() {
     useStore.getState().setModelRotationY(0);
     useStore.getState().setModelScale(1.0);
 
+    // Clean view: disable clutter for STAC validation (user can re-enable)
+    useStore.getState().setShowOffsetMarkers(false);
+    useStore.getState().setShowErrorLines(false);
+
     setIkStatus(`Loaded STAC: ${data.qpos.length} frames, ${data.kpNames.length} kps, targets synced`);
-  }, [setIkStatus, setBodyTransforms]);
+  }, [setIkStatus, setBodyTransforms, setXmlData, loadConfigAction]);
 
   const runIkOnFrames = useCallback(async (frameIndices: number[], maxIterations = 200) => {
     await runIk(frameIndices, maxIterations);

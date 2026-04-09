@@ -13,6 +13,10 @@ BACKEND_PORT=8000
 FRONTEND_PORT=5173
 # -------------------------------------------------------
 
+# Load nvm if available
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 # Check dependencies
 if ! command -v node &>/dev/null; then
     echo "Error: Node.js not found. Install via: https://nodejs.org/ or nvm"
@@ -32,7 +36,7 @@ fi
 
 # Install backend in dev mode if needed
 source "$VENV"
-pip show stac-keypoints-web &>/dev/null 2>&1 || pip install -e ".[dev]"
+uv pip show stac-keypoints-web &>/dev/null 2>&1 || uv pip install -e ".[dev]"
 
 if [ "$1" = "--no-tmux" ]; then
     # Run without tmux (two background processes)

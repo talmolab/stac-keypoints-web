@@ -3,10 +3,17 @@ import * as THREE from "three";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
 
-// Shared geometries — created once, reused across renders
-const _passiveSphere = new THREE.SphereGeometry(0.0025, 10, 6);
-const _offsetSphere = new THREE.SphereGeometry(0.004, 12, 8);
-const _offsetSphereSelected = new THREE.SphereGeometry(0.005, 12, 8);
+// Adaptive sphere geometry cache
+const _sphereCache = new Map<number, THREE.SphereGeometry>();
+function getSphereGeom(radius: number): THREE.SphereGeometry {
+  const key = Math.round(radius * 10000) / 10000;
+  let geom = _sphereCache.get(key);
+  if (!geom) {
+    geom = new THREE.SphereGeometry(key, 12, 8);
+    _sphereCache.set(key, geom);
+  }
+  return geom;
+}
 
 // Shared material cache (by color string)
 const _materialCache = new Map<string, THREE.MeshBasicMaterial>();
@@ -29,8 +36,40 @@ export default function OffsetMarkers() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const setHover = useStore((s) => s.setHover);
+  const positions = useStore((s) => s.acmPositions);
+  const numKp = useStore((s) => s.acmNumKeypoints);
+  const mocapScale = useStore((s) => s.mocapScaleFactor);
 
   const isOffsetMode = mode === "offset";
+
+  // Adaptive sphere radius from median nearest-neighbor distance
+  const baseRadius = useMemo(() => {
+    if (!positions || numKp === 0) return 0.003;
+    const pts: [number, number, number][] = [];
+    for (let i = 0; i < numKp; i++) {
+      pts.push([
+        positions[i * 3 + 0] * mocapScale,
+        positions[i * 3 + 1] * mocapScale,
+        positions[i * 3 + 2] * mocapScale,
+      ]);
+    }
+    const nnDists: number[] = [];
+    for (let i = 0; i < pts.length; i++) {
+      let minDist = Infinity;
+      for (let j = 0; j < pts.length; j++) {
+        if (i === j) continue;
+        const d = Math.sqrt(
+          (pts[i][0]-pts[j][0])**2 + (pts[i][1]-pts[j][1])**2 + (pts[i][2]-pts[j][2])**2
+        );
+        if (d > 1e-10 && d < minDist) minDist = d;
+      }
+      if (minDist < Infinity) nnDists.push(minDist);
+    }
+    if (nnDists.length === 0) return 0.003;
+    nnDists.sort((a, b) => a - b);
+    const median = nnDists[Math.floor(nnDists.length / 2)];
+    return Math.max(median * 0.2, 0.0001);
+  }, [positions, numKp, mocapScale]);
 
   const markers = useMemo(() => {
     if (!isOffsetMode && !showOffsetMarkers) return [];
@@ -74,7 +113,7 @@ export default function OffsetMarkers() {
             onPointerOver={(e) => { e.stopPropagation(); setHover(`Offset: ${m.keypointName} → ${m.bodyName}`, [m.position.x, m.position.y, m.position.z]); }}
             onPointerOut={() => setHover(null)}
             renderOrder={10}
-            geometry={m.isSelected ? _offsetSphereSelected : _offsetSphere}
+            geometry={getSphereGeom(m.isSelected ? baseRadius * 1.6 : baseRadius * 1.2)}
             material={getMaterial(m.isSelected ? "#00ff88" : "#00cc66")}
           />
         ))}
@@ -90,7 +129,7 @@ export default function OffsetMarkers() {
           key={m.keypointName}
           position={m.position}
           renderOrder={10}
-          geometry={_passiveSphere}
+          geometry={getSphereGeom(baseRadius * 0.8)}
           material={getMaterial("#00cccc")}
         />
       ))}
