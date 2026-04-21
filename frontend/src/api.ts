@@ -53,6 +53,20 @@ export async function uploadMatFile(file: File) {
   return resp.json();
 }
 
+/** Load STAC-format keypoint tracks (.h5 or .mat). No monsees_retarget needed. */
+export async function uploadKeypoints(file: File, kpNames?: string[]) {
+  const form = new FormData();
+  form.append("file", file);
+  const query = kpNames && kpNames.length > 0
+    ? `?kp_names=${encodeURIComponent(kpNames.join(","))}`
+    : "";
+  const resp = await fetch(`${BASE}/api/load-keypoints${query}`, {
+    method: "POST",
+    body: form,
+  });
+  return resp.json();
+}
+
 export async function loadConfig(path: string) {
   const resp = await fetch(`${BASE}/api/load-config?path=${encodeURIComponent(path)}`, { method: "POST" });
   return resp.json();
