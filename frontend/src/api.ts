@@ -83,6 +83,25 @@ export async function exportConfig(config: Record<string, unknown>): Promise<str
   return resp.text();
 }
 
+/** UI-only sidecar (skeleton editor, ...). Returns null when there's nothing to save. */
+export async function exportUiSidecar(config: Record<string, unknown>): Promise<string | null> {
+  const resp = await fetch(`${BASE}/api/export-ui-sidecar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ config }),
+  });
+  if (resp.status === 204) return null;
+  if (!resp.ok) {
+    let msg = `HTTP ${resp.status}`;
+    try {
+      const err = await resp.json();
+      if (err?.error) msg = err.error;
+    } catch { /* not JSON */ }
+    throw new Error(msg);
+  }
+  return resp.text();
+}
+
 export async function alignToMujoco(data: Record<string, unknown>) {
   const resp = await fetch(`${BASE}/api/align`, {
     method: "POST",
