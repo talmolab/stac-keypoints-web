@@ -1,17 +1,23 @@
 """FastAPI backend for STAC Retarget UI."""
 from __future__ import annotations
 
+import os
 import tempfile
+from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, File, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
+
+# Repo root = parent of `backend/`. Bundled defaults live in <repo>/data/.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_BUNDLED_DATA = _REPO_ROOT / "data"
 
 from backend.mujoco_utils import compute_body_transforms, extract_model_geometry
 from backend.acm_processing import load_acm_trials, load_single_matfile, apply_retargeting
 from backend.alignment import align_acm_to_mujoco
-from backend.config_io import load_stac_yaml, export_stac_yaml, load_stac_output_h5
+from backend.config_io import load_stac_yaml, dump_stac_yaml, load_stac_output_h5
 from backend.frame_selector import suggest_frames
 from backend.stac_runner import run_quick_stac
 
@@ -33,6 +39,34 @@ def health():
     return {"status": "ok"}
 
 
+def _resolve_default(env_var: str, bundled: Path) -> str | None:
+    """Pick env override if set, else bundled path if it exists, else None."""
+    override = os.environ.get(env_var)
+    if override:
+        return override
+    return str(bundled) if bundled.exists() else None
+
+
+@app.get("/api/defaults")
+def defaults():
+    """Default file paths the frontend should auto-load on startup.
+
+    Each value is overridable via env var. Falls back to files bundled in
+    the repo's `data/` directory if present, otherwise null.
+    """
+    return {
+        "xmlPath": _resolve_default(
+            "STAC_KEYPOINTS_XML", _BUNDLED_DATA / "rodent_relaxed.xml"
+        ),
+        "configPath": _resolve_default(
+            "STAC_KEYPOINTS_CONFIG", _BUNDLED_DATA / "stac_rodent_acm.yaml"
+        ),
+        "stacOutputPath": os.environ.get("STAC_KEYPOINTS_STAC_OUTPUT"),
+        "acmTrials": int(os.environ.get("STAC_KEYPOINTS_ACM_TRIALS", "3")),
+        "monseesRetarget": os.environ.get("MONSEES_RETARGET"),
+    }
+
+
 @app.post("/api/load-xml")
 async def load_xml(file: UploadFile = File(None), path: str = Query(None)):
     """Load MuJoCo XML either by file upload or local path."""
@@ -51,6 +85,9 @@ async def load_xml(file: UploadFile = File(None), path: str = Query(None)):
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
     _state["xml_path"] = xml_path
+    # Echo the resolved server-side path so the frontend can pass it back
+    # to endpoints that need it (e.g. /api/align).
+    geometry["xmlPath"] = xml_path
     return geometry
 
 
@@ -122,32 +159,63 @@ async def align_endpoint(data: dict):
 
 
 @app.post("/api/load-config")
-async def load_config(path: str = Query(...)):
-    """Load STAC YAML config."""
+async def load_config(file: UploadFile = File(None), path: str = Query(None)):
+    """Load STAC YAML config from a server-side path or an uploaded file."""
+    tmp_path: str | None = None
+    if path:
+        cfg_path = path
+    elif file:
+        tmp = tempfile.NamedTemporaryFile(suffix=".yaml", delete=False)
+        tmp.write(await file.read())
+        tmp.close()
+        cfg_path = tmp_path = tmp.name
+    else:
+        return JSONResponse({"error": "Provide file or path"}, status_code=400)
     try:
-        return load_stac_yaml(path)
+        return load_stac_yaml(cfg_path)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
+    finally:
+        if tmp_path:
+            os.unlink(tmp_path)
 
 
 @app.post("/api/export-config")
 async def export_config(data: dict):
-    """Export updated config to YAML."""
-    output_path = data.get("outputPath", "/tmp/stac_config_export.yaml")
+    """Serialize the UI state as STAC YAML and return the document body.
+
+    The browser is expected to save this as a file via a download link.
+    The backend never writes to its own filesystem.
+    """
     try:
-        export_stac_yaml(data["config"], output_path)
+        body = dump_stac_yaml(data["config"])
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
-    return {"path": output_path}
+    return PlainTextResponse(body, media_type="application/x-yaml")
 
 
 @app.post("/api/load-stac-output")
-async def load_stac_output(path: str = Query(...)):
-    """Load STAC output H5 (offsets, qpos)."""
+async def load_stac_output(file: UploadFile = File(None), path: str = Query(None)):
+    """Load STAC output H5 from a server-side path or an uploaded file."""
+    tmp_path: str | None = None
+    if path:
+        h5_path = path
+    elif file:
+        tmp = tempfile.NamedTemporaryFile(suffix=".h5", delete=False)
+        # Stream in chunks — STAC H5s can be hundreds of MB.
+        while chunk := await file.read(1 << 20):
+            tmp.write(chunk)
+        tmp.close()
+        h5_path = tmp_path = tmp.name
+    else:
+        return JSONResponse({"error": "Provide file or path"}, status_code=400)
     try:
-        return load_stac_output_h5(path)
+        return load_stac_output_h5(h5_path)
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
+    finally:
+        if tmp_path:
+            os.unlink(tmp_path)
 
 
 @app.post("/api/suggest-frames")

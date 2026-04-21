@@ -30,8 +30,8 @@ def load_stac_yaml(path: str) -> dict:
     }
 
 
-def export_stac_yaml(config: dict, output_path: str) -> None:
-    """Export UI state back to STAC-compatible YAML."""
+def dump_stac_yaml(config: dict) -> str:
+    """Serialize UI state to STAC-compatible YAML and return it as a string."""
     offsets_str = {}
     for kp, vals in config.get("keypointInitialOffsets", {}).items():
         offsets_str[kp] = f"{vals[0]} {vals[1]} {vals[2]}"
@@ -51,8 +51,13 @@ def export_stac_yaml(config: dict, output_path: str) -> None:
         non_default = {k: v for k, v in segment_scales.items() if abs(v - 1.0) > 0.001}
         if non_default:
             yaml_dict["skeleton_editor"] = {"segment_scales": non_default}
+    return yaml.dump(yaml_dict, default_flow_style=False, sort_keys=False)
+
+
+def export_stac_yaml(config: dict, output_path: str) -> None:
+    """Export UI state to a STAC-compatible YAML file on disk."""
     with open(output_path, "w") as f:
-        yaml.dump(yaml_dict, f, default_flow_style=False, sort_keys=False)
+        f.write(dump_stac_yaml(config))
 
 
 def load_stac_output_h5(h5_path: str) -> dict:

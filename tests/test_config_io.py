@@ -1,8 +1,17 @@
-import pytest
+import os
 import tempfile
+from pathlib import Path
+
+import pytest
 from backend.config_io import load_stac_yaml, export_stac_yaml
 
-YAML_PATH = "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml"
+YAML_PATH = os.environ.get(
+    "STAC_KEYPOINTS_CONFIG",
+    str(Path(__file__).resolve().parent.parent / "data" / "stac_rodent_acm.yaml"),
+)
+
+if not Path(YAML_PATH).exists():
+    pytest.skip(f"STAC YAML not found at {YAML_PATH}", allow_module_level=True)
 
 
 def test_load_stac_yaml():

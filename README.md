@@ -50,9 +50,13 @@ pip install -e ".[dev]"
 # 3. Install frontend
 cd frontend && npm install && cd ..
 
-# 4. Configure paths (edit start.sh or set env vars)
-export VENV=/path/to/your/venv/bin/activate
-export MONSEES_RETARGET=/path/to/monsees-retarget
+# 4. (Optional) override default paths via env vars
+export VENV=/path/to/your/venv/bin/activate           # else uses current Python env
+export MONSEES_RETARGET=/path/to/monsees-retarget     # required for ACM autoload
+export STAC_KEYPOINTS_XML=/path/to/model.xml          # default: data/rodent_relaxed.xml
+export STAC_KEYPOINTS_CONFIG=/path/to/config.yaml     # default: data/stac_rodent_acm.yaml
+export STAC_KEYPOINTS_STAC_OUTPUT=/path/to/stac.h5    # default: none
+export STAC_KEYPOINTS_ACM_TRIALS=3                    # default: 3
 
 # 5. Run
 ./start.sh

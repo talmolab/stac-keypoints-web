@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Viewport3D from "./components/Viewport3D";
 import Timeline from "./components/Timeline";
 import MappingTable from "./components/MappingTable";
@@ -9,14 +9,11 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAutoIk } from "./hooks/useAutoIk";
 import * as api from "./api";
 
-const DEFAULT_XML_PATH = "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml";
-const DEFAULT_CONFIG_PATH = "/home/talmolab/Desktop/SalkResearch/monsees-retarget/configs/stac_rodent_acm.yaml";
-const DEFAULT_ACM_TRIALS = 3;
-
 export default function App() {
   useKeyboardShortcuts();
   useAutoIk();
   const hasAutoLoaded = useRef(false);
+  const [banner, setBanner] = useState<{ kind: "error" | "warn"; text: string } | null>(null);
 
   useEffect(() => {
     if (hasAutoLoaded.current) return;
@@ -29,15 +26,38 @@ export default function App() {
       const setAcmData = useStore.getState().setAcmData;
       const setAlignedPositions = useStore.getState().setAlignedPositions;
 
+      // 0. Reachability check via the dedicated health endpoint.
       try {
+        await api.health();
+      } catch (err) {
+        const msg = (err as Error).message;
+        console.error("[AutoLoad] Backend unreachable:", msg);
+        setBanner({
+          kind: "error",
+          text: `Backend unreachable at /api (${msg}). Is uvicorn running on :8000? Check the terminal running start.sh.`,
+        });
+        return;
+      }
+
+      // Fetch defaults (env-overridable, falls back to bundled data/).
+      const defaults = await api.getDefaults();
+      console.log("[AutoLoad] Defaults:", defaults);
+
+      try {
+
         // 1. Load XML
-        console.log("[AutoLoad] Loading XML...");
-        const xmlData = await api.loadXml(DEFAULT_XML_PATH);
-        if (xmlData.error) {
-          console.error("[AutoLoad] XML error:", xmlData.error);
+        if (!defaults.xmlPath) {
+          setBanner({ kind: "warn", text: "No default model. Use 'Load XML' in the toolbar." });
           return;
         }
-        setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: DEFAULT_XML_PATH });
+        console.log("[AutoLoad] Loading XML:", defaults.xmlPath);
+        const xmlData = await api.loadXml(defaults.xmlPath);
+        if (xmlData.error) {
+          console.error("[AutoLoad] XML error:", xmlData.error);
+          setBanner({ kind: "error", text: `Failed to load default XML: ${xmlData.error}` });
+          return;
+        }
+        setXmlData({ geoms: xmlData.geoms, bodyNames: xmlData.bodyNames, nq: xmlData.nq, xmlPath: defaults.xmlPath });
 
         // Get default body transforms
         const defaultQpos = new Array(xmlData.nq).fill(0);
@@ -45,18 +65,28 @@ export default function App() {
         const transforms = await api.bodyTransforms(defaultQpos);
         setBodyTransforms(transforms);
 
-        // 2. Load config
-        console.log("[AutoLoad] Loading config...");
-        const config = await api.loadConfig(DEFAULT_CONFIG_PATH);
-        if (config.error) {
-          console.error("[AutoLoad] Config error:", config.error);
-        } else {
-          loadConfigAction(config);
+        // 2. Load config (optional)
+        if (defaults.configPath) {
+          console.log("[AutoLoad] Loading config:", defaults.configPath);
+          const config = await api.loadConfig(defaults.configPath);
+          if (config.error) {
+            console.error("[AutoLoad] Config error:", config.error);
+          } else {
+            loadConfigAction(config);
+          }
         }
 
-        // 3. Load ACM data
+        // 3. Load ACM data (requires monsees-retarget; skip if unavailable)
+        if (!defaults.monseesRetarget) {
+          setBanner({
+            kind: "warn",
+            text: "MONSEES_RETARGET not set — ACM autoload skipped. Load a .mat file manually, or set the env var and restart the backend.",
+          });
+          console.log("[AutoLoad] Done (no ACM).");
+          return;
+        }
         console.log("[AutoLoad] Loading ACM data...");
-        const acmData = await api.loadAcmTrials(DEFAULT_ACM_TRIALS);
+        const acmData = await api.loadAcmTrials(defaults.acmTrials);
         if (acmData.error) {
           console.error("[AutoLoad] ACM error:", acmData.error);
           return;
@@ -90,6 +120,7 @@ export default function App() {
         console.log("[AutoLoad] Done.");
       } catch (err) {
         console.error("[AutoLoad] Exception:", err);
+        setBanner({ kind: "error", text: `Autoload failed: ${(err as Error).message}` });
       }
     };
 
@@ -102,6 +133,23 @@ export default function App() {
         <span style={{ fontWeight: 600, fontSize: 16 }}>STAC Retarget UI</span>
         <Toolbar />
       </div>
+      {banner && (
+        <div
+          onClick={() => setBanner(null)}
+          title="Click to dismiss"
+          style={{
+            padding: "8px 16px",
+            background: banner.kind === "error" ? "#4a1a1a" : "#4a3a1a",
+            color: banner.kind === "error" ? "#ffb0b0" : "#ffe0a0",
+            borderBottom: `1px solid ${banner.kind === "error" ? "#a44" : "#a84"}`,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          <strong>{banner.kind === "error" ? "Error: " : "Notice: "}</strong>
+          {banner.text}
+        </div>
+      )}
       <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
         <div style={{ flex: 3, minWidth: 0 }}>
           <Viewport3D />

@@ -7,3 +7,5 @@ build/
 .vite/
 *.wasm
 .env
+.venv/
+venv/

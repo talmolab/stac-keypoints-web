@@ -1,7 +1,16 @@
+import os
+from pathlib import Path
+
 import pytest
 from backend.mujoco_utils import extract_model_geometry, compute_body_transforms
 
-XML_PATH = "/home/talmolab/Desktop/SalkResearch/stac-mjx/models/rodent_relaxed.xml"
+XML_PATH = os.environ.get(
+    "STAC_KEYPOINTS_XML",
+    str(Path(__file__).resolve().parent.parent / "data" / "rodent_relaxed.xml"),
+)
+
+if not Path(XML_PATH).exists():
+    pytest.skip(f"MuJoCo XML not found at {XML_PATH}", allow_module_level=True)
 
 
 def test_extract_model_geometry():
