@@ -6,11 +6,30 @@ import numpy as np
 import h5py
 
 
+# Fields that live at the top level of a stac-mjx model config file
+# (e.g. configs/model/rodent.yaml). Used to detect flat vs. wrapped shapes.
+_MODEL_FIELD_MARKERS = ("KEYPOINT_MODEL_PAIRS", "KP_NAMES", "MJCF_PATH")
+
+
+def _extract_model_section(raw: dict) -> dict:
+    """Return the dict containing model-level fields from a loaded YAML.
+
+    Handles two shapes:
+    - Flat: a stac-mjx shipped model config (rodent.yaml, mouse.yaml, ...),
+      where fields like MJCF_PATH sit at the top level because Hydra slots
+      the file into the `model` namespace during composition.
+    - Wrapped: the UI's own export, where everything is nested under `model:`.
+    """
+    if any(k in raw for k in _MODEL_FIELD_MARKERS):
+        return raw
+    return raw.get("model", {})
+
+
 def load_stac_yaml(path: str) -> dict:
     """Load STAC config YAML and return normalized dict for the UI."""
     with open(path) as f:
-        raw = yaml.safe_load(f)
-    model = raw.get("model", {})
+        raw = yaml.safe_load(f) or {}
+    model = _extract_model_section(raw)
     offsets_raw = model.get("KEYPOINT_INITIAL_OFFSETS", {})
     offsets = {}
     for kp, val in offsets_raw.items():
