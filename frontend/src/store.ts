@@ -73,6 +73,10 @@ interface AppState {
   // Error visualization toggle
   showErrorLines: boolean;
 
+  // Offset markers always-visible toggle
+  showOffsetMarkers: boolean;
+  setShowOffsetMarkers: (show: boolean) => void;
+
   // Segment scales (skeleton editor)
   segmentScales: Record<string, number>;
   adjustedPositions: Float32Array | null;
@@ -87,6 +91,10 @@ interface AppState {
   // Hover tooltip
   hoveredName: string | null;
   hoveredPosition: [number, number, number] | null;
+
+  // Per-keypoint errors (transient, not persisted)
+  perKeypointErrors: { keypointName: string; errorMm: number }[];
+  setPerKeypointErrors: (errors: { keypointName: string; errorMm: number }[]) => void;
 
   // Follow camera
   followCamera: boolean;
@@ -163,6 +171,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   modelOpacity: 0.5,
   showGlobalControls: false,
   showErrorLines: false,
+  showOffsetMarkers: true,
   segmentScales: {},
   adjustedPositions: null,
   hoveredSegment: null,
@@ -170,6 +179,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   autoIk: true,
   hoveredName: null,
   hoveredPosition: null,
+  perKeypointErrors: [],
+  setPerKeypointErrors: (errors) => set({ perKeypointErrors: errors }),
   followCamera: true,
   setFollowCamera: (follow) => set({ followCamera: follow }),
 
@@ -181,6 +192,10 @@ export const useStore = create<AppState>()(persist((set) => ({
     acmNumFrames: data.numFrames,
     acmNumKeypoints: data.numKeypoints,
     frameStatuses: new Array(data.numFrames).fill("unlabeled") as FrameStatus[],
+    // Clear derived positions — they were computed from the OLD dataset
+    adjustedPositions: null,
+    alignedPositions: null,
+    isAligned: false,
   }),
   setAlignedPositions: (positions) => set({ alignedPositions: new Float32Array(positions), isAligned: true }),
   setCurrentFrame: (frame) => set({ currentFrame: frame }),
@@ -213,6 +228,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
   setShowErrorLines: (show) => set({ showErrorLines: show }),
+  setShowOffsetMarkers: (show) => set({ showOffsetMarkers: show }),
   setSegmentScale: (key, value) => set((state) => {
     const newScales = { ...state.segmentScales, [key]: value };
     const source = state.alignedPositions ?? state.acmPositions;
@@ -260,6 +276,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     // Preferences
     showGlobalControls: state.showGlobalControls,
     showErrorLines: state.showErrorLines,
+    showOffsetMarkers: state.showOffsetMarkers,
     autoIk: state.autoIk,
     followCamera: state.followCamera,
     mode: state.mode,

@@ -2,6 +2,7 @@ import React from "react";
 import { useStore } from "../store";
 import type { InteractionMode } from "../types";
 import { PRIMARY_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
+import ErrorDistribution from "./ErrorDistribution";
 
 export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -30,6 +31,8 @@ export default function PropertiesPanel() {
   const setModelOpacity = useStore((s) => s.setModelOpacity);
   const showErrorLines = useStore((s) => s.showErrorLines);
   const setShowErrorLines = useStore((s) => s.setShowErrorLines);
+  const showOffsetMarkers = useStore((s) => s.showOffsetMarkers);
+  const setShowOffsetMarkers = useStore((s) => s.setShowOffsetMarkers);
 
   const currentOffset = selectedKp ? offsets.find((o) => o.keypointName === selectedKp) : null;
   const currentMapping = selectedKp ? mappings.find((m) => m.keypointName === selectedKp) : null;
@@ -60,7 +63,7 @@ export default function PropertiesPanel() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", overflowY: "auto", overflowX: "hidden", paddingBottom: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, height: "100%", minHeight: 0, overflowY: "auto", overflowX: "hidden", paddingBottom: 20 }}>
       {/* Workflow Guide */}
       <div>
         <h3
@@ -125,6 +128,10 @@ export default function PropertiesPanel() {
           <input type="checkbox" checked={showErrorLines} onChange={(e) => setShowErrorLines(e.target.checked)} />
           Show Error Lines
         </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showOffsetMarkers ? "#00cccc" : "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={showOffsetMarkers} onChange={(e) => setShowOffsetMarkers(e.target.checked)} />
+          Show Offset Points
+        </label>
         {/* Model scale — always visible */}
         <div style={{ marginTop: 4 }}>
           <label style={{ fontSize: 11, color: "#888" }}>
@@ -148,6 +155,8 @@ export default function PropertiesPanel() {
           />
         </div>
       </div>
+
+      {showErrorLines && <ErrorDistribution />}
 
       {/* Selected keypoint info */}
       {selectedKp && (

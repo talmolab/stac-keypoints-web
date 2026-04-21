@@ -150,18 +150,18 @@ export default function App() {
           {banner.text}
         </div>
       )}
-      <div style={{ flex: 1, display: "flex" }}>
-        <div style={{ flex: 3 }}>
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        <div style={{ flex: 3, minWidth: 0 }}>
           <Viewport3D />
         </div>
-        <div style={{ width: 240, borderLeft: "1px solid #333", padding: 12, color: "#ccc", background: "#16213e" }}>
+        <div style={{ width: 240, borderLeft: "1px solid #333", padding: 12, color: "#ccc", background: "#16213e", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <MappingTable />
         </div>
-        <div style={{ width: 280, borderLeft: "1px solid #333", padding: 12, color: "#ccc", background: "#16213e" }}>
+        <div style={{ width: 280, borderLeft: "1px solid #333", padding: 12, color: "#ccc", background: "#16213e", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           <PropertiesPanel />
         </div>
       </div>
-      <div style={{ height: 64, background: "#1a1a2e", borderTop: "1px solid #333", display: "flex", alignItems: "center", padding: "0 16px", color: "#888" }}>
+      <div style={{ height: 64, background: "#1a1a2e", borderTop: "1px solid #333", display: "flex", alignItems: "center", padding: "0 16px", color: "#888", minWidth: 0, overflow: "hidden" }}>
         <Timeline />
       </div>
     </div>

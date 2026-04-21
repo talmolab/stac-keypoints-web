@@ -98,21 +98,21 @@ export default function Timeline() {
   }
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <button onClick={togglePlay} style={btnStyle}>{isPlaying ? "⏸" : "▶"}</button>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <button onClick={togglePlay} style={btnStyle}>{isPlaying ? "\u23f8" : "\u25b6"}</button>
         <input
           type="range" min={0} max={numFrames - 1} value={currentFrame}
           onChange={(e) => setCurrentFrame(Number(e.target.value))}
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 60 }}
         />
-        <span style={{ color: "#ccc", fontSize: 13, minWidth: 80, textAlign: "right" }}>
+        <span style={{ color: "#ccc", fontSize: 13, whiteSpace: "nowrap" }}>
           {currentFrame} / {numFrames - 1}
         </span>
-        <button onClick={labelCurrentFrame} style={btnStyle}>Label Frame</button>
-        <button onClick={handleSuggestFrames} style={btnStyle}>Suggest Frames</button>
+        <button onClick={labelCurrentFrame} style={btnStyle}>Label</button>
+        <button onClick={handleSuggestFrames} style={btnStyle}>Suggest</button>
       </div>
-      <div style={{ display: "flex", gap: 1, alignItems: "center", overflow: "hidden" }}>
+      <div style={{ display: "flex", gap: 1, alignItems: "center", overflow: "hidden", minWidth: 0, flexShrink: 1 }}>
         {dots}
       </div>
     </div>
