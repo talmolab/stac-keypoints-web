@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
 import { runIk } from "../ikRunner";
+import { validateMappings } from "../validation";
 
 /** Open a transient native file picker and resolve with the chosen File. */
 function pickFile(accept: string): Promise<File | null> {
@@ -44,7 +45,13 @@ export default function Toolbar() {
     if (data.error) { alert(data.error); return; }
     // Backend stored the upload in a temp file; track that path so subsequent
     // body-transform / align calls reuse the same model.
-    setXmlData({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath ?? file.name });
+    setXmlData({
+      geoms: data.geoms,
+      bodyNames: data.bodyNames,
+      nq: data.nq,
+      xmlPath: data.xmlPath ?? file.name,
+      xmlBasename: file.name,
+    });
     const defaultQpos = new Array(data.nq).fill(0);
     defaultQpos[3] = 1.0;
     const transforms = await api.bodyTransforms(defaultQpos);
@@ -100,6 +107,19 @@ export default function Toolbar() {
 
   const handleExport = useCallback(async () => {
     const state = useStore.getState();
+
+    const { errors, warnings } = validateMappings({
+      mappings: state.mappings,
+      bodyNames: state.bodyNames,
+      acmKeypointNames: state.acmKeypointNames,
+    });
+    if (errors.length > 0) {
+      setIkStatus(
+        `Export blocked: ${errors.length} error(s). First: ${errors[0]}`,
+      );
+      return;
+    }
+
     const pairs: Record<string, string> = {};
     for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
     const offsetMap: Record<string, [number, number, number]> = {};
@@ -110,6 +130,7 @@ export default function Toolbar() {
       scaleFactor: state.scaleFactor,
       mocapScaleFactor: state.mocapScaleFactor,
       xmlPath: state.xmlPath || "",
+      xmlBasename: state.xmlBasename,
       kpNames: state.acmKeypointNames,
       segmentScales: state.segmentScales,
     };
@@ -130,10 +151,13 @@ export default function Toolbar() {
     if (sidecarBody) {
       downloadYaml(sidecarBody, "stac_retarget_config.ui.yaml");
     }
+    const base = sidecarBody
+      ? "Config + UI sidecar downloaded."
+      : "Config downloaded.";
     setIkStatus(
-      sidecarBody
-        ? "Config + UI sidecar downloaded."
-        : "Config downloaded."
+      warnings.length > 0
+        ? `${base} ${warnings.length} warning(s): ${warnings[0]}`
+        : base,
     );
   }, [setIkStatus]);
 
