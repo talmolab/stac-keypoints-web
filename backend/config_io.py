@@ -93,6 +93,15 @@ def load_stac_yaml(path: str) -> dict:
     }
 
 
+def _is_empty(v) -> bool:
+    """Treat None and empty containers/strings as 'no UI data to contribute'."""
+    if v is None:
+        return True
+    if isinstance(v, (list, dict, str)):
+        return len(v) == 0
+    return False
+
+
 def _overlay_onto_template(template: dict, ui_fields: dict) -> dict:
     """Overlay UI-managed fields onto a template, preserving its shape.
 
@@ -100,6 +109,9 @@ def _overlay_onto_template(template: dict, ui_fields: dict) -> dict:
       replace existing keys in place; new keys appended).
     - Wrapped template → overlay under raw["model"].
     - UI-only sections like `skeleton_editor` are stripped.
+    - Empty UI values (e.g. KP_NAMES=[] when no keypoints were loaded) do not
+      clobber a populated template field — otherwise exporting without
+      loading mocap would wipe the template's keypoint list.
     """
     out = copy.deepcopy(template)
     out.pop("skeleton_editor", None)
@@ -107,7 +119,10 @@ def _overlay_onto_template(template: dict, ui_fields: dict) -> dict:
     target = out if _is_flat(out) else out.setdefault("model", {})
 
     for field in _UI_MANAGED_FIELDS:
-        target[field] = ui_fields[field]
+        value = ui_fields[field]
+        if _is_empty(value) and not _is_empty(target.get(field)):
+            continue
+        target[field] = value
     return out
 
 

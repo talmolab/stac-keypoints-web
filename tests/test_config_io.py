@@ -210,6 +210,63 @@ def test_dump_without_template_emits_wrapped():
     assert out["model"]["KEYPOINT_MODEL_PAIRS"]["Snout"] == "skull"
 
 
+def test_dump_empty_ui_field_does_not_clobber_template(tmp_path):
+    """Exporting without loaded mocap must not wipe the template's KP_NAMES.
+
+    Reproduces a bug where loading a config without any keypoint data loaded
+    yielded KP_NAMES=[] on export, overwriting the template's populated list.
+    """
+    src = textwrap.dedent(
+        """
+        MJCF_PATH: "models/rodent.xml"
+        N_ITERS: 6
+        KEYPOINT_MODEL_PAIRS:
+          Snout: skull
+          SpineF: vertebra_cervical_5
+        KEYPOINT_INITIAL_OFFSETS:
+          Snout: 0. 0. 0.
+          SpineF: 0. 0. 0.
+        KP_NAMES:
+          - Snout
+          - SpineF
+          - SpineM
+        SCALE_FACTOR: 0.9
+        MOCAP_SCALE_FACTOR: 0.001
+        """
+    )
+    path = tmp_path / "with_kp_names.yaml"
+    path.write_text(src)
+    loaded = load_stac_yaml(str(path))
+
+    # Simulate the UI state right after loading config but before loading any
+    # mocap data: kpNames/keypointModelPairs still present from the template,
+    # but if the user cleared them (or they were never populated in state),
+    # we must not clobber what the template already has.
+    loaded["kpNames"] = []  # UI hasn't loaded mocap → empty
+    out = yaml.safe_load(dump_stac_yaml(loaded))
+    assert out["KP_NAMES"] == ["Snout", "SpineF", "SpineM"]
+
+
+def test_dump_empty_field_when_template_also_empty():
+    """If the template has no value either, emit whatever the UI has (incl. empty)."""
+    config = {
+        "keypointModelPairs": {"Snout": "skull"},
+        "keypointInitialOffsets": {},
+        "kpNames": [],
+        "scaleFactor": 0.9,
+        "mocapScaleFactor": 0.01,
+        "xmlPath": "models/rodent.xml",
+        "_rawTemplate": {
+            "MJCF_PATH": "models/rodent.xml",
+            "N_ITERS": 6,
+        },
+    }
+    out = yaml.safe_load(dump_stac_yaml(config))
+    # UI field overrides are applied when template has nothing to preserve.
+    assert out["KEYPOINT_MODEL_PAIRS"] == {"Snout": "skull"}
+    assert out["N_ITERS"] == 6
+
+
 def test_dump_ui_sidecar_none_when_default():
     """Sidecar returns None when there's no UI-only state worth saving."""
     assert dump_stac_ui_sidecar({"segmentScales": {}}) is None
