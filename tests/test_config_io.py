@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 import yaml
 from backend.config_io import (
+    _portable_mjcf,
     dump_stac_ui_sidecar,
     dump_stac_yaml,
     export_stac_yaml,
@@ -281,3 +282,47 @@ def test_dump_ui_sidecar_emits_non_default_scales():
     parsed = yaml.safe_load(body)
     # Non-default kept, default dropped.
     assert parsed["skeleton_editor"]["segment_scales"] == {"SpineF->SpineM": 1.05}
+
+
+# ---------------------------------------------------------------------------
+# Portable MJCF_PATH
+# ---------------------------------------------------------------------------
+
+
+def test_portable_mjcf_prefers_basename():
+    """xmlBasename (uploaded filename) wins over any xmlPath."""
+    assert _portable_mjcf({
+        "xmlPath": "/tmp/tmpXYZ.xml",
+        "xmlBasename": "rodent.xml",
+    }) == "models/rodent.xml"
+
+
+def test_portable_mjcf_rewrites_absolute_path():
+    """Absolute xmlPath with no basename falls back to models/<name>."""
+    assert _portable_mjcf({"xmlPath": "/tmp/tmpXYZ.xml"}) == "models/tmpXYZ.xml"
+
+
+def test_portable_mjcf_keeps_relative_path():
+    """Relative paths pass through unchanged."""
+    assert _portable_mjcf({"xmlPath": "models/mouse.xml"}) == "models/mouse.xml"
+    assert _portable_mjcf({"xmlPath": "rodent.xml"}) == "rodent.xml"
+
+
+def test_portable_mjcf_empty():
+    assert _portable_mjcf({}) == ""
+    assert _portable_mjcf({"xmlPath": ""}) == ""
+
+
+def test_dump_stac_yaml_uses_portable_mjcf():
+    """End-to-end: uploaded /tmp path becomes models/<filename> on export."""
+    body = dump_stac_yaml({
+        "keypointModelPairs": {"Snout": "skull"},
+        "keypointInitialOffsets": {"Snout": [0.0, 0.0, 0.0]},
+        "kpNames": ["Snout"],
+        "scaleFactor": 0.9,
+        "mocapScaleFactor": 0.01,
+        "xmlPath": "/tmp/tmpABC.xml",
+        "xmlBasename": "rodent_relaxed.xml",
+    })
+    parsed = yaml.safe_load(body)
+    assert parsed["model"]["MJCF_PATH"] == "models/rodent_relaxed.xml"

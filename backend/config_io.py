@@ -27,6 +27,28 @@ def _is_flat(raw: dict) -> bool:
     return any(k in raw for k in _MODEL_FIELD_MARKERS)
 
 
+def _portable_mjcf(config: dict) -> str:
+    """Return a stac-mjx-portable MJCF_PATH for the exported YAML.
+
+    The upload flow stores the user's XML at a temp path like `/tmp/tmpXX.xml`,
+    which is useless to anyone else. To produce a portable export:
+    - prefer `xmlBasename` (original filename passed from the frontend),
+    - else reduce an absolute `xmlPath` to `models/<basename>` (the stac-mjx
+      convention used across `configs/model/*.yaml`),
+    - else pass relative paths through unchanged.
+    """
+    basename = config.get("xmlBasename")
+    if basename:
+        return f"models/{basename}"
+    xml_path = config.get("xmlPath", "")
+    if not xml_path:
+        return ""
+    p = Path(xml_path)
+    if p.is_absolute():
+        return f"models/{p.name}"
+    return xml_path
+
+
 def _extract_model_section(raw: dict) -> dict:
     """Return the dict containing model-level fields from a loaded YAML.
 
@@ -49,7 +71,7 @@ def _offsets_to_yaml(offsets: dict) -> dict:
 def _ui_managed_fields(config: dict) -> dict:
     """Build the model-level dict of fields the UI owns, in canonical order."""
     return {
-        "MJCF_PATH": config.get("xmlPath", ""),
+        "MJCF_PATH": _portable_mjcf(config),
         "SCALE_FACTOR": config.get("scaleFactor", 0.9),
         "MOCAP_SCALE_FACTOR": config.get("mocapScaleFactor", 0.01),
         "KP_NAMES": config.get(

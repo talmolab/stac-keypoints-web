@@ -14,6 +14,9 @@ import { adjustAllFrames } from "./skeletonEditor";
 interface AppState {
   // MuJoCo model
   xmlPath: string | null;
+  // Original basename of the uploaded XML, for producing a portable
+  // MJCF_PATH on export (xmlPath may be a server-side /tmp path).
+  xmlBasename: string | null;
   geoms: GeomData[];
   bodyNames: string[];
   bodyTransforms: BodyTransform[];
@@ -105,7 +108,7 @@ interface AppState {
   setFollowCamera: (follow: boolean) => void;
 
   // Actions
-  setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string }) => void;
+  setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: number[]; numFrames: number; numKeypoints: number }) => void;
   setAlignedPositions: (positions: number[]) => void;
   setCurrentFrame: (frame: number) => void;
@@ -142,6 +145,7 @@ interface AppState {
 
 export const useStore = create<AppState>()(persist((set) => ({
   xmlPath: null,
+  xmlBasename: null,
   geoms: [],
   bodyNames: [],
   bodyTransforms: [],
@@ -190,7 +194,13 @@ export const useStore = create<AppState>()(persist((set) => ({
   followCamera: true,
   setFollowCamera: (follow) => set({ followCamera: follow }),
 
-  setXmlData: (data) => set({ geoms: data.geoms, bodyNames: data.bodyNames, nq: data.nq, xmlPath: data.xmlPath }),
+  setXmlData: (data) => set({
+    geoms: data.geoms,
+    bodyNames: data.bodyNames,
+    nq: data.nq,
+    xmlPath: data.xmlPath,
+    xmlBasename: data.xmlBasename ?? null,
+  }),
   setAcmData: (data) => set({
     acmKeypointNames: data.keypointNames,
     acmBones: data.bones,
