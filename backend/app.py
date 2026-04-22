@@ -24,6 +24,7 @@ from backend.config_io import (
     load_stac_output_h5,
 )
 from backend.frame_selector import suggest_frames
+from backend.keypoints_io import load_keypoints
 from backend.stac_runner import run_quick_stac
 
 app = FastAPI(title="STAC Retarget UI")
@@ -213,6 +214,40 @@ async def export_ui_sidecar(data: dict):
     if body is None:
         return PlainTextResponse("", status_code=204)
     return PlainTextResponse(body, media_type="application/x-yaml")
+
+
+@app.post("/api/load-keypoints")
+async def load_keypoints_endpoint(
+    file: UploadFile = File(None),
+    path: str = Query(None),
+    kp_names: str = Query(None),
+):
+    """Load STAC-format 3D keypoint tracks from .h5 or .mat.
+
+    No dependency on `monsees_retarget` — feed this any file that stac-mjx
+    itself accepts. Pass ``kp_names`` as a comma-separated list to label the
+    keypoints; otherwise the loader falls back to ``kp_0, kp_1, ...``.
+    """
+    tmp_path: str | None = None
+    if path:
+        data_path = path
+    elif file:
+        suffix = Path(file.filename or "").suffix or ".h5"
+        tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+        while chunk := await file.read(1 << 20):
+            tmp.write(chunk)
+        tmp.close()
+        data_path = tmp_path = tmp.name
+    else:
+        return JSONResponse({"error": "Provide file or path"}, status_code=400)
+    names = [n for n in (kp_names or "").split(",") if n] or None
+    try:
+        return load_keypoints(data_path, names)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    finally:
+        if tmp_path:
+            os.unlink(tmp_path)
 
 
 @app.post("/api/load-stac-output")

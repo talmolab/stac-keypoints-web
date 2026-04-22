@@ -66,6 +66,17 @@ export default function Toolbar() {
     setAcmData(data);
   }, [setAcmData]);
 
+  const handleLoadKeypoints = useCallback(async () => {
+    const file = await pickFile(".h5,.mat");
+    if (!file) return;
+    // If a config is already loaded, reuse its kpNames so the keypoints get
+    // labeled. Otherwise the backend falls back to kp_0, kp_1, ...
+    const kpNames = useStore.getState().acmKeypointNames;
+    const data = await api.uploadKeypoints(file, kpNames);
+    if (data.error) { alert(data.error); return; }
+    setAcmData(data);
+  }, [setAcmData]);
+
   const handleLoadAcm = useCallback(async () => {
     const choice = prompt("Number of ACM trials to auto-load:", "5");
     if (!choice) return;
@@ -264,6 +275,7 @@ export default function Toolbar() {
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
+      <button style={btnStyle} onClick={handleLoadKeypoints}>Load KP</button>
       <button style={btnStyle} onClick={handleLoadMat}>Load .mat</button>
       <button style={btnStyle} onClick={handleLoadAcm}>Load ACM</button>
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
