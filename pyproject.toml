@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "stac-keypoints-web"
 version = "0.1.0"
 description = "Interactive web UI for ACM→MuJoCo skeleton retargeting"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.104",
     "uvicorn[standard]>=0.24",
