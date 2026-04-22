@@ -15,6 +15,19 @@ function pickFile(accept: string): Promise<File | null> {
   });
 }
 
+/** Trigger a browser download for a YAML document. */
+function downloadYaml(body: string, filename: string) {
+  const blob = new Blob([body], { type: "application/x-yaml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
   const setAcmData = useStore((s) => s.setAcmData);
@@ -91,7 +104,7 @@ export default function Toolbar() {
     for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
     const offsetMap: Record<string, [number, number, number]> = {};
     for (const o of state.offsets) offsetMap[o.keypointName] = [o.x, o.y, o.z];
-    const config = {
+    const config: Record<string, unknown> = {
       keypointModelPairs: pairs,
       keypointInitialOffsets: offsetMap,
       scaleFactor: state.scaleFactor,
@@ -100,24 +113,28 @@ export default function Toolbar() {
       kpNames: state.acmKeypointNames,
       segmentScales: state.segmentScales,
     };
-    let yamlBody: string;
+    if (state.rawTemplate) config._rawTemplate = state.rawTemplate;
+
+    let mainBody: string;
+    let sidecarBody: string | null;
     try {
-      yamlBody = await api.exportConfig(config);
+      [mainBody, sidecarBody] = await Promise.all([
+        api.exportConfig(config),
+        api.exportUiSidecar(config),
+      ]);
     } catch (e) {
       setIkStatus("Export error: " + (e as Error).message);
       return;
     }
-    // Trigger a browser download — no server-side filesystem write involved.
-    const blob = new Blob([yamlBody], { type: "application/x-yaml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "stac_retarget_config.yaml";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    setIkStatus("Config downloaded.");
+    downloadYaml(mainBody, "stac_retarget_config.yaml");
+    if (sidecarBody) {
+      downloadYaml(sidecarBody, "stac_retarget_config.ui.yaml");
+    }
+    setIkStatus(
+      sidecarBody
+        ? "Config + UI sidecar downloaded."
+        : "Config downloaded."
+    );
   }, [setIkStatus]);
 
   const handleLoadStacOutput = useCallback(async () => {

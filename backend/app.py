@@ -17,7 +17,12 @@ _BUNDLED_DATA = _REPO_ROOT / "data"
 from backend.mujoco_utils import compute_body_transforms, extract_model_geometry
 from backend.acm_processing import load_acm_trials, load_single_matfile, apply_retargeting
 from backend.alignment import align_acm_to_mujoco
-from backend.config_io import load_stac_yaml, dump_stac_yaml, load_stac_output_h5
+from backend.config_io import (
+    load_stac_yaml,
+    dump_stac_yaml,
+    dump_stac_ui_sidecar,
+    load_stac_output_h5,
+)
 from backend.frame_selector import suggest_frames
 from backend.stac_runner import run_quick_stac
 
@@ -191,6 +196,22 @@ async def export_config(data: dict):
         body = dump_stac_yaml(data["config"])
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+    return PlainTextResponse(body, media_type="application/x-yaml")
+
+
+@app.post("/api/export-ui-sidecar")
+async def export_ui_sidecar(data: dict):
+    """Serialize UI-only state (skeleton editor, ...) as a sidecar YAML.
+
+    Returns 204 when there's nothing to save, so the frontend can skip the
+    download.
+    """
+    try:
+        body = dump_stac_ui_sidecar(data["config"])
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    if body is None:
+        return PlainTextResponse("", status_code=204)
     return PlainTextResponse(body, media_type="application/x-yaml")
 
 

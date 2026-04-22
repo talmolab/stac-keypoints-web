@@ -37,6 +37,10 @@ interface AppState {
   scaleFactor: number;
   mocapScaleFactor: number;
 
+  // Raw template from a loaded stac-mjx config — used on export to preserve
+  // fields the UI doesn't manage (N_ITERS, ROOT_OPTIMIZATION_KEYPOINT, ...).
+  rawTemplate: Record<string, unknown> | null;
+
   // Interaction
   mode: InteractionMode;
   selectedKeypoint: string | null;
@@ -132,6 +136,7 @@ interface AppState {
     keypointInitialOffsets: Record<string, [number, number, number]>;
     scaleFactor: number;
     mocapScaleFactor: number;
+    _rawTemplate?: Record<string, unknown>;
   }) => void;
 }
 
@@ -153,6 +158,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   offsets: [],
   scaleFactor: 0.9,
   mocapScaleFactor: 0.01,
+  rawTemplate: null,
   mode: "mapping",
   selectedKeypoint: null,
   selectedBody: null,
@@ -258,6 +264,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     offsets: Object.entries(config.keypointInitialOffsets).map(([kp, [x, y, z]]) => ({ keypointName: kp, x, y, z })),
     scaleFactor: config.scaleFactor,
     mocapScaleFactor: config.mocapScaleFactor,
+    rawTemplate: config._rawTemplate ?? null,
   }),
 }), {
   name: "stac-retarget-ui-state",
@@ -268,6 +275,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     mappings: state.mappings,
     offsets: state.offsets,
     segmentScales: state.segmentScales,
+    rawTemplate: state.rawTemplate,
     // Model transform
     modelRotationY: state.modelRotationY,
     modelPosition: state.modelPosition,
