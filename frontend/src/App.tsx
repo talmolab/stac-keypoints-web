@@ -7,11 +7,14 @@ import Toolbar from "./components/Toolbar";
 import { useStore } from "./store";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { useAutoIk } from "./hooks/useAutoIk";
+import { useAutoAlign } from "./hooks/useAutoAlign";
+import { runAlignment } from "./alignment";
 import * as api from "./api";
 
 export default function App() {
   useKeyboardShortcuts();
   useAutoIk();
+  useAutoAlign();
   const hasAutoLoaded = useRef(false);
   const [banner, setBanner] = useState<{ kind: "error" | "warn"; text: string } | null>(null);
 
@@ -24,7 +27,6 @@ export default function App() {
       const setBodyTransforms = useStore.getState().setBodyTransforms;
       const loadConfigAction = useStore.getState().loadConfig;
       const setAcmData = useStore.getState().setAcmData;
-      const setAlignedPositions = useStore.getState().setAlignedPositions;
 
       // 0. Reachability check via the dedicated health endpoint.
       try {
@@ -94,27 +96,11 @@ export default function App() {
         setAcmData(acmData);
 
         // 4. Auto-run alignment if we have mappings from config
-        const state = useStore.getState();
-        if (state.mappings.length > 0 && state.acmPositions && state.xmlPath) {
-          console.log("[AutoLoad] Running alignment...");
-          const pairs: Record<string, string> = {};
-          for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
-          const alignResult = await api.alignToMujoco({
-            positions: Array.from(state.acmPositions),
-            numFrames: state.acmNumFrames,
-            numKeypoints: state.acmNumKeypoints,
-            keypointNames: state.acmKeypointNames,
-            xmlPath: state.xmlPath,
-            keypointModelPairs: pairs,
-            scaleFactor: state.scaleFactor,
-            mocapScaleFactor: state.mocapScaleFactor,
-          });
-          if (alignResult.error) {
-            console.error("[AutoLoad] Alignment error:", alignResult.error);
-          } else {
-            setAlignedPositions(alignResult.alignedPositions);
-            console.log("[AutoLoad] Alignment complete, method:", alignResult.method || "procrustes");
-          }
+        const outcome = await runAlignment();
+        if (!outcome.ok) {
+          console.log("[AutoLoad] Skipping align:", outcome.error);
+        } else {
+          console.log(`[AutoLoad] Aligned (${outcome.method}, scale=${outcome.scale?.toFixed(3)})`);
         }
 
         console.log("[AutoLoad] Done.");

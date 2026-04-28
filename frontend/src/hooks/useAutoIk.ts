@@ -15,6 +15,8 @@ export function useAutoIk() {
   const mappings = useStore((s) => s.mappings);
   const xmlPath = useStore((s) => s.xmlPath);
   const acmPositions = useStore((s) => s.acmPositions);
+  const isAligned = useStore((s) => s.isAligned);
+  const mappingsLen = mappings.length;
   const modelScale = useStore((s) => s.modelScale);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -33,6 +35,10 @@ export function useAutoIk() {
 
   useEffect(() => {
     if (!autoIk || !xmlPath || !acmPositions) return;
+    // Wait for Procrustes auto-fit to land before running IK on the cloud.
+    // Otherwise IK fits the model against raw, possibly mm-scale keypoints
+    // and converges to a garbage pose (the rodent curls into a ball).
+    if (mappingsLen > 0 && !isAligned) return;
 
     // Clear any pending timer
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -59,6 +65,8 @@ export function useAutoIk() {
     mappingFingerprint,
     xmlPath,
     acmPositions,
+    isAligned,
+    mappingsLen,
     modelScale,
   ]);
 }

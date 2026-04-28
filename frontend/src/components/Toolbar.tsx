@@ -2,6 +2,7 @@ import React, { useCallback } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
 import { runIk } from "../ikRunner";
+import { runAlignment, formatAlignStatus } from "../alignment";
 import { validateMappings } from "../validation";
 
 /** Open a transient native file picker and resolve with the chosen File. */
@@ -32,7 +33,6 @@ function downloadYaml(body: string, filename: string) {
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
   const setAcmData = useStore((s) => s.setAcmData);
-  const setAlignedPositions = useStore((s) => s.setAlignedPositions);
   const setBodyTransforms = useStore((s) => s.setBodyTransforms);
   const loadConfigAction = useStore((s) => s.loadConfig);
   const ikStatus = useStore((s) => s.ikStatus);
@@ -94,27 +94,9 @@ export default function Toolbar() {
   }, [loadConfigAction]);
 
   const handleAlign = useCallback(async () => {
-    const state = useStore.getState();
-    if (!state.acmPositions || !state.xmlPath || state.mappings.length === 0) {
-      setIkStatus("Load XML, ACM data, and set at least some mappings first.");
-      return;
-    }
-    const pairs: Record<string, string> = {};
-    for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
-    const result = await api.alignToMujoco({
-      positions: Array.from(state.acmPositions),
-      numFrames: state.acmNumFrames,
-      numKeypoints: state.acmNumKeypoints,
-      keypointNames: state.acmKeypointNames,
-      xmlPath: state.xmlPath,
-      keypointModelPairs: pairs,
-      scaleFactor: state.scaleFactor,
-      mocapScaleFactor: state.mocapScaleFactor,
-    });
-    if (result.error) { setIkStatus("Align error: " + result.error); return; }
-    setAlignedPositions(result.alignedPositions);
-    setIkStatus("Alignment complete.");
-  }, [setAlignedPositions, setIkStatus]);
+    const outcome = await runAlignment();
+    setIkStatus(formatAlignStatus(outcome));
+  }, [setIkStatus]);
 
   const handleExport = useCallback(async () => {
     const state = useStore.getState();
