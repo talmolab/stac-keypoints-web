@@ -3,6 +3,7 @@ import { useStore } from "../store";
 import type { InteractionMode } from "../types";
 import { PRIMARY_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
 import ErrorDistribution from "./ErrorDistribution";
+import RegionErrorSummary from "./RegionErrorSummary";
 
 export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -178,7 +179,12 @@ export default function PropertiesPanel() {
         </div>
       </div>
 
-      {showErrorLines && <ErrorDistribution />}
+      {showErrorLines && (
+        <>
+          <ErrorDistribution />
+          <RegionErrorSummary />
+        </>
+      )}
 
       {/* Selected keypoint info */}
       {selectedKp && (
