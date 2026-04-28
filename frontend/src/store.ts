@@ -124,6 +124,7 @@ interface AppState {
   setModelRotationY: (radians: number) => void;
   setModelPosition: (pos: [number, number, number]) => void;
   setModelScale: (scale: number) => void;
+  setMocapScaleFactor: (scale: number) => void;
   setModelOpacity: (opacity: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setShowErrorLines: (show: boolean) => void;
@@ -241,6 +242,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
   setModelScale: (scale) => set({ modelScale: scale }),
+  setMocapScaleFactor: (scale) => set({ mocapScaleFactor: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
   setShowErrorLines: (show) => set({ showErrorLines: show }),

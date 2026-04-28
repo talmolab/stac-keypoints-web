@@ -17,6 +17,8 @@ export default function PropertiesPanel() {
   const setModelPosition = useStore((s) => s.setModelPosition);
   const modelScale = useStore((s) => s.modelScale);
   const setModelScale = useStore((s) => s.setModelScale);
+  const mocapScaleFactor = useStore((s) => s.mocapScaleFactor);
+  const setMocapScaleFactor = useStore((s) => s.setMocapScaleFactor);
   const showGlobalControls = useStore((s) => s.showGlobalControls);
   const setShowGlobalControls = useStore((s) => s.setShowGlobalControls);
   const segmentScales = useStore((s) => s.segmentScales);
@@ -140,6 +142,20 @@ export default function PropertiesPanel() {
           <input type="range" min={0.3} max={3.0} step={0.01}
             value={modelScale}
             onChange={(e) => setModelScale(parseFloat(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
+        {/* Mocap scale — live skeleton-vs-cloud size match, no backend call */}
+        <div>
+          <label
+            style={{ fontSize: 11, color: Math.abs(mocapScaleFactor - 0.01) > 1e-5 ? "#ffaa00" : "#888" }}
+            title="Multiplier from raw mocap units to meters. Default 0.01 assumes cm input."
+          >
+            Mocap Scale: {mocapScaleFactor.toFixed(4)}
+          </label>
+          <input type="range" min={0.001} max={0.05} step={0.0005}
+            value={mocapScaleFactor}
+            onChange={(e) => setMocapScaleFactor(parseFloat(e.target.value))}
             style={{ width: "100%" }}
           />
         </div>
