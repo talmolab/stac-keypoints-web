@@ -80,6 +80,10 @@ interface AppState {
   // Error visualization toggle
   showErrorLines: boolean;
 
+  // Tint ACM keypoint markers by error magnitude (independent of showErrorLines).
+  colorByError: boolean;
+  setColorByError: (enabled: boolean) => void;
+
   // Offset markers always-visible toggle
   showOffsetMarkers: boolean;
   setShowOffsetMarkers: (show: boolean) => void;
@@ -182,6 +186,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   modelOpacity: 0.5,
   showGlobalControls: false,
   showErrorLines: false,
+  colorByError: false,
+  setColorByError: (enabled) => set({ colorByError: enabled }),
   showOffsetMarkers: true,
   segmentScales: {},
   adjustedPositions: null,

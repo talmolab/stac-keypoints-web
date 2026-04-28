@@ -33,6 +33,8 @@ export default function PropertiesPanel() {
   const setModelOpacity = useStore((s) => s.setModelOpacity);
   const showErrorLines = useStore((s) => s.showErrorLines);
   const setShowErrorLines = useStore((s) => s.setShowErrorLines);
+  const colorByError = useStore((s) => s.colorByError);
+  const setColorByError = useStore((s) => s.setColorByError);
   const showOffsetMarkers = useStore((s) => s.showOffsetMarkers);
   const setShowOffsetMarkers = useStore((s) => s.setShowOffsetMarkers);
 
@@ -129,6 +131,10 @@ export default function PropertiesPanel() {
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showErrorLines ? "#ff8844" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={showErrorLines} onChange={(e) => setShowErrorLines(e.target.checked)} />
           Show Error Lines
+        </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: colorByError ? "#ff8844" : "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={colorByError} onChange={(e) => setColorByError(e.target.checked)} />
+          Color Keypoints by Error
         </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showOffsetMarkers ? "#00cccc" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={showOffsetMarkers} onChange={(e) => setShowOffsetMarkers(e.target.checked)} />

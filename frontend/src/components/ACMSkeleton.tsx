@@ -4,6 +4,7 @@ import { Line } from "@react-three/drei";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
 import { segmentKey } from "../skeletonEditor";
+import { errorToColor } from "../errorColor";
 
 const KP_COLORS: Record<string, string> = {
   Snout: "#ffcc00", SpineF: "#ffaa00", SpineM: "#ff8800", SpineL: "#ff6600", TailBase: "#ee5500",
@@ -40,6 +41,8 @@ export default function ACMSkeleton() {
   const setSelectedKp = useStore((s) => s.setSelectedKeypoint);
   const setHover = useStore((s) => s.setHover);
   const hoveredSegment = useStore((s) => s.hoveredSegment);
+  const colorByError = useStore((s) => s.colorByError);
+  const perKeypointErrors = useStore((s) => s.perKeypointErrors);
 
   // Cache mesh refs for imperative position updates (avoids re-render)
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
@@ -69,6 +72,12 @@ export default function ACMSkeleton() {
   const nameToIdx: Record<string, number> = {};
   kpNames.forEach((n, i) => { nameToIdx[n] = i; });
 
+  // Lookup table for per-keypoint error so render is O(1) per marker.
+  const errorByName: Record<string, number> = {};
+  if (colorByError) {
+    for (const e of perKeypointErrors) errorByName[e.keypointName] = e.errorMm;
+  }
+
   const highlightedKps = new Set<string>();
   if (hoveredSegment) {
     const parts = hoveredSegment.split("\u2192");
@@ -95,7 +104,13 @@ export default function ACMSkeleton() {
         const pos = framePositions[i];
         const isSelected = selectedKp === name;
         const isHighlighted = highlightedKps.has(name);
-        const color = isSelected ? "#ffff00" : isHighlighted ? "#ffffff" : KP_COLORS[name] || "#888888";
+        const errorMm = errorByName[name];
+        const errorColor = errorMm !== undefined ? errorToColor(errorMm) : null;
+        const color = isSelected
+          ? "#ffff00"
+          : isHighlighted
+          ? "#ffffff"
+          : errorColor ?? KP_COLORS[name] ?? "#888888";
         const geom = (isSelected || isHighlighted) ? _largeSphere : _smallSphere;
         return (
           <mesh
