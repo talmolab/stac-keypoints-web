@@ -3,6 +3,7 @@ import { useStore } from "../store";
 import type { InteractionMode } from "../types";
 import { PRIMARY_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
 import ErrorDistribution from "./ErrorDistribution";
+import RegionErrorSummary from "./RegionErrorSummary";
 
 export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -17,6 +18,8 @@ export default function PropertiesPanel() {
   const setModelPosition = useStore((s) => s.setModelPosition);
   const modelScale = useStore((s) => s.modelScale);
   const setModelScale = useStore((s) => s.setModelScale);
+  const mocapScaleFactor = useStore((s) => s.mocapScaleFactor);
+  const setMocapScaleFactor = useStore((s) => s.setMocapScaleFactor);
   const showGlobalControls = useStore((s) => s.showGlobalControls);
   const setShowGlobalControls = useStore((s) => s.setShowGlobalControls);
   const segmentScales = useStore((s) => s.segmentScales);
@@ -31,6 +34,8 @@ export default function PropertiesPanel() {
   const setModelOpacity = useStore((s) => s.setModelOpacity);
   const showErrorLines = useStore((s) => s.showErrorLines);
   const setShowErrorLines = useStore((s) => s.setShowErrorLines);
+  const colorByError = useStore((s) => s.colorByError);
+  const setColorByError = useStore((s) => s.setColorByError);
   const showOffsetMarkers = useStore((s) => s.showOffsetMarkers);
   const setShowOffsetMarkers = useStore((s) => s.setShowOffsetMarkers);
 
@@ -128,6 +133,10 @@ export default function PropertiesPanel() {
           <input type="checkbox" checked={showErrorLines} onChange={(e) => setShowErrorLines(e.target.checked)} />
           Show Error Lines
         </label>
+        <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: colorByError ? "#ff8844" : "#888", cursor: "pointer" }}>
+          <input type="checkbox" checked={colorByError} onChange={(e) => setColorByError(e.target.checked)} />
+          Color Keypoints by Error
+        </label>
         <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: showOffsetMarkers ? "#00cccc" : "#888", cursor: "pointer" }}>
           <input type="checkbox" checked={showOffsetMarkers} onChange={(e) => setShowOffsetMarkers(e.target.checked)} />
           Show Offset Points
@@ -140,6 +149,20 @@ export default function PropertiesPanel() {
           <input type="range" min={0.3} max={3.0} step={0.01}
             value={modelScale}
             onChange={(e) => setModelScale(parseFloat(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
+        {/* Mocap scale — live skeleton-vs-cloud size match, no backend call */}
+        <div>
+          <label
+            style={{ fontSize: 11, color: Math.abs(mocapScaleFactor - 0.01) > 1e-5 ? "#ffaa00" : "#888" }}
+            title="Multiplier from raw mocap units to meters. Default 0.01 assumes cm input."
+          >
+            Mocap Scale: {mocapScaleFactor.toFixed(4)}
+          </label>
+          <input type="range" min={0.001} max={0.05} step={0.0005}
+            value={mocapScaleFactor}
+            onChange={(e) => setMocapScaleFactor(parseFloat(e.target.value))}
             style={{ width: "100%" }}
           />
         </div>
@@ -156,7 +179,12 @@ export default function PropertiesPanel() {
         </div>
       </div>
 
-      {showErrorLines && <ErrorDistribution />}
+      {showErrorLines && (
+        <>
+          <ErrorDistribution />
+          <RegionErrorSummary />
+        </>
+      )}
 
       {/* Selected keypoint info */}
       {selectedKp && (

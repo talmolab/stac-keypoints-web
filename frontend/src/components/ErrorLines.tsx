@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { Line, Html } from "@react-three/drei";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
+import { errorToColor } from "../errorColor";
 
 const EMPTY_ERRORS: { keypointName: string; errorMm: number }[] = [];
 
@@ -24,8 +25,11 @@ export default function ErrorLines() {
   const mocapScale = useStore((s) => s.mocapScaleFactor);
   const kpNames = useStore((s) => s.acmKeypointNames);
 
+  // Compute error pairs whenever the underlying data is present, regardless
+  // of the visibility toggle — downstream consumers (ACMSkeleton "color by
+  // error", ErrorDistribution) read perKeypointErrors and need it kept fresh.
   const lines = useMemo(() => {
-    if (!showErrorLines || bodyTransforms.length === 0 || !positions || numKp === 0) return [];
+    if (bodyTransforms.length === 0 || !positions || numKp === 0) return [];
 
     const nameToBodyIdx = Object.fromEntries(bodyNames.map((n, i) => [n, i]));
     const nameToKpIdx = Object.fromEntries(kpNames.map((n, i) => [n, i]));
@@ -59,13 +63,7 @@ export default function ErrorLines() {
       const errorM = Math.sqrt(dx * dx + dy * dy + dz * dz);
       const errorMm = errorM * 1000;
 
-      // Color: green → yellow → red based on error
-      let color: string;
-      if (errorMm < 5) color = "#00ff44";
-      else if (errorMm < 10) color = "#88ff00";
-      else if (errorMm < 20) color = "#ffaa00";
-      else if (errorMm < 40) color = "#ff4400";
-      else color = "#ff0000";
+      const color = errorToColor(errorMm);
 
       // Midpoint for label
       const mid: [number, number, number] = [
@@ -88,19 +86,19 @@ export default function ErrorLines() {
       errorMm: number;
       mid: [number, number, number];
     }[];
-  }, [showErrorLines, mappings, offsets, bodyTransforms, bodyNames, positions, numKp, currentFrame, mocapScale, kpNames]);
+  }, [mappings, offsets, bodyTransforms, bodyNames, positions, numKp, currentFrame, mocapScale, kpNames]);
 
   const setPerKeypointErrors = useStore((s) => s.setPerKeypointErrors);
 
   useEffect(() => {
-    if (!showErrorLines || lines.length === 0) {
+    if (lines.length === 0) {
       setPerKeypointErrors(EMPTY_ERRORS);
       return;
     }
     setPerKeypointErrors(
       lines.map((l) => ({ keypointName: l.keypointName, errorMm: l.errorMm }))
     );
-  }, [lines, showErrorLines, setPerKeypointErrors]);
+  }, [lines, setPerKeypointErrors]);
 
   if (!showErrorLines || lines.length === 0) return null;
 

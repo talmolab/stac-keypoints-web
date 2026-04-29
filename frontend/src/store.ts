@@ -80,6 +80,10 @@ interface AppState {
   // Error visualization toggle
   showErrorLines: boolean;
 
+  // Tint ACM keypoint markers by error magnitude (independent of showErrorLines).
+  colorByError: boolean;
+  setColorByError: (enabled: boolean) => void;
+
   // Offset markers always-visible toggle
   showOffsetMarkers: boolean;
   setShowOffsetMarkers: (show: boolean) => void;
@@ -124,6 +128,7 @@ interface AppState {
   setModelRotationY: (radians: number) => void;
   setModelPosition: (pos: [number, number, number]) => void;
   setModelScale: (scale: number) => void;
+  setMocapScaleFactor: (scale: number) => void;
   setModelOpacity: (opacity: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setShowErrorLines: (show: boolean) => void;
@@ -181,6 +186,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   modelOpacity: 0.5,
   showGlobalControls: false,
   showErrorLines: false,
+  colorByError: false,
+  setColorByError: (enabled) => set({ colorByError: enabled }),
   showOffsetMarkers: true,
   segmentScales: {},
   adjustedPositions: null,
@@ -241,6 +248,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
   setModelScale: (scale) => set({ modelScale: scale }),
+  setMocapScaleFactor: (scale) => set({ mocapScaleFactor: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
   setShowErrorLines: (show) => set({ showErrorLines: show }),
