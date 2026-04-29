@@ -79,6 +79,16 @@ export function adjustSkeletonFrame(
     const dx = positions[ci * 3 + 0] - positions[pi * 3 + 0];
     const dy = positions[ci * 3 + 1] - positions[pi * 3 + 1];
     const dz = positions[ci * 3 + 2] - positions[pi * 3 + 2];
+    // Either endpoint missing → no scalable direction. Leave the result's
+    // original copy of this child untouched rather than writing NaN.
+    if (!Number.isFinite(dx) || !Number.isFinite(dy) || !Number.isFinite(dz)) continue;
+    // Adjusted parent may have been NaN-poisoned earlier in the traversal —
+    // bail before we propagate NaN further down the chain.
+    if (
+      !Number.isFinite(result[pi * 3 + 0]) ||
+      !Number.isFinite(result[pi * 3 + 1]) ||
+      !Number.isFinite(result[pi * 3 + 2])
+    ) continue;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (len < 1e-8) continue;
 

@@ -1,6 +1,8 @@
 """Procrustes alignment and coordinate conversion for ACM <-> MuJoCo."""
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import mujoco
 
@@ -106,11 +108,23 @@ def align_acm_to_mujoco(
     kp_indices = [kp_names.index(kp) for kp in common_kps]
     # MuJoCo positions in "ACM-comparable" space (divide out mocap scale)
     mj_array = np.array([mj_positions[kp] / mocap_scale_factor for kp in common_kps])
-    mean_acm = acm_positions.mean(axis=0)
+    # nanmean: a keypoint missing in some frames still contributes from frames
+    # where it is present. A keypoint missing in *all* frames stays NaN here
+    # and is dropped from the alignment subset below; np.nanmean's
+    # "Mean of empty slice" RuntimeWarning is expected in that case.
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", r"Mean of empty slice", RuntimeWarning)
+        mean_acm = np.nanmean(acm_positions, axis=0)
     source_subset = mean_acm[kp_indices]
 
+    valid = ~np.isnan(source_subset).any(axis=1)
+    if int(valid.sum()) < 3:
+        return {"error": "Need at least 3 non-missing common keypoints for alignment"}
+    source_valid = source_subset[valid]
+    mj_valid = mj_array[valid]
+
     # Try Procrustes alignment
-    result = procrustes_align(source_subset, mj_array, allow_scale=True)
+    result = procrustes_align(source_valid, mj_valid, allow_scale=True)
     s = result["s"]
 
     # Check if scale is reasonable
@@ -120,19 +134,29 @@ def align_acm_to_mujoco(
 
     if use_bbox:
         # Fall back to bounding-box alignment
-        result = bbox_align(source_subset, mj_array)
+        result = bbox_align(source_valid, mj_valid)
         s = result["s"]
 
     T = acm_positions.shape[0]
     R, t = result["R"], result["t"]
     aligned = np.zeros_like(acm_positions)
     for i in range(T):
+        # NaN keypoints stay NaN in output (matmul is row-wise per keypoint).
         aligned[i] = s * (acm_positions[i] @ R.T) + t
+
+    # NaN → None on the wire (browser JSON.parse rejects NaN literals).
+    aligned_flat = aligned.flatten()
+    if np.isnan(aligned_flat).any():
+        aligned_list: list[float | None] = [
+            None if v != v else float(v) for v in aligned_flat
+        ]
+    else:
+        aligned_list = aligned_flat.tolist()
 
     return {
         "rotation": R.tolist(),
         "translation": t.tolist(),
         "scale": float(s),
-        "alignedPositions": aligned.flatten().tolist(),
+        "alignedPositions": aligned_list,
         "method": "bbox" if use_bbox else "procrustes",
     }

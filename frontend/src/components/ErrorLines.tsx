@@ -42,19 +42,25 @@ export default function ErrorLines() {
       const bt = bodyTransforms[bodyIdx];
       if (!bt) return null;
 
+      // ACM keypoint position — bail before any math when missing in this
+      // frame, so we don't emit an error pair, a NaN line, or a NaN
+      // contribution to the mean.
+      const frameOffset = currentFrame * numKp * 3;
+      const rawX = positions[frameOffset + kpIdx * 3 + 0];
+      const rawY = positions[frameOffset + kpIdx * 3 + 1];
+      const rawZ = positions[frameOffset + kpIdx * 3 + 2];
+      if (!Number.isFinite(rawX) || !Number.isFinite(rawY) || !Number.isFinite(rawZ)) return null;
+      const acmX = rawX * mocapScale;
+      const acmY = rawY * mocapScale;
+      const acmZ = rawZ * mocapScale;
+      const acmPos = mjToThree([acmX, acmY, acmZ]);
+
       // MuJoCo body + offset position (in Three.js coords)
       const offset = offsetMap[m.keypointName] || { x: 0, y: 0, z: 0 };
       const mjWorld: [number, number, number] = [
         bt.position[0] + offset.x, bt.position[1] + offset.y, bt.position[2] + offset.z,
       ];
       const bodyPos = mjToThree(mjWorld);
-
-      // ACM keypoint position (in Three.js coords)
-      const frameOffset = currentFrame * numKp * 3;
-      const acmX = positions[frameOffset + kpIdx * 3 + 0] * mocapScale;
-      const acmY = positions[frameOffset + kpIdx * 3 + 1] * mocapScale;
-      const acmZ = positions[frameOffset + kpIdx * 3 + 2] * mocapScale;
-      const acmPos = mjToThree([acmX, acmY, acmZ]);
 
       // Error distance in mm
       const dx = mjWorld[0] - acmX;
