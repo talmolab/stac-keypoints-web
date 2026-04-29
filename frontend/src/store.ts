@@ -11,6 +11,18 @@ import type {
 } from "./types";
 import { adjustAllFrames } from "./skeletonEditor";
 
+// Backend serializes missing keypoints (NaN) as `null` because the JSON spec
+// disallows the NaN literal. Restore as NaN here so downstream NaN-aware
+// rendering and math (Number.isNaN checks) just work.
+function nullsToNaNFloat32(arr: ReadonlyArray<number | null>): Float32Array {
+  const out = new Float32Array(arr.length);
+  for (let i = 0; i < arr.length; i++) {
+    const v = arr[i];
+    out[i] = v === null ? NaN : v;
+  }
+  return out;
+}
+
 interface AppState {
   // MuJoCo model
   xmlPath: string | null;
@@ -27,6 +39,9 @@ interface AppState {
   acmKeypointNames: string[];
   acmBones: Bone[];
   acmPositions: Float32Array | null;
+  // Per-frame, per-keypoint tracker confidence (SLEAP `point_scores`),
+  // flat (frames * numKp). NaN where the tracker reported nothing.
+  acmConfidences: Float32Array | null;
   acmNumFrames: number;
   acmNumKeypoints: number;
 
@@ -113,8 +128,8 @@ interface AppState {
 
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null }) => void;
-  setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: number[]; numFrames: number; numKeypoints: number }) => void;
-  setAlignedPositions: (positions: number[]) => void;
+  setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: ReadonlyArray<number | null>; numFrames: number; numKeypoints: number; confidences?: ReadonlyArray<number | null> }) => void;
+  setAlignedPositions: (positions: ReadonlyArray<number | null>) => void;
   setCurrentFrame: (frame: number) => void;
   setMode: (mode: InteractionMode) => void;
   setSelectedKeypoint: (name: string | null) => void;
@@ -159,6 +174,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   acmKeypointNames: [],
   acmBones: [],
   acmPositions: null,
+  acmConfidences: null,
   acmNumFrames: 0,
   acmNumKeypoints: 0,
   alignedPositions: null,
@@ -211,7 +227,8 @@ export const useStore = create<AppState>()(persist((set) => ({
   setAcmData: (data) => set({
     acmKeypointNames: data.keypointNames,
     acmBones: data.bones,
-    acmPositions: new Float32Array(data.positions),
+    acmPositions: nullsToNaNFloat32(data.positions),
+    acmConfidences: data.confidences ? nullsToNaNFloat32(data.confidences) : null,
     acmNumFrames: data.numFrames,
     acmNumKeypoints: data.numKeypoints,
     frameStatuses: new Array(data.numFrames).fill("unlabeled") as FrameStatus[],
@@ -220,7 +237,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     alignedPositions: null,
     isAligned: false,
   }),
-  setAlignedPositions: (positions) => set({ alignedPositions: new Float32Array(positions), isAligned: true }),
+  setAlignedPositions: (positions) => set({ alignedPositions: nullsToNaNFloat32(positions), isAligned: true }),
   setCurrentFrame: (frame) => set({ currentFrame: frame }),
   setMode: (mode) => set({ mode }),
   setSelectedKeypoint: (name) => set({ selectedKeypoint: name }),

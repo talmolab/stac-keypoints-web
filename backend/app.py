@@ -150,7 +150,17 @@ async def load_matfile(file: UploadFile = File(None), path: str = Query(None)):
 @app.post("/api/align")
 async def align_endpoint(data: dict):
     """Align ACM keypoints to MuJoCo pose via Procrustes."""
-    positions = np.array(data["positions"]).reshape(
+    # Frontend sends `null` for missing keypoints (JSON disallows the NaN
+    # literal). Restore as NaN so np.nanmean / np.isnan paths in alignment.py
+    # treat them as missing.
+    positions_flat = data["positions"]
+    if any(v is None for v in positions_flat):
+        flat = np.array(
+            [np.nan if v is None else v for v in positions_flat], dtype=float
+        )
+    else:
+        flat = np.asarray(positions_flat, dtype=float)
+    positions = flat.reshape(
         data["numFrames"], data["numKeypoints"], 3
     )
     result = align_acm_to_mujoco(

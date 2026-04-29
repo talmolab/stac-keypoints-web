@@ -29,6 +29,18 @@ function getMaterial(color: string): THREE.MeshBasicMaterial {
   return mat;
 }
 
+// Tint a base color by confidence ∈ [0, 1]. We darken low-confidence markers
+// rather than tinting hue, so they read as "less reliable" without losing
+// the per-keypoint color identity. Quantize to 6 levels to bound the
+// material cache (per kp × per level).
+function tintByConfidence(hex: string, confidence: number): string {
+  const clamped = Math.max(0, Math.min(1, confidence));
+  const factor = 0.4 + 0.6 * clamped;            // [0.4, 1.0]
+  const quantized = Math.round(factor * 5) / 5;  // 0.4, 0.6, 0.8, 1.0
+  const c = new THREE.Color(hex).multiplyScalar(quantized);
+  return "#" + c.getHexString();
+}
+
 export default function ACMSkeleton() {
   const kpNames = useStore((s) => s.acmKeypointNames);
   const bones = useStore((s) => s.acmBones);
@@ -43,19 +55,27 @@ export default function ACMSkeleton() {
   const hoveredSegment = useStore((s) => s.hoveredSegment);
   const colorByError = useStore((s) => s.colorByError);
   const perKeypointErrors = useStore((s) => s.perKeypointErrors);
+  const confidences = useStore((s) => s.acmConfidences);
 
   // Cache mesh refs for imperative position updates (avoids re-render)
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
 
-  const framePositions = useMemo(() => {
+  // framePositions[i] is null for keypoints missing in the current frame
+  // (NaN coords). Three.js renders NaN as origin or breaks bounding-volume
+  // checks, so we skip those keypoints entirely downstream.
+  const framePositions = useMemo<(THREE.Vector3 | null)[] | null>(() => {
     if (!positions || numKp === 0) return null;
     const offset = currentFrame * numKp * 3;
-    const pts: THREE.Vector3[] = [];
+    const pts: (THREE.Vector3 | null)[] = [];
     for (let i = 0; i < numKp; i++) {
-      const x = positions[offset + i * 3 + 0] * mocapScale;
-      const y = positions[offset + i * 3 + 1] * mocapScale;
-      const z = positions[offset + i * 3 + 2] * mocapScale;
-      pts.push(mjToThree([x, y, z]));
+      const rx = positions[offset + i * 3 + 0];
+      const ry = positions[offset + i * 3 + 1];
+      const rz = positions[offset + i * 3 + 2];
+      if (!Number.isFinite(rx) || !Number.isFinite(ry) || !Number.isFinite(rz)) {
+        pts.push(null);
+        continue;
+      }
+      pts.push(mjToThree([rx * mocapScale, ry * mocapScale, rz * mocapScale]));
     }
     return pts;
   }, [positions, currentFrame, numKp, mocapScale]);
@@ -93,6 +113,7 @@ export default function ACMSkeleton() {
     if (pi === undefined || ci === undefined) return null;
     const p = framePositions[pi];
     const c = framePositions[ci];
+    if (!p || !c) return null;  // either endpoint missing → no bone
     const key = segmentKey(bone.parent, bone.child);
     const isHl = key === hoveredSegment;
     return { points: [[p.x, p.y, p.z], [c.x, c.y, c.z]] as [number, number, number][], color: isHl ? "#ffffff" : "#999999", lineWidth: isHl ? 3 : 1.5 };
@@ -102,15 +123,22 @@ export default function ACMSkeleton() {
     <group>
       {kpNames.map((name, i) => {
         const pos = framePositions[i];
+        if (!pos) return null;  // missing in this frame → don't render
         const isSelected = selectedKp === name;
         const isHighlighted = highlightedKps.has(name);
         const errorMm = errorByName[name];
         const errorColor = errorMm !== undefined ? errorToColor(errorMm) : null;
-        const color = isSelected
+        let color = isSelected
           ? "#ffff00"
           : isHighlighted
           ? "#ffffff"
           : errorColor ?? KP_COLORS[name] ?? "#888888";
+        // Confidence tint applies only to the base color, not to selection /
+        // highlight / error overlays (which carry their own meaning).
+        if (!isSelected && !isHighlighted && !errorColor && confidences) {
+          const c = confidences[currentFrame * numKp + i];
+          if (Number.isFinite(c)) color = tintByConfidence(color, c);
+        }
         const geom = (isSelected || isHighlighted) ? _largeSphere : _smallSphere;
         return (
           <mesh

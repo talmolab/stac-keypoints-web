@@ -69,6 +69,12 @@ def _jacobian_ik(
         off = np.array(offsets[kp_name]) if offsets and kp_name in offsets else np.zeros(3)
         active.append((kp_idx, body_id, off))
 
+    # Drop keypoints whose target is NaN — missing tracking data should
+    # contribute nothing to the gradient. NaN in `target` would otherwise
+    # poison `error`, `grad_nv`, and ultimately every joint angle.
+    active = [
+        a for a in active if not np.isnan(target_positions[a[0]]).any()
+    ]
     if not active:
         mujoco.mj_forward(model, data)
         return data.qpos.copy()
@@ -150,7 +156,16 @@ def run_quick_stac(
     4. Run Jacobian transpose IK to solve joint angles
     5. Collect body transforms
     """
-    positions = np.array(kp_positions_flat).reshape(num_frames, num_keypoints, 3)
+    # The frontend uses `null` on the wire for missing keypoints (JSON
+    # disallows the NaN literal). Restore as NaN so downstream NaN-aware
+    # math (np.isnan checks below) works.
+    if any(v is None for v in kp_positions_flat):
+        flat = np.array(
+            [np.nan if v is None else v for v in kp_positions_flat], dtype=float
+        )
+    else:
+        flat = np.asarray(kp_positions_flat, dtype=float)
+    positions = flat.reshape(num_frames, num_keypoints, 3)
 
     model = mujoco.MjModel.from_xml_path(xml_path)
     data = mujoco.MjData(model)
@@ -209,32 +224,41 @@ def run_quick_stac(
         else:
             mujoco.mj_resetData(model, data)
 
-        if mj_trunk_arr is not None and len(trunk_kps_available) >= 3:
-            # Get ACM trunk keypoint positions for this frame
-            acm_trunk_positions = []
-            for kp in trunk_kps_available:
+        # Build per-frame trunk pairs, dropping any kp whose target is NaN.
+        # A NaN slipping into the Procrustes input would yield a NaN R/t and
+        # blow up qpos for the rest of the run via temporal coherence.
+        acm_trunk_positions: list[np.ndarray] = []
+        mj_trunk_for_frame: list[np.ndarray] = []
+        if mj_trunk_arr is not None:
+            for trunk_i, kp in enumerate(trunk_kps_available):
                 kp_idx = kp_names.index(kp)
+                if np.isnan(target_m[kp_idx]).any():
+                    continue
                 acm_trunk_positions.append(target_m[kp_idx])
-            acm_trunk_arr = np.array(acm_trunk_positions)
+                mj_trunk_for_frame.append(mj_trunk_arr[trunk_i])
+
+        if len(acm_trunk_positions) >= 3:
+            mj_arr = np.array(mj_trunk_for_frame)
+            acm_arr = np.array(acm_trunk_positions)
 
             # Procrustes: align MuJoCo trunk to ACM trunk
-            result = procrustes_align(mj_trunk_arr, acm_trunk_arr, allow_scale=False)
+            result = procrustes_align(mj_arr, acm_arr, allow_scale=False)
             R = result["R"]
             t = result["t"]
-
-            # Convert rotation to quaternion
             quat = _rotation_matrix_to_quat(R)
 
-            # Set root position and quaternion from Procrustes alignment
             data.qpos[0:3] = t
             data.qpos[3:7] = quat
         else:
-            # Fallback: just set root position to mean of target keypoints
-            mean_target = target_m.mean(axis=0)
-            data.qpos[0] = mean_target[0]
-            data.qpos[1] = mean_target[1]
-            data.qpos[2] = mean_target[2]
-            data.qpos[3] = 1.0  # quaternion w
+            # Fallback: set root position to mean of finite target keypoints.
+            # nanmean across all keypoints — if every one is NaN we fall through
+            # with whatever qpos we had (carryover from prev frame or default).
+            if not np.isnan(target_m).all():
+                mean_target = np.nanmean(target_m, axis=0)
+                data.qpos[0] = mean_target[0]
+                data.qpos[1] = mean_target[1]
+                data.qpos[2] = mean_target[2]
+                data.qpos[3] = 1.0  # quaternion w
 
         # Run Jacobian IK to solve joint angles
         if mappings:
@@ -256,11 +280,14 @@ def run_quick_stac(
                 kp_idx = kp_names.index(kp_name)
                 body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
                 if body_id >= 0:
+                    target = target_m[kp_idx]
+                    if np.isnan(target).any():
+                        continue
                     body_pos = data.xpos[body_id]
                     offset = np.zeros(3)
                     if offsets and kp_name in offsets:
                         offset = np.array(offsets[kp_name])
-                    dist = np.linalg.norm((body_pos + offset) - target_m[kp_idx])
+                    dist = np.linalg.norm((body_pos + offset) - target)
                     errors.append(dist)
             mean_error = float(np.mean(errors)) if errors else 0.0
         else:

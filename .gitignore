@@ -9,3 +9,8 @@ build/
 .env
 .venv/
 venv/
+
+# Mocap binaries — big and often sensitive. Tracked test fixtures are
+# kept via explicit exceptions below.
+data/*.h5
+!data/demo_with_nan.h5

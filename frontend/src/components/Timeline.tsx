@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../store";
 import * as api from "../api";
+import GapHeatmap from "./GapHeatmap";
 
 export default function Timeline() {
   const currentFrame = useStore((s) => s.currentFrame);
@@ -16,6 +17,23 @@ export default function Timeline() {
   const stacBodyTransforms = useStore((s) => s.stacBodyTransforms);
   const stacQpos = useStore((s) => s.stacQpos);
   const setBodyTransforms = useStore((s) => s.setBodyTransforms);
+  const [showGaps, setShowGaps] = useState(true);
+
+  // Count of keypoints present (non-NaN) in the current frame.
+  const presentCount = useMemo(() => {
+    if (!acmPositions || acmNumKeypoints === 0) return null;
+    const base = currentFrame * acmNumKeypoints * 3;
+    let n = 0;
+    for (let k = 0; k < acmNumKeypoints; k++) {
+      const i = base + k * 3;
+      if (
+        !Number.isNaN(acmPositions[i]) &&
+        !Number.isNaN(acmPositions[i + 1]) &&
+        !Number.isNaN(acmPositions[i + 2])
+      ) n++;
+    }
+    return n;
+  }, [acmPositions, currentFrame, acmNumKeypoints]);
 
   // When current frame changes and we have STAC results, update body transforms
   useEffect(() => {
@@ -97,8 +115,11 @@ export default function Timeline() {
     );
   }
 
+  const missingNow =
+    presentCount !== null && acmNumKeypoints > 0 && presentCount < acmNumKeypoints;
+
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 4, justifyContent: "center", minWidth: 0 }}>
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 4, minWidth: 0, padding: "6px 0" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
         <button onClick={togglePlay} style={btnStyle}>{isPlaying ? "\u23f8" : "\u25b6"}</button>
         <input
@@ -109,12 +130,33 @@ export default function Timeline() {
         <span style={{ color: "#ccc", fontSize: 13, whiteSpace: "nowrap" }}>
           {currentFrame} / {numFrames - 1}
         </span>
+        {presentCount !== null && (
+          <span
+            style={{
+              color: missingNow ? "#e88" : "#8c8",
+              fontSize: 12,
+              fontFamily: "monospace",
+              whiteSpace: "nowrap",
+            }}
+            title="Keypoints present (non-NaN) in this frame"
+          >
+            {presentCount}/{acmNumKeypoints} kp
+          </span>
+        )}
         <button onClick={labelCurrentFrame} style={btnStyle}>Label</button>
         <button onClick={handleSuggestFrames} style={btnStyle}>Suggest</button>
+        <button onClick={() => setShowGaps((v) => !v)} style={btnStyle}>
+          {showGaps ? "Hide gaps" : "Show gaps"}
+        </button>
       </div>
-      <div style={{ display: "flex", gap: 1, alignItems: "center", overflow: "hidden", minWidth: 0, flexShrink: 1 }}>
+      <div style={{ display: "flex", gap: 1, alignItems: "center", overflow: "hidden", minWidth: 0, flexShrink: 0 }}>
         {dots}
       </div>
+      {showGaps && (
+        <div style={{ overflowY: "auto", overflowX: "hidden", maxHeight: 320, minWidth: 0 }}>
+          <GapHeatmap />
+        </div>
+      )}
     </div>
   );
 }
