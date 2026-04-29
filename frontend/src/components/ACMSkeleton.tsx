@@ -29,6 +29,18 @@ function getMaterial(color: string): THREE.MeshBasicMaterial {
   return mat;
 }
 
+// Tint a base color by confidence ∈ [0, 1]. We darken low-confidence markers
+// rather than tinting hue, so they read as "less reliable" without losing
+// the per-keypoint color identity. Quantize to 6 levels to bound the
+// material cache (per kp × per level).
+function tintByConfidence(hex: string, confidence: number): string {
+  const clamped = Math.max(0, Math.min(1, confidence));
+  const factor = 0.4 + 0.6 * clamped;            // [0.4, 1.0]
+  const quantized = Math.round(factor * 5) / 5;  // 0.4, 0.6, 0.8, 1.0
+  const c = new THREE.Color(hex).multiplyScalar(quantized);
+  return "#" + c.getHexString();
+}
+
 export default function ACMSkeleton() {
   const kpNames = useStore((s) => s.acmKeypointNames);
   const bones = useStore((s) => s.acmBones);
@@ -43,6 +55,7 @@ export default function ACMSkeleton() {
   const hoveredSegment = useStore((s) => s.hoveredSegment);
   const colorByError = useStore((s) => s.colorByError);
   const perKeypointErrors = useStore((s) => s.perKeypointErrors);
+  const confidences = useStore((s) => s.acmConfidences);
 
   // Cache mesh refs for imperative position updates (avoids re-render)
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
@@ -115,11 +128,17 @@ export default function ACMSkeleton() {
         const isHighlighted = highlightedKps.has(name);
         const errorMm = errorByName[name];
         const errorColor = errorMm !== undefined ? errorToColor(errorMm) : null;
-        const color = isSelected
+        let color = isSelected
           ? "#ffff00"
           : isHighlighted
           ? "#ffffff"
           : errorColor ?? KP_COLORS[name] ?? "#888888";
+        // Confidence tint applies only to the base color, not to selection /
+        // highlight / error overlays (which carry their own meaning).
+        if (!isSelected && !isHighlighted && !errorColor && confidences) {
+          const c = confidences[currentFrame * numKp + i];
+          if (Number.isFinite(c)) color = tintByConfidence(color, c);
+        }
         const geom = (isSelected || isHighlighted) ? _largeSphere : _smallSphere;
         return (
           <mesh

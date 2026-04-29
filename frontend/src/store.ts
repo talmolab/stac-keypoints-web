@@ -39,6 +39,9 @@ interface AppState {
   acmKeypointNames: string[];
   acmBones: Bone[];
   acmPositions: Float32Array | null;
+  // Per-frame, per-keypoint tracker confidence (SLEAP `point_scores`),
+  // flat (frames * numKp). NaN where the tracker reported nothing.
+  acmConfidences: Float32Array | null;
   acmNumFrames: number;
   acmNumKeypoints: number;
 
@@ -125,7 +128,7 @@ interface AppState {
 
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null }) => void;
-  setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: ReadonlyArray<number | null>; numFrames: number; numKeypoints: number }) => void;
+  setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: ReadonlyArray<number | null>; numFrames: number; numKeypoints: number; confidences?: ReadonlyArray<number | null> }) => void;
   setAlignedPositions: (positions: ReadonlyArray<number | null>) => void;
   setCurrentFrame: (frame: number) => void;
   setMode: (mode: InteractionMode) => void;
@@ -171,6 +174,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   acmKeypointNames: [],
   acmBones: [],
   acmPositions: null,
+  acmConfidences: null,
   acmNumFrames: 0,
   acmNumKeypoints: 0,
   alignedPositions: null,
@@ -224,6 +228,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     acmKeypointNames: data.keypointNames,
     acmBones: data.bones,
     acmPositions: nullsToNaNFloat32(data.positions),
+    acmConfidences: data.confidences ? nullsToNaNFloat32(data.confidences) : null,
     acmNumFrames: data.numFrames,
     acmNumKeypoints: data.numKeypoints,
     frameStatuses: new Array(data.numFrames).fill("unlabeled") as FrameStatus[],

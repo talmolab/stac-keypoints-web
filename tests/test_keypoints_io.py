@@ -205,6 +205,75 @@ def test_kp_names_count_mismatch_falls_back(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Confidence (SLEAP `point_scores`)
+# ---------------------------------------------------------------------------
+
+
+def test_load_h5_with_point_scores(tmp_path):
+    data = _rand_tracks(n_frames=4, n_kp=3)
+    scores = np.array([[0.9, 0.8, 0.7]] * 4, dtype=np.float32)
+    path = tmp_path / "with_scores.h5"
+    with h5py.File(path, "w") as f:
+        f.create_dataset("tracks", data=data)
+        f.create_dataset("point_scores", data=scores)
+
+    result = load_keypoints(str(path))
+    assert "confidences" in result
+    assert len(result["confidences"]) == 4 * 3
+    assert result["confidences"][0] == pytest.approx(0.9, rel=1e-5)
+
+
+def test_load_h5_without_point_scores_omits_field(tmp_path):
+    data = _rand_tracks(n_frames=2, n_kp=2)
+    path = tmp_path / "no_scores.h5"
+    with h5py.File(path, "w") as f:
+        f.create_dataset("tracks", data=data)
+    result = load_keypoints(str(path))
+    assert "confidences" not in result
+
+
+def test_load_h5_point_scores_with_nan_serializes_as_null(tmp_path):
+    import json as _json
+    data = _rand_tracks(n_frames=3, n_kp=2)
+    scores = np.full((3, 2), 0.9, dtype=np.float32)
+    scores[1, 0] = np.nan
+    path = tmp_path / "scores_nan.h5"
+    with h5py.File(path, "w") as f:
+        f.create_dataset("tracks", data=data)
+        f.create_dataset("point_scores", data=scores)
+    result = load_keypoints(str(path))
+    assert result["confidences"][1 * 2 + 0] is None
+    # Strict-JSON round-trip
+    _json.loads(_json.dumps(result, allow_nan=False))
+
+
+def test_load_h5_point_scores_4d_takes_first_animal(tmp_path):
+    """SLEAP writes (frames, animals, keypoints) — first animal only."""
+    data = _rand_tracks(n_frames=2, n_kp=2)
+    scores = np.zeros((2, 3, 2), dtype=np.float32)  # 3 animals
+    scores[:, 0, :] = 0.9   # first animal — what we expect to read
+    scores[:, 1:, :] = 0.1  # other animals — should be ignored
+    path = tmp_path / "scores_multi.h5"
+    with h5py.File(path, "w") as f:
+        f.create_dataset("tracks", data=data)
+        f.create_dataset("point_scores", data=scores)
+    result = load_keypoints(str(path))
+    assert all(c == pytest.approx(0.9, rel=1e-5) for c in result["confidences"])
+
+
+def test_load_h5_point_scores_shape_mismatch_dropped(tmp_path):
+    """If point_scores doesn't line up with tracks, drop it silently."""
+    data = _rand_tracks(n_frames=4, n_kp=3)
+    scores = np.zeros((4, 5), dtype=np.float32)  # wrong kp count
+    path = tmp_path / "scores_bad_shape.h5"
+    with h5py.File(path, "w") as f:
+        f.create_dataset("tracks", data=data)
+        f.create_dataset("point_scores", data=scores)
+    result = load_keypoints(str(path))
+    assert "confidences" not in result
+
+
+# ---------------------------------------------------------------------------
 # Live check against stac-mjx test data when present
 # ---------------------------------------------------------------------------
 

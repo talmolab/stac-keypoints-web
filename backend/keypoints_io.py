@@ -29,8 +29,9 @@ def load_keypoints(path: str, kp_names: list[str] | None = None) -> dict:
     p = Path(path)
     ext = p.suffix.lower()
     embedded_names: list[str] | None = None
+    confidences: np.ndarray | None = None
     if ext == ".h5":
-        positions, embedded_names = _load_h5(p)
+        positions, embedded_names, confidences = _load_h5(p)
     elif ext == ".mat":
         positions = _load_mat(p)
     else:
@@ -59,26 +60,36 @@ def load_keypoints(path: str, kp_names: list[str] | None = None) -> dict:
     # Tracking exports (SLEAP, DLC) use NaN for missing keypoints. JSON spec
     # disallows NaN literals — the browser's JSON.parse will reject them — so
     # convert to None (→ null on the wire) and reverse on the JS side.
-    flat = positions.flatten()
-    if np.isnan(flat).any():
-        positions_list: list[float | None] = [None if v != v else float(v) for v in flat]
-    else:
-        positions_list = flat.tolist()
+    positions_list = _flat_with_nulls(positions)
 
-    return {
+    out: dict = {
         "keypointNames": names,
         "bones": [],  # no keypoint-level connectivity available from raw tracks
         "positions": positions_list,
         "numFrames": int(n_frames),
         "numKeypoints": int(n_kp),
     }
+    if confidences is not None and confidences.shape == (n_frames, n_kp):
+        out["confidences"] = _flat_with_nulls(confidences)
+    return out
 
 
-def _load_h5(path: Path) -> tuple[np.ndarray, list[str] | None]:
-    """Return (tracks of shape (frames, keypoints, 3), embedded names or None).
+def _flat_with_nulls(arr: np.ndarray) -> list:
+    flat = arr.flatten()
+    if np.isnan(flat).any():
+        return [None if v != v else float(v) for v in flat]
+    return flat.tolist()
+
+
+def _load_h5(path: Path) -> tuple[np.ndarray, list[str] | None, np.ndarray | None]:
+    """Return (tracks (frames, keypoints, 3), names or None, confidences or None).
 
     Embedded names are read from `node_names` (SLEAP convention) or
     `kp_names` (stac-mjx convention), whichever is present.
+
+    Confidences are read from `point_scores` (SLEAP convention) when present.
+    SLEAP shape is (frames, animals, keypoints) — same first-animal slicing
+    as for `tracks`. stac-mjx-style files without scores return None.
     """
     with h5py.File(path, "r") as f:
         if "tracks" in f:
@@ -100,7 +111,14 @@ def _load_h5(path: Path) -> tuple[np.ndarray, list[str] | None]:
                 raw = f[key][:]
                 names = [n.decode() if isinstance(n, bytes) else str(n) for n in raw]
                 break
-        return arr, names
+
+        scores: np.ndarray | None = None
+        if "point_scores" in f:
+            scores = np.array(f["point_scores"])
+            # SLEAP-style (frames, animals, keypoints): take first animal.
+            if scores.ndim == 3:
+                scores = scores[:, 0, :]
+        return arr, names, scores
 
 
 def _load_mat(path: Path) -> np.ndarray:

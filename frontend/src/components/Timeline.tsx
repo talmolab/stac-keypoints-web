@@ -153,7 +153,7 @@ export default function Timeline() {
         {dots}
       </div>
       {showGaps && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", maxHeight: 200, minWidth: 0 }}>
+        <div style={{ overflowY: "auto", overflowX: "hidden", maxHeight: 320, minWidth: 0 }}>
           <GapHeatmap />
         </div>
       )}
