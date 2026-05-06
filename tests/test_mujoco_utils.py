@@ -1,4 +1,6 @@
 import os
+import tempfile
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -31,6 +33,45 @@ def test_extract_model_geometry():
     assert "position" in geom
     assert "quaternion" in geom
     assert "color" in geom
+
+
+def test_mesh_geom_renders_as_aabb_box():
+    # Mesh geoms have no triangle-mesh path on the frontend yet, so the
+    # extractor should expose them as a box matching the mesh's AABB.
+    xml = textwrap.dedent("""
+    <mujoco>
+      <asset>
+        <mesh name="m1" vertex="0 0 0  1 0 0  0 2 0  0 0 3"/>
+      </asset>
+      <worldbody>
+        <body name="b1" pos="0 0 0">
+          <geom type="mesh" mesh="m1"/>
+        </body>
+      </worldbody>
+    </mujoco>
+    """)
+    with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False) as f:
+        f.write(xml)
+        path = f.name
+    try:
+        result = extract_model_geometry(path)
+    finally:
+        os.unlink(path)
+    geoms = [g for g in result["geoms"] if g["bodyName"] == "b1"]
+    assert len(geoms) == 1
+    g = geoms[0]
+    assert g["type"] == "box"
+    # Verts span x:[0,1], y:[0,2], z:[0,3]. MuJoCo's compiler recenters the
+    # mesh on its inertial frame, so the box's exact pose moves; what we
+    # verify is that each half-extent ends up in the right ballpark for the
+    # corresponding axis (the ordering of axes survives recentering).
+    sx, sy, sz = g["size"]
+    assert 0.3 < sx < 0.7  # ≈ 0.5
+    assert 0.7 < sy < 1.3  # ≈ 1.0
+    assert 1.3 < sz < 1.9  # ≈ 1.5
+    # Position should be finite, not NaN/inf.
+    for c in g["position"]:
+        assert c == c and abs(c) < 100  # finite
 
 
 def test_compute_body_transforms():

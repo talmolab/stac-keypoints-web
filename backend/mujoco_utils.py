@@ -34,15 +34,35 @@ def extract_model_geometry(xml_path: str) -> dict:
         geom_type = int(model.geom_type[g])
         if geom_type == mujoco.mjtGeom.mjGEOM_PLANE:
             continue
-        if int(model.geom_group[g]) >= 3:
-            continue
-        type_name = _GEOM_TYPE_NAMES.get(geom_type, "unknown")
         body_id = int(model.geom_bodyid[g])
         body_name = body_names_list[body_id] if body_id < len(body_names_list) else ""
-        size = [float(model.geom_size[g, i]) for i in range(3)]
-        pos = [float(model.geom_pos[g, i]) for i in range(3)]
-        quat = [float(model.geom_quat[g, i]) for i in range(4)]
         rgba = [float(model.geom_rgba[g, i]) for i in range(4)]
+        quat = [float(model.geom_quat[g, i]) for i in range(4)]
+        pos = [float(model.geom_pos[g, i]) for i in range(3)]
+
+        if geom_type == mujoco.mjtGeom.mjGEOM_MESH:
+            # The frontend has no triangle-mesh path (deferred to the WASM SPA
+            # migration in M6). Fall back to the mesh's axis-aligned bounding
+            # box so body locations are visible — enough fidelity to map
+            # keypoints. geom_aabb is [cx, cy, cz, hx, hy, hz] in geom-local
+            # frame, so the box's center sits at geom_pos + R(geom_quat) *
+            # aabb_center, oriented like the mesh.
+            aabb = model.geom_aabb[g]
+            center_local = np.array([aabb[0], aabb[1], aabb[2]], dtype=np.float64)
+            half = [float(aabb[3]), float(aabb[4]), float(aabb[5])]
+            rotated = np.empty(3, dtype=np.float64)
+            mujoco.mju_rotVecQuat(rotated, center_local, np.array(quat, dtype=np.float64))
+            box_pos = [float(pos[0] + rotated[0]),
+                       float(pos[1] + rotated[1]),
+                       float(pos[2] + rotated[2])]
+            geoms.append({
+                "type": "box", "bodyId": body_id, "bodyName": body_name,
+                "size": half, "position": box_pos, "quaternion": quat, "color": rgba,
+            })
+            continue
+
+        type_name = _GEOM_TYPE_NAMES.get(geom_type, "unknown")
+        size = [float(model.geom_size[g, i]) for i in range(3)]
         geoms.append({
             "type": type_name, "bodyId": body_id, "bodyName": body_name,
             "size": size, "position": pos, "quaternion": quat, "color": rgba,

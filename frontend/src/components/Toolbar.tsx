@@ -38,25 +38,44 @@ export default function Toolbar() {
   const ikStatus = useStore((s) => s.ikStatus);
   const setIkStatus = useStore((s) => s.setIkStatus);
 
-  const handleLoadXml = useCallback(async () => {
-    const file = await pickFile(".xml");
-    if (!file) return;
-    const data = await api.uploadXml(file);
+  const finishXmlLoad = useCallback(async (
+    data: any, fallbackPath: string, fallbackBasename: string,
+  ) => {
     if (data.error) { alert(data.error); return; }
-    // Backend stored the upload in a temp file; track that path so subsequent
-    // body-transform / align calls reuse the same model.
     setXmlData({
       geoms: data.geoms,
       bodyNames: data.bodyNames,
       nq: data.nq,
-      xmlPath: data.xmlPath ?? file.name,
-      xmlBasename: file.name,
+      xmlPath: data.xmlPath ?? fallbackPath,
+      xmlBasename: fallbackBasename,
     });
     const defaultQpos = new Array(data.nq).fill(0);
     defaultQpos[3] = 1.0;
     const transforms = await api.bodyTransforms(defaultQpos);
     setBodyTransforms(transforms);
   }, [setXmlData, setBodyTransforms]);
+
+  const handleLoadXml = useCallback(async () => {
+    const file = await pickFile(".xml");
+    if (!file) return;
+    // Backend stored the upload in a temp file; track that path so subsequent
+    // body-transform / align calls reuse the same model.
+    const data = await api.uploadXml(file);
+    await finishXmlLoad(data, file.name, file.name);
+  }, [finishXmlLoad]);
+
+  // Path-based load. Needed for models whose XML references external assets
+  // by relative path (most non-rat models pull in mesh OBJs from `assets/`),
+  // since file uploads land in /tmp where those relative paths don't resolve.
+  const handleLoadXmlPath = useCallback(async () => {
+    const last = localStorage.getItem("stac.lastXmlPath") || "";
+    const path = prompt("Absolute server-side path to MuJoCo XML:", last);
+    if (!path) return;
+    const data = await api.loadXml(path);
+    if (!data.error) localStorage.setItem("stac.lastXmlPath", path);
+    const basename = path.split("/").pop() || path;
+    await finishXmlLoad(data, path, basename);
+  }, [finishXmlLoad]);
 
   const handleLoadMat = useCallback(async () => {
     const file = await pickFile(".mat");
@@ -257,6 +276,7 @@ export default function Toolbar() {
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
+      <button style={btnStyle} onClick={handleLoadXmlPath} title="Load XML by absolute server-side path (needed for models with external mesh assets)">XML by path</button>
       <button style={btnStyle} onClick={handleLoadKeypoints}>Load KP</button>
       <button style={btnStyle} onClick={handleLoadMat}>Load .mat</button>
       <button style={btnStyle} onClick={handleLoadAcm}>Load ACM</button>
