@@ -3,6 +3,10 @@ import { useStore } from "../store";
 import * as api from "../api";
 import GapHeatmap from "./GapHeatmap";
 
+// Must match the LABEL_WIDTH constant in GapHeatmap so the slider, dot row,
+// and heatmap plot area all share the same horizontal coordinate range.
+const LABEL_WIDTH = 64;
+
 export default function Timeline() {
   const currentFrame = useStore((s) => s.currentFrame);
   const numFrames = useStore((s) => s.acmNumFrames);
@@ -101,16 +105,30 @@ export default function Timeline() {
     );
   }
 
+  // Status dots \u2014 one marker per labeled/validated frame, positioned by frame
+  // index so they line up with the slider and heatmap cursor. Up to ~100 dots
+  // shown so the row stays readable on long timelines.
   const step = Math.max(1, Math.floor(numFrames / 100));
   const dots = [];
   for (let i = 0; i < numFrames; i += step) {
     const status = frameStatuses[i] || "unlabeled";
-    const color = status === "validated" ? "#00cc44" : status === "labeled" ? "#ffaa00" : "#333";
+    if (status === "unlabeled") continue;
+    const color = status === "validated" ? "#00cc44" : "#ffaa00";
+    const left = numFrames > 1 ? (i / (numFrames - 1)) * 100 : 0;
     dots.push(
       <div
         key={i}
-        style={{ width: 6, height: 6, borderRadius: 3, background: color, cursor: "pointer" }}
         onClick={() => setCurrentFrame(i)}
+        style={{
+          position: "absolute",
+          left: `calc(${left}% - 3px)`,
+          top: 1,
+          width: 6,
+          height: 6,
+          borderRadius: 3,
+          background: color,
+          cursor: "pointer",
+        }}
       />
     );
   }
@@ -119,15 +137,29 @@ export default function Timeline() {
     presentCount !== null && acmNumKeypoints > 0 && presentCount < acmNumKeypoints;
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 4, minWidth: 0, padding: "6px 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        <button onClick={togglePlay} style={btnStyle}>{isPlaying ? "\u23f8" : "\u25b6"}</button>
-        <input
-          type="range" min={0} max={numFrames - 1} value={currentFrame}
-          onChange={(e) => setCurrentFrame(Number(e.target.value))}
-          style={{ flex: 1, minWidth: 60 }}
-        />
-        <span style={{ color: "#ccc", fontSize: 13, whiteSpace: "nowrap" }}>
+    <div
+      style={{
+        width: "100%",
+        display: "grid",
+        gridTemplateColumns: `${LABEL_WIDTH}px 1fr`,
+        rowGap: 4,
+        columnGap: 0,
+        minWidth: 0,
+        padding: "6px 0",
+        alignItems: "center",
+      }}
+    >
+      {/* Header row \u2014 metadata + action buttons, spans both columns. */}
+      <div
+        style={{
+          gridColumn: "1 / -1",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          minWidth: 0,
+        }}
+      >
+        <span style={{ color: "#ccc", fontSize: 13, whiteSpace: "nowrap", fontFamily: "monospace" }}>
           {currentFrame} / {numFrames - 1}
         </span>
         {presentCount !== null && (
@@ -143,17 +175,45 @@ export default function Timeline() {
             {presentCount}/{acmNumKeypoints} kp
           </span>
         )}
+        <span style={{ flex: 1 }} />
         <button onClick={labelCurrentFrame} style={btnStyle}>Label</button>
         <button onClick={handleSuggestFrames} style={btnStyle}>Suggest</button>
         <button onClick={() => setShowGaps((v) => !v)} style={btnStyle}>
           {showGaps ? "Hide gaps" : "Show gaps"}
         </button>
       </div>
-      <div style={{ display: "flex", gap: 1, alignItems: "center", overflow: "hidden", minWidth: 0, flexShrink: 0 }}>
+
+      {/* Scrubber row \u2014 play button in label col, slider in plot col. */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <button onClick={togglePlay} style={btnStyle}>{isPlaying ? "\u23f8" : "\u25b6"}</button>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={numFrames - 1}
+        value={currentFrame}
+        onChange={(e) => setCurrentFrame(Number(e.target.value))}
+        style={{ width: "100%", margin: 0, display: "block" }}
+      />
+
+      {/* Status dot row \u2014 empty label col, dots in plot col positioned by % */}
+      <div />
+      <div style={{ position: "relative", height: 8, minWidth: 0 }}>
         {dots}
       </div>
+
+      {/* Heatmap \u2014 spans both columns; it carries its own LABEL_WIDTH-wide
+          label column internally that lines up with col 1 here. */}
       {showGaps && (
-        <div style={{ overflowY: "auto", overflowX: "hidden", maxHeight: 320, minWidth: 0 }}>
+        <div
+          style={{
+            gridColumn: "1 / -1",
+            overflowY: "auto",
+            overflowX: "hidden",
+            maxHeight: 320,
+            minWidth: 0,
+          }}
+        >
           <GapHeatmap />
         </div>
       )}
