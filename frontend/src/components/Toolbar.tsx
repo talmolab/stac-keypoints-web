@@ -123,6 +123,7 @@ export default function Toolbar() {
   }, [setIkStatus]);
 
   const handleExport = useCallback(() => { runExport(); }, []);
+  const handleExportAs = useCallback(() => { runExport({ forcePicker: true }); }, []);
 
   const handleLoadStacOutput = useCallback(async () => {
     const file = await pickFile(".h5");
@@ -248,7 +249,8 @@ export default function Toolbar() {
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
       <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
-      <button style={btnStyle} onClick={handleExport}>Export</button>
+      <button style={btnStyle} onClick={handleExport} title="Cmd/Ctrl-S — re-saves to the file you picked first">Export</button>
+      <button style={btnStyle} onClick={handleExportAs} title="Cmd/Ctrl-Shift-S — choose a new location">Save As…</button>
       {ikStatus && (
         <span
           style={statusStyle}
