@@ -36,9 +36,27 @@ const BUNDLED: BundledSpecies[] = [
     hasDemoData: true,
   },
   {
-    name: "stick (bundled, no demo)",
+    name: "stick (bundled)",
     xmlPath: "data/stick/sungaya_inexpectata_box.xml",
     configPath: "data/stick/stac_config.json",
+    hasDemoData: false,
+  },
+  {
+    name: "worm (bundled, mesh→capsule)",
+    xmlPath: "data/worm/celegans.xml",
+    configPath: "data/worm/stac_config.json",
+    hasDemoData: false,
+  },
+  {
+    name: "mouse (bundled, mesh→capsule)",
+    xmlPath: "data/mouse/mouse_with_meshes.xml",
+    configPath: "data/mouse/stac_config.json",
+    hasDemoData: false,
+  },
+  {
+    name: "fly (bundled, mesh→capsule)",
+    xmlPath: "data/fly/fruitfly_force.xml",
+    configPath: "data/fly/stac_config.json",
     hasDemoData: false,
   },
 ];
