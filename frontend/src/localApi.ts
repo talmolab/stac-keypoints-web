@@ -11,6 +11,8 @@ import {
   computeBodyTransforms,
   jacobianIk,
 } from "./mujocoWasm";
+import { loadKeypointsFromBytes } from "./h5KeypointsLoader";
+import { dumpStacYaml, dumpStacUiSidecar } from "./yamlConfig";
 
 let cachedAcmData: any = null;
 let cachedConfig: any = null;
@@ -32,7 +34,27 @@ export async function loadAcmTrials(_maxTrials?: number, _decimate?: number) {
 }
 
 export async function loadMatFile(_path: string) {
+  // Standalone mode can't read paths from disk; the bundled rodent demo is
+  // the only data source without an upload. Toolbar uses uploadMatFile for
+  // user files.
   return loadAcmTrials();
+}
+
+/** Read an uploaded .h5 / .mat v7.3 file via h5wasm. */
+export async function uploadKeypoints(file: File, kpNames?: string[]) {
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return await loadKeypointsFromBytes(bytes, file.name, kpNames);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
+/** Same as uploadKeypoints — backend differentiates the two routes for legacy
+ * reasons (.mat used to go through scipy/Monsees pipeline) but in the browser
+ * h5wasm handles both cleanly when the .mat is v7.3. */
+export async function uploadMatFile(file: File) {
+  return uploadKeypoints(file);
 }
 
 export async function loadConfig(_path?: string) {
@@ -43,21 +65,15 @@ export async function loadConfig(_path?: string) {
   return cachedConfig;
 }
 
-export async function exportConfig(
-  config: Record<string, unknown>,
-  _outputPath: string,
-) {
-  // In standalone mode, download as a file
-  const blob = new Blob([JSON.stringify(config, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "stac_retarget_config.json";
-  a.click();
-  URL.revokeObjectURL(url);
-  return { path: "downloaded" };
+/** Match api.exportConfig: returns the YAML body as a string. The caller
+ * (Toolbar export handler) handles the download itself. */
+export async function exportConfig(config: Record<string, unknown>): Promise<string> {
+  return dumpStacYaml(config);
+}
+
+/** Match api.exportUiSidecar: returns the YAML body or null when empty. */
+export async function exportUiSidecar(config: Record<string, unknown>): Promise<string | null> {
+  return dumpStacUiSidecar(config);
 }
 
 export async function alignToMujoco(data: Record<string, unknown>) {

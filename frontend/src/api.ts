@@ -105,6 +105,7 @@ export async function loadMatFile(path: string) {
 }
 
 export async function uploadMatFile(file: File) {
+  if (!(await backendOk())) return local.uploadMatFile(file);
   const form = new FormData();
   form.append("file", file);
   const resp = await fetch(`${BASE}/api/load-matfile`, { method: "POST", body: form });
@@ -113,6 +114,7 @@ export async function uploadMatFile(file: File) {
 
 /** Load STAC-format keypoint tracks (.h5 or .mat). No monsees_retarget needed. */
 export async function uploadKeypoints(file: File, kpNames?: string[]) {
+  if (!(await backendOk())) return local.uploadKeypoints(file, kpNames);
   const form = new FormData();
   form.append("file", file);
   const query = kpNames && kpNames.length > 0
@@ -140,6 +142,7 @@ export async function uploadConfig(file: File) {
 
 /** Returns the YAML body as a string, or throws on error. */
 export async function exportConfig(config: Record<string, unknown>): Promise<string> {
+  if (!(await backendOk())) return local.exportConfig(config);
   const resp = await fetch(`${BASE}/api/export-config`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -158,6 +161,7 @@ export async function exportConfig(config: Record<string, unknown>): Promise<str
 
 /** UI-only sidecar (skeleton editor, ...). Returns null when there's nothing to save. */
 export async function exportUiSidecar(config: Record<string, unknown>): Promise<string | null> {
+  if (!(await backendOk())) return local.exportUiSidecar(config);
   const resp = await fetch(`${BASE}/api/export-ui-sidecar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
