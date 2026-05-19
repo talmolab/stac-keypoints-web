@@ -25,7 +25,7 @@ from backend.config_io import (
 )
 from backend.frame_selector import suggest_frames
 from backend.keypoints_io import load_keypoints
-from backend.stac_runner import run_quick_stac
+from backend.stac_runner import run_quick_stac, refit_offsets
 
 app = FastAPI(title="STAC Retarget UI")
 
@@ -346,6 +346,28 @@ async def suggest_frames_endpoint(data: dict):
         n_suggestions=data.get("nSuggestions", 8),
     )
     return {"frames": frames}
+
+
+@app.post("/api/refit-offsets")
+async def refit_offsets_endpoint(data: dict):
+    """Closed-form marker-offset solve over labeled frames (StacCore.m_opt)."""
+    try:
+        result = refit_offsets(
+            kp_positions_flat=data["positions"],
+            num_frames=data["numFrames"],
+            num_keypoints=data["numKeypoints"],
+            kp_names=data["keypointNames"],
+            xml_path=data["xmlPath"],
+            frame_indices=data["frameIndices"],
+            qposes_per_frame=data["qposesPerFrame"],
+            mappings=data["mappings"],
+            offsets=data.get("offsets"),
+            mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
+            max_iterations=data.get("maxIterations", 200),
+        )
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+    return result
 
 
 @app.post("/api/run-quick-stac")

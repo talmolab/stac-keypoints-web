@@ -153,6 +153,7 @@ interface AppState {
   addMapping: (kp: string, body: string) => void;
   removeMapping: (kp: string) => void;
   updateOffset: (kp: string, x: number, y: number, z: number) => void;
+  setOffsetsBulk: (offsets: Record<string, [number, number, number]>) => void;
   togglePlay: () => void;
   labelCurrentFrame: () => void;
   setBodyTransforms: (transforms: BodyTransform[]) => void;
@@ -318,6 +319,23 @@ export const useStore = create<AppState>()(persist((set) => ({
     const filtered = state.offsets.filter((o) => o.keypointName !== kp);
     return {
       offsets: [...filtered, { keypointName: kp, x, y, z }],
+      stacQpos: null,
+      stacFrameIndices: null,
+      stacBodyTransforms: null,
+    };
+  }),
+  setOffsetsBulk: (bulk) => set((state) => {
+    // Preserve any existing offsets for keypoints not present in `bulk`.
+    // Single set + single history snapshot — avoids the 30-render storm
+    // that mapping `updateOffset` over the dict would cause.
+    const carried = state.offsets.filter((o) => !(o.keypointName in bulk));
+    const incoming = Object.entries(bulk).map(([kp, [x, y, z]]) => ({
+      keypointName: kp, x, y, z,
+    }));
+    return {
+      offsets: [...carried, ...incoming],
+      _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
+      _redoStack: [],
       stacQpos: null,
       stacFrameIndices: null,
       stacBodyTransforms: null,

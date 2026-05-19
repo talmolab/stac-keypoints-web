@@ -65,6 +65,45 @@ describe("STAC cache invalidation", () => {
   });
 });
 
+describe("setOffsetsBulk (Refit Offsets)", () => {
+  beforeEach(reset);
+
+  it("replaces only the keys it's given; keeps unrelated offsets", () => {
+    useStore.getState().updateOffset("Snout", 0.01, 0, 0);
+    useStore.getState().updateOffset("SpineL", 0.02, 0, 0);
+
+    useStore.getState().setOffsetsBulk({
+      Snout: [0.05, 0.05, 0.05],
+      ElbowL: [0.1, 0, 0],
+    });
+
+    const offsets = useStore.getState().offsets;
+    const byKp = Object.fromEntries(offsets.map((o) => [o.keypointName, [o.x, o.y, o.z]]));
+    expect(byKp.Snout).toEqual([0.05, 0.05, 0.05]); // overwritten
+    expect(byKp.SpineL).toEqual([0.02, 0, 0]);      // preserved
+    expect(byKp.ElbowL).toEqual([0.1, 0, 0]);       // new
+  });
+
+  it("clears cached STAC results (same invalidation as updateOffset)", () => {
+    useStore.getState().setStacResults([[0]], [0], [[]]);
+    expect(useStore.getState().stacBodyTransforms).not.toBeNull();
+
+    useStore.getState().setOffsetsBulk({ Snout: [0.01, 0, 0] });
+
+    expect(useStore.getState().stacBodyTransforms).toBeNull();
+  });
+
+  it("pushes a single history snapshot (one undo step, not N)", () => {
+    const before = useStore.getState()._undoStack.length;
+    useStore.getState().setOffsetsBulk({
+      Snout: [0.01, 0, 0],
+      SpineF: [0.02, 0, 0],
+      SpineM: [0.03, 0, 0],
+    });
+    expect(useStore.getState()._undoStack.length).toBe(before + 1);
+  });
+});
+
 describe("liveQpos warm-start lifecycle", () => {
   beforeEach(reset);
 

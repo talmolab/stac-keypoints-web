@@ -251,3 +251,19 @@ export async function runQuickStac(data: Record<string, unknown>) {
   });
   return resp.json();
 }
+
+export async function refitOffsets(data: Record<string, unknown>) {
+  // Backend-only feature — m_opt is closed-form but still wants the cached
+  // mjx.Model. Standalone WASM mode has no equivalent (would need a JS
+  // closed-form fit + FK chain); for now we return an explicit error so
+  // the caller can surface "needs backend" rather than silently do nothing.
+  if (!(await backendOk())) {
+    return { error: "Refit Offsets needs the backend (closed-form solver runs server-side)." };
+  }
+  const resp = await fetch(`${BASE}/api/refit-offsets`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return resp.json();
+}

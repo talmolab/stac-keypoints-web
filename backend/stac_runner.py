@@ -297,3 +297,131 @@ def run_quick_stac(
         "bodyTransforms": all_body_transforms,
         "modelCenter": model_center,
     }
+
+
+def refit_offsets(
+    kp_positions_flat: list[float],
+    num_frames: int,
+    num_keypoints: int,
+    kp_names: list[str],
+    xml_path: str,
+    frame_indices: list[int],
+    qposes_per_frame: list[list[float]],
+    mappings: dict[str, str],
+    offsets: dict[str, list[float]] | None = None,
+    mocap_scale_factor: float = 0.01,
+    max_iterations: int = 200,
+) -> dict:
+    """Closed-form marker-offset solve over the given (labeled) frames.
+
+    Calls ``StacCore.m_opt`` which exactly solves
+        min_m  sum_t || y_t - (p_t + R_t m) ||^2
+    per keypoint (no SGD iterations, no JIT recompile beyond the first).
+    Requires that the caller has already solved IK on these frames and is
+    passing the corresponding qposes — m_opt fits offsets given fixed pose.
+
+    Cache key matches ``run_quick_stac`` (xml_path, mappings, max_iter), so
+    the same compiled mjx.Model is reused.
+    """
+    if not mappings:
+        return {"offsets": {}, "error": 0.0, "frameIndicesUsed": []}
+    if len(qposes_per_frame) != len(frame_indices):
+        raise ValueError(
+            f"qposes_per_frame ({len(qposes_per_frame)}) must align with "
+            f"frame_indices ({len(frame_indices)})"
+        )
+
+    _lazy_imports()
+
+    if any(v is None for v in kp_positions_flat):
+        flat = np.array(
+            [np.nan if v is None else v for v in kp_positions_flat], dtype=float
+        )
+    else:
+        flat = np.asarray(kp_positions_flat, dtype=float)
+    positions = flat.reshape(num_frames, num_keypoints, 3)
+
+    ctx = _get(xml_path, mappings, offsets or {}, max_iterations)
+    mjx_model = ctx["mjx_model_base"]
+    mjx_data = ctx["mjx_data"]
+    core = ctx["core"]
+    site_idxs = ctx["site_idxs"]
+    kp_order: list[str] = ctx["kp_order"]
+    nq = ctx["nq"]
+
+    if offsets:
+        site_pos_np = np.array(
+            [offsets.get(kp, [0.0, 0.0, 0.0]) for kp in kp_order], dtype=np.float32
+        )
+        mjx_model = _stac_utils.set_site_pos(
+            mjx_model, _jp.asarray(site_pos_np), site_idxs
+        )
+
+    kp_idx = {name: i for i, name in enumerate(kp_names)}
+    missing = [kp for kp in kp_order if kp not in kp_idx]
+    if missing:
+        raise ValueError(f"Mapped keypoints not present in kp_names: {missing}")
+    remap = np.array([kp_idx[kp] for kp in kp_order], dtype=np.int32)
+    n_kp = len(kp_order)
+
+    # Build the (T, n_kp_xyz) target array. m_opt has no per-keypoint NaN
+    # mask, so any frame with a missing mapped keypoint must be skipped
+    # rather than poison the closed-form solve.
+    valid_idx: list[int] = []
+    targets_rows: list[np.ndarray] = []
+    qpose_rows: list[np.ndarray] = []
+    for i, frame_idx in enumerate(frame_indices):
+        if frame_idx >= num_frames or frame_idx < 0:
+            continue
+        targets_mapped = positions[frame_idx][remap] * mocap_scale_factor
+        if np.isnan(targets_mapped).any():
+            continue
+        q_arr = np.asarray(qposes_per_frame[i], dtype=np.float32)
+        if q_arr.shape[0] != nq:
+            raise ValueError(
+                f"Frame {frame_idx}: qpos length {q_arr.shape[0]} != model nq {nq}"
+            )
+        valid_idx.append(frame_idx)
+        targets_rows.append(targets_mapped.flatten())
+        qpose_rows.append(q_arr)
+
+    if len(valid_idx) == 0:
+        return {"offsets": {}, "error": 0.0, "frameIndicesUsed": []}
+
+    keypoints = _jp.asarray(np.stack(targets_rows).astype(np.float32))
+    q_traj = _jp.asarray(np.stack(qpose_rows).astype(np.float32))
+
+    initial_off_np = np.array(
+        [offsets.get(kp, [0.0, 0.0, 0.0]) if offsets else [0.0, 0.0, 0.0] for kp in kp_order],
+        dtype=np.float32,
+    )
+    initial_off = _jp.asarray(initial_off_np)
+    # No per-coord regularization — user is explicitly asking to recompute
+    # offsets; we don't want to anchor them to their prior values. The
+    # reg_coef multiplier zeros the regularization term entirely.
+    is_regularized = _jp.zeros((n_kp, 3), dtype=_jp.float32)
+
+    result = core.m_opt(
+        mjx_model,
+        mjx_data,
+        keypoints,
+        q_traj,
+        initial_off,
+        is_regularized,
+        reg_coef=0.0,
+        site_idxs=site_idxs,
+    )
+
+    new_offsets_np = np.array(result.params)
+    new_offsets = {
+        kp: [float(v) for v in new_offsets_np[i]] for i, kp in enumerate(kp_order)
+    }
+    # Mean per-keypoint error in meters at the solved offsets.
+    n_xyz = n_kp * 3
+    mean_err = float(np.sqrt(np.array(result.error) / (len(valid_idx) * n_xyz)))
+
+    return {
+        "offsets": new_offsets,
+        "error": mean_err,
+        "frameIndicesUsed": valid_idx,
+    }

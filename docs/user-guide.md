@@ -103,9 +103,14 @@ If the backend is running:
 - **IK Frame** — solves IK at the current frame only (fast, ~0.1s).
 - **IK Sequence** — solves over the full clip; scrub to inspect.
 - **Run IK** — adds bookkeeping around IK Sequence and reports timing.
+- **Refit Offsets** — closed-form marker-offset solve (stac-mjx
+  `StacCore.m_opt`) over the frames you've labeled. Workflow: label a few
+  representative frames on the timeline, hit **Run IK** so each labeled
+  frame has a solved pose, then **Refit Offsets** to recompute the offsets
+  in one shot. Auto-IK re-solves the current frame with the new offsets.
 
-If you're in standalone mode, IK preview is not available — researchers
-typically run STAC on the GPU box once the YAML is exported.
+If you're in standalone mode, IK preview is available but Refit Offsets
+needs the backend — the closed-form solver runs server-side via stac-mjx.
 
 ## Saving
 

@@ -18,7 +18,7 @@ import pytest
 
 jax = pytest.importorskip("jax")
 pytest.importorskip("stac_mjx")
-from backend.stac_runner import run_quick_stac, clear_cache, _CACHE  # noqa: E402
+from backend.stac_runner import run_quick_stac, refit_offsets, clear_cache, _CACHE  # noqa: E402
 
 XML_PATH = os.environ.get(
     "STAC_KEYPOINTS_XML",
@@ -129,6 +129,96 @@ def test_offset_change_does_not_recompile():
     id_after = id(_CACHE["entry"]["payload"])
 
     assert id_after == id_before
+
+
+def test_refit_offsets_returns_one_offset_per_mapping():
+    """m_opt over a couple of labeled frames must return finite offsets,
+    one per mapped keypoint, keyed by kp name."""
+    positions = _flat_positions(n_frames=3)
+    # First run IK to get qposes for the "labeled" frames.
+    ik = _run(positions, 3, [0, 2], max_iter=10)
+
+    result = refit_offsets(
+        kp_positions_flat=positions,
+        num_frames=3,
+        num_keypoints=len(KP_NAMES),
+        kp_names=KP_NAMES,
+        xml_path=XML_PATH,
+        frame_indices=[0, 2],
+        qposes_per_frame=ik["qpos"],
+        mappings=KP_MAP,
+        max_iterations=5,
+    )
+    assert set(result["offsets"].keys()) == set(KP_NAMES)
+    for off in result["offsets"].values():
+        assert len(off) == 3
+        assert all(math.isfinite(v) for v in off)
+    assert math.isfinite(result["error"])
+    assert result["frameIndicesUsed"] == [0, 2]
+
+
+def test_refit_offsets_skips_nan_frames():
+    """A labeled frame with any NaN mapped keypoint can't go into m_opt
+    (no per-row mask in the closed-form solve). It must be dropped from
+    frameIndicesUsed without crashing."""
+    positions_arr = np.array(_flat_positions(n_frames=2)).reshape(2, len(KP_NAMES), 3)
+    # Wipe Snout in frame 1
+    positions_arr[1, 0] = np.nan
+    positions_flat = [
+        None if (isinstance(v, float) and math.isnan(v)) else float(v)
+        for v in positions_arr.flatten()
+    ]
+    ik = _run(positions_flat, 2, [0, 1], max_iter=5)
+
+    result = refit_offsets(
+        kp_positions_flat=positions_flat,
+        num_frames=2,
+        num_keypoints=len(KP_NAMES),
+        kp_names=KP_NAMES,
+        xml_path=XML_PATH,
+        frame_indices=[0, 1],
+        qposes_per_frame=ik["qpos"],
+        mappings=KP_MAP,
+        max_iterations=5,
+    )
+    assert result["frameIndicesUsed"] == [0]
+
+
+def test_refit_offsets_rejects_misaligned_qposes():
+    """qposes_per_frame length must equal frame_indices length."""
+    positions = _flat_positions(n_frames=2)
+    with pytest.raises(ValueError, match="align with"):
+        refit_offsets(
+            kp_positions_flat=positions,
+            num_frames=2,
+            num_keypoints=len(KP_NAMES),
+            kp_names=KP_NAMES,
+            xml_path=XML_PATH,
+            frame_indices=[0, 1],
+            qposes_per_frame=[[0.0] * 7],  # too few
+            mappings=KP_MAP,
+        )
+
+
+def test_refit_offsets_shares_cache_with_run_quick_stac():
+    """A refit call right after run_quick_stac with the same (xml, mappings,
+    max_iter) must hit the same cached payload — no recompile."""
+    positions = _flat_positions(n_frames=2)
+    ik = _run(positions, 2, [0, 1], max_iter=5)
+    id_before = id(_CACHE["entry"]["payload"])
+
+    refit_offsets(
+        kp_positions_flat=positions,
+        num_frames=2,
+        num_keypoints=len(KP_NAMES),
+        kp_names=KP_NAMES,
+        xml_path=XML_PATH,
+        frame_indices=[0, 1],
+        qposes_per_frame=ik["qpos"],
+        mappings=KP_MAP,
+        max_iterations=5,
+    )
+    assert id(_CACHE["entry"]["payload"]) == id_before
 
 
 def test_mapping_change_rebuilds_cache():
