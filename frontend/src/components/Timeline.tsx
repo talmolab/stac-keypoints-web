@@ -21,6 +21,7 @@ export default function Timeline() {
   const stacBodyTransforms = useStore((s) => s.stacBodyTransforms);
   const stacQpos = useStore((s) => s.stacQpos);
   const setBodyTransforms = useStore((s) => s.setBodyTransforms);
+  const rawTemplate = useStore((s) => s.rawTemplate);
   const [showGaps, setShowGaps] = useState(true);
 
   // Count of keypoints present (non-NaN) in the current frame.
@@ -96,6 +97,35 @@ export default function Timeline() {
       alert("Suggested " + result.frames.length + " diverse frames");
     }
   };
+
+  // Faint vertical ticks at every STAC clip boundary, so the clip cadence is
+  // visible while scrubbing (handy for spotting clip-edge artifacts). Mirrors
+  // the heatmap ticks; same colour for visual continuity.
+  const clipTicks = useMemo(() => {
+    const stac = rawTemplate?.stac as Record<string, unknown> | undefined;
+    const raw = stac?.n_frames_per_clip;
+    const clipSize = typeof raw === "number" && raw > 0 ? raw : 100;
+    if (numFrames < 2 || clipSize >= numFrames) return null;
+    const out: React.ReactElement[] = [];
+    for (let f = clipSize; f < numFrames; f += clipSize) {
+      const left = (f / (numFrames - 1)) * 100;
+      out.push(
+        <div
+          key={f}
+          style={{
+            position: "absolute",
+            left: `${left}%`,
+            top: 0,
+            bottom: 0,
+            width: 1,
+            background: "rgba(255,255,255,0.10)",
+            pointerEvents: "none",
+          }}
+        />,
+      );
+    }
+    return out;
+  }, [rawTemplate, numFrames]);
 
   // Status dots \u2014 one marker per labeled/validated frame, positioned by frame
   // index so they line up with the slider and heatmap cursor. Up to ~100 dots
@@ -203,6 +233,7 @@ export default function Timeline() {
       {/* Status dot row \u2014 empty label col, dots in plot col positioned by % */}
       <div />
       <div style={{ position: "relative", height: 8, minWidth: 0 }}>
+        {clipTicks}
         {dots}
       </div>
 

@@ -91,6 +91,9 @@ preview (when backend is running) shows the effect on the solved pose.
   (head, forelimbs, hindlimbs, back, body).
 - **Gap heatmap** (timeline) — confidence-tinted, hover for per-keypoint
   details at the cursor frame.
+- **Clip boundary ticks** — faint vertical marks on the timeline at every
+  `n_frames_per_clip` (read from your YAML config, default 100). Handy for
+  spotting clip-edge artifacts when scrubbing long sessions.
 - **Error distribution** histogram — overall fit quality at the current frame.
 
 ## Validating the fit
