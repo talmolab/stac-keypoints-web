@@ -67,8 +67,16 @@ export async function runIk(
     return false;
   }
 
-  // Store results
-  state.setStacResults(result.qpos, result.frameIndices, result.bodyTransforms);
+  // Only multi-frame runs populate the per-frame scrubbing cache.
+  //
+  // A single-frame result there poisons Timeline's `stacBodyTransforms`-driven
+  // scrub effect — its nearest-frame fallback pins the model to that one
+  // frame, so auto-IK firing on scrub would freeze the bug at whatever frame
+  // it just solved. Single-frame calls still update `bodyTransforms` and
+  // `liveQpos` below, which is all auto-IK / IK Frame actually need.
+  if (frameIndices.length > 1) {
+    state.setStacResults(result.qpos, result.frameIndices, result.bodyTransforms);
+  }
 
   // Update warm-start cache from the frame matching state.currentFrame,
   // falling back to the last frame in the batch.
