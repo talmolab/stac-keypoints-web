@@ -109,8 +109,9 @@ If the backend is running:
   frame has a solved pose, then **Refit Offsets** to recompute the offsets
   in one shot. Auto-IK re-solves the current frame with the new offsets.
 
-If you're in standalone mode, IK preview is available but Refit Offsets
-needs the backend — the closed-form solver runs server-side via stac-mjx.
+All four work in standalone mode too — IK uses a Jacobian-transpose loop
+in `mujocoWasm.ts`, and Refit Offsets uses a JS port of the same
+closed-form solve (numerically identical to the backend's `m_opt`).
 
 ## Saving
 

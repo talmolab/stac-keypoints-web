@@ -11,6 +11,7 @@ import {
   extractGeometry,
   computeBodyTransforms,
   jacobianIk,
+  mOptOffsets,
 } from "./mujocoWasm";
 import { loadKeypointsFromBytes } from "./h5KeypointsLoader";
 import { dumpStacYaml, dumpStacUiSidecar } from "./yamlConfig";
@@ -554,6 +555,69 @@ export async function runQuickStac(data: Record<string, unknown>) {
     errors: allErrors,
     frameIndices: frameIndices.slice(0, allQpos.length),
     bodyTransforms: allTransforms,
+  };
+}
+
+export async function refitOffsets(data: Record<string, unknown>) {
+  const positions = data.positions as number[];
+  const numFrames = data.numFrames as number;
+  const numKp = data.numKeypoints as number;
+  const kpNames = data.keypointNames as string[];
+  const frameIndices = data.frameIndices as number[];
+  const qposesPerFrame = data.qposesPerFrame as number[][];
+  const pairs = data.mappings as Record<string, string>;
+  const mocapScale = (data.mocapScaleFactor as number) || 0.01;
+
+  if (frameIndices.length !== qposesPerFrame.length) {
+    return { error: `frameIndices (${frameIndices.length}) must align with qposesPerFrame (${qposesPerFrame.length})` };
+  }
+  if (!pairs || Object.keys(pairs).length === 0) {
+    return { offsets: {}, error: 0, frameIndicesUsed: [] };
+  }
+
+  const kpOrder = Object.keys(pairs);
+  const kpIdx: Record<string, number> = {};
+  kpNames.forEach((n, i) => { kpIdx[n] = i; });
+  for (const kp of kpOrder) {
+    if (kpIdx[kp] === undefined) {
+      return { error: `Mapped keypoint not present in kp_names: ${kp}` };
+    }
+  }
+
+  // Skip frames where any mapped keypoint is NaN — same policy as the
+  // backend's closed-form solve. Build aligned (qpos, targets) pairs.
+  const validIdx: number[] = [];
+  const validQ: number[][] = [];
+  const validTargets: number[][][] = [];
+  for (let t = 0; t < frameIndices.length; t++) {
+    const f = frameIndices[t];
+    if (f < 0 || f >= numFrames) continue;
+    const frameTargets: number[][] = [];
+    let anyNan = false;
+    for (const kp of kpOrder) {
+      const k = kpIdx[kp];
+      const i = (f * numKp + k) * 3;
+      const x = positions[i] * mocapScale;
+      const y = positions[i + 1] * mocapScale;
+      const z = positions[i + 2] * mocapScale;
+      if (x !== x || y !== y || z !== z) { anyNan = true; break; }
+      frameTargets.push([x, y, z]);
+    }
+    if (anyNan) continue;
+    validIdx.push(f);
+    validQ.push(qposesPerFrame[t]);
+    validTargets.push(frameTargets);
+  }
+
+  if (validIdx.length === 0) {
+    return { offsets: {}, error: 0, frameIndicesUsed: [] };
+  }
+
+  const result = mOptOffsets(validQ, validTargets, pairs);
+  return {
+    offsets: result.offsets,
+    error: result.error,
+    frameIndicesUsed: validIdx,
   };
 }
 

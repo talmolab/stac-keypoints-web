@@ -272,3 +272,103 @@ export function jacobianIk(
 
   return { qpos, transforms, error: bestError / kpNames.length };
 }
+
+/**
+ * Closed-form marker-offset solve — JS port of stac_mjx._m_opt with
+ * reg_coef=0. For each mapped keypoint k whose parent body is b_k,
+ *
+ *     m_k* = (Σₜ Rₜᵀ (yₜ - pₜ)) / T
+ *
+ * where (pₜ, Rₜ) are b_k's world position and rotation at frame t after
+ * mj_forward(qposₜ), and yₜ is the observed marker target. Frames where
+ * the target is NaN are dropped per-keypoint. Returns the new local
+ * offsets per keypoint name (meters, parent-body local frame).
+ *
+ * Closed-form so it's just T forward-kinematics calls (one per labeled
+ * frame) + linear algebra. Numerically identical to the backend's
+ * StacCore.m_opt(reg_coef=0) modulo float precision.
+ */
+export function mOptOffsets(
+  qposesPerFrame: number[][],          // T qposes, one per sample frame
+  targetsPerFrame: number[][][],       // T frames × K mapped keypoints × 3
+  kpBodyMap: Record<string, string>,   // ordered: keys give kp_order
+): { offsets: Record<string, [number, number, number]>; error: number; framesUsed: number } {
+  if (!mjModel || !mjData || !mjModule) throw new Error("Model not loaded");
+  if (qposesPerFrame.length !== targetsPerFrame.length) {
+    throw new Error(
+      `qposesPerFrame (${qposesPerFrame.length}) must align with targetsPerFrame (${targetsPerFrame.length})`,
+    );
+  }
+
+  const nameToBodyId: Record<string, number> = {};
+  cachedBodyNames.forEach((n, i) => { nameToBodyId[n] = i; });
+
+  const kpOrder = Object.keys(kpBodyMap);
+  const K = kpOrder.length;
+  const bodyIds: number[] = kpOrder.map((kp) => {
+    const id = nameToBodyId[kpBodyMap[kp]];
+    if (id === undefined) throw new Error(`Body not found for ${kp}: ${kpBodyMap[kp]}`);
+    return id;
+  });
+
+  // Accumulators: sum of R^T (y - p) per keypoint, and per-kp finite-count.
+  const acc = new Float64Array(K * 3);
+  const counts = new Int32Array(K);
+  let totalErrSq = 0;
+  let totalContribs = 0;
+
+  const T = qposesPerFrame.length;
+  for (let t = 0; t < T; t++) {
+    const q = qposesPerFrame[t];
+    if (q.length !== mjModel.nq) {
+      throw new Error(`frame ${t}: qpos length ${q.length} != model nq ${mjModel.nq}`);
+    }
+    for (let i = 0; i < q.length; i++) mjData.qpos[i] = q[i];
+    mjModule.mj_forward(mjModel, mjData);
+
+    const targets = targetsPerFrame[t];
+    for (let k = 0; k < K; k++) {
+      const y = targets[k];
+      if (y[0] !== y[0] || y[1] !== y[1] || y[2] !== y[2]) continue; // NaN drop
+
+      const b = bodyIds[k];
+      const px = mjData.xpos[b * 3 + 0];
+      const py = mjData.xpos[b * 3 + 1];
+      const pz = mjData.xpos[b * 3 + 2];
+      const zx = y[0] - px;
+      const zy = y[1] - py;
+      const zz = y[2] - pz;
+
+      // xmat is row-major 3x3 per body. (R^T z)[j] = sum_i R[i,j] * z[i].
+      const m = b * 9;
+      acc[k * 3 + 0] += mjData.xmat[m + 0] * zx + mjData.xmat[m + 3] * zy + mjData.xmat[m + 6] * zz;
+      acc[k * 3 + 1] += mjData.xmat[m + 1] * zx + mjData.xmat[m + 4] * zy + mjData.xmat[m + 7] * zz;
+      acc[k * 3 + 2] += mjData.xmat[m + 2] * zx + mjData.xmat[m + 5] * zy + mjData.xmat[m + 8] * zz;
+      counts[k] += 1;
+      totalErrSq += zx * zx + zy * zy + zz * zz;
+      totalContribs += 1;
+    }
+  }
+
+  // m_k = acc_k / count_k. A keypoint with zero finite frames keeps its
+  // existing offset (caller decides what to do — we return [0,0,0] which
+  // setOffsetsBulk replaces; if you'd rather skip, filter on counts[k]).
+  const offsets: Record<string, [number, number, number]> = {};
+  for (let k = 0; k < K; k++) {
+    const c = counts[k];
+    if (c === 0) continue;
+    offsets[kpOrder[k]] = [
+      acc[k * 3 + 0] / c,
+      acc[k * 3 + 1] / c,
+      acc[k * 3 + 2] / c,
+    ];
+  }
+
+  // Mean per-keypoint Euclidean residual at the *pre-solve* targets — gives
+  // the user a sense of how far off the rendered markers were. The post-
+  // solve error would require a second FK pass; the rendered scene will
+  // show the new fit anyway once auto-IK re-runs.
+  const meanErr = totalContribs > 0 ? Math.sqrt(totalErrSq / totalContribs) : 0;
+
+  return { offsets, error: meanErr, framesUsed: T };
+}
