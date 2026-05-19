@@ -38,7 +38,7 @@ export default function App() {
         console.log("[AutoLoad] Backend unreachable — running in standalone mode (in-browser MuJoCo).");
         setBanner({
           kind: "warn",
-          text: "Standalone mode (in-browser MuJoCo). Species presets, file uploads, IK preview, Refit Offsets, and YAML export all work. Only loading a STAC H5 from a server path needs the backend.",
+          text: "Standalone mode (in-browser MuJoCo). Loading a STAC H5 from a server path needs the backend.",
         });
       }
 
