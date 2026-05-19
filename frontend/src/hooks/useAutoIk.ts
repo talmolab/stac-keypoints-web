@@ -59,7 +59,7 @@ export function useAutoIk() {
         const state = useStore.getState();
         state.setIkStatus("Auto IK...");
         // 25 iterations for live feedback (~0.2s per frame)
-        await runIk([state.currentFrame], 25);
+        await runIk([state.currentFrame], 25, { warmStart: true });
       } finally {
         runningRef.current = false;
         // If new edits arrived while we were running, fire one more pass

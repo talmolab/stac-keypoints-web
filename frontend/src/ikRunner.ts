@@ -4,6 +4,23 @@
 import { useStore } from "./store";
 import * as api from "./api";
 
+export interface RunIkOpts {
+  /**
+   * Seed the solver with the previously rendered pose (`state.liveQpos`)
+   * instead of cold-starting. Only meaningful for single-frame calls —
+   * a multi-frame batch chains prev_qpos internally and seeding frame 0
+   * with a pose solved for a different frame would just slow it down.
+   *
+   * Use cases:
+   *   - Auto-IK (live preview on edits): true. Converges in 1-5 iters
+   *     because adjacent edits leave the pose almost unchanged.
+   *   - Manual Run IK / IK Frame / IK Sequence: false. The user explicitly
+   *     asked for a fresh solve; warm-starting from an already-converged
+   *     pose would just re-emit the same answer and feel inert.
+   */
+  warmStart?: boolean;
+}
+
 /**
  * Run IK on the given frame indices and apply results to the store.
  * Returns true on success.
@@ -11,6 +28,7 @@ import * as api from "./api";
 export async function runIk(
   frameIndices: number[],
   maxIterations = 100,
+  opts: RunIkOpts = {},
 ): Promise<boolean> {
   const state = useStore.getState();
   if (!state.acmPositions || !state.xmlPath) return false;
@@ -24,13 +42,8 @@ export async function runIk(
 
   const positions = state.adjustedPositions ?? state.alignedPositions ?? state.acmPositions;
 
-  // Warm-start single-frame solves from the previous solution so the IK
-  // converges in a handful of iterations instead of restarting from default
-  // pose + Procrustes every time. Only safe for single-frame calls — a
-  // multi-frame "Run IK" already chains prev_qpos internally and we don't
-  // want to seed frame 0 with a pose solved for a different frame.
   const initialQpos =
-    frameIndices.length === 1 && state.liveQpos && state.liveQpos.length === state.nq
+    opts.warmStart && frameIndices.length === 1 && state.liveQpos && state.liveQpos.length === state.nq
       ? state.liveQpos
       : undefined;
 
