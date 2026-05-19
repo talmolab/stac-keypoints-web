@@ -95,6 +95,10 @@ interface AppState {
   // Model opacity (0-1)
   modelOpacity: number;
 
+  // Marker size multiplier (UI sphere radii are bbox-derived; this is a
+  // user-facing tweak on top). 1.0 = derived default; range 0.1–5.0.
+  markerSize: number;
+
   // Global controls visibility
   showGlobalControls: boolean;
 
@@ -162,6 +166,7 @@ interface AppState {
   setModelScale: (scale: number) => void;
   setMocapScaleFactor: (scale: number) => void;
   setModelOpacity: (opacity: number) => void;
+  setMarkerSize: (size: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setShowErrorLines: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
@@ -220,6 +225,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
   modelOpacity: 0.5,
+  markerSize: 1.0,
   showGlobalControls: false,
   showErrorLines: false,
   colorByError: false,
@@ -355,6 +361,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   setModelScale: (scale) => set({ modelScale: scale }),
   setMocapScaleFactor: (scale) => set({ mocapScaleFactor: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
+  setMarkerSize: (size) => set({ markerSize: size }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
   setShowErrorLines: (show) => set({ showErrorLines: show }),
   setShowOffsetMarkers: (show) => set({ showOffsetMarkers: show }),
@@ -405,6 +412,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     modelPosition: state.modelPosition,
     modelScale: state.modelScale,
     modelOpacity: state.modelOpacity,
+    markerSize: state.markerSize,
     // Preferences
     showGlobalControls: state.showGlobalControls,
     showErrorLines: state.showErrorLines,

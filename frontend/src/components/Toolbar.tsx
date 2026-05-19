@@ -103,13 +103,21 @@ export default function Toolbar() {
   // Path-based load. Needed for models whose XML references external assets
   // by relative path (most non-rat models pull in mesh OBJs from `assets/`),
   // since file uploads land in /tmp where those relative paths don't resolve.
-  const loadByPath = useCallback(async (path: string) => {
+  // If `configPath` is supplied (bundled species), the per-species config
+  // (mappings, offsets, mocapScaleFactor) is loaded right after the XML so
+  // switching species replaces stale mappings instead of stacking them on
+  // top of whatever the previous species left in the store.
+  const loadByPath = useCallback(async (path: string, configPath?: string) => {
     if (!path) return;
     const data = await api.loadXml(path);
     if (!data.error) localStorage.setItem("stac.lastXmlPath", path);
     const basename = path.split("/").pop() || path;
     await finishXmlLoad(data, path, basename);
-  }, [finishXmlLoad]);
+    if (configPath) {
+      const cfg = await api.loadConfig(configPath);
+      if (!cfg.error) loadConfigAction(cfg);
+    }
+  }, [finishXmlLoad, loadConfigAction]);
 
   // Discovered XMLs from the backend's configured search roots — populates
   // the "Load preset" dropdown so users don't have to type absolute paths.
@@ -128,8 +136,9 @@ export default function Toolbar() {
       if (path) await loadByPath(path);
       return;
     }
-    await loadByPath(value);
-  }, [loadByPath]);
+    const preset = xmlPresets.find((p) => p.path === value);
+    await loadByPath(value, preset?.configPath);
+  }, [loadByPath, xmlPresets]);
 
   const handleLoadMat = useCallback(async () => {
     const file = await pickFile(".mat");

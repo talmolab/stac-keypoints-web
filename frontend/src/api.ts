@@ -73,6 +73,10 @@ export interface XmlPreset {
   name: string;
   path: string;
   root: string;
+  /** Per-species stac_config.json sibling, when one is bundled. Picked up
+   *  by the preset dropdown handler so switching species also restores
+   *  that species' mappings + `mocapScaleFactor`. */
+  configPath?: string;
 }
 
 export async function listXmls(): Promise<XmlPreset[]> {
@@ -81,6 +85,7 @@ export async function listXmls(): Promise<XmlPreset[]> {
       name: s.name,
       path: s.xmlPath,
       root: "bundled",
+      configPath: s.configPath,
     }));
   }
   const resp = await fetch(`${BASE}/api/list-xmls`);

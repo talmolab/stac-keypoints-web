@@ -2,11 +2,13 @@ import React, { useMemo, useCallback } from "react";
 import * as THREE from "three";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
+import { markerRadius } from "../sceneScale";
 
-// Shared geometries — created once, reused across renders
-const _passiveSphere = new THREE.SphereGeometry(0.0025, 10, 6);
-const _offsetSphere = new THREE.SphereGeometry(0.004, 12, 8);
-const _offsetSphereSelected = new THREE.SphereGeometry(0.005, 12, 8);
+// Unit-radius shared geometries — meshes scale to bbox-derived size below.
+// Two LOD levels (passive uses fewer triangles since it's smaller / hidden
+// in non-offset modes).
+const _unitSphereLow = new THREE.SphereGeometry(1, 10, 6);
+const _unitSphereHigh = new THREE.SphereGeometry(1, 12, 8);
 
 // Shared material cache (by color string)
 const _materialCache = new Map<string, THREE.MeshBasicMaterial>();
@@ -31,6 +33,16 @@ export default function OffsetMarkers() {
   const setHover = useStore((s) => s.setHover);
 
   const isOffsetMode = mode === "offset";
+  const markerSizeMult = useStore((s) => s.markerSize);
+  // Bbox-derived base radius. Passive uses ~85% of the keypoint marker size,
+  // active offset markers ~125% so they stand out for dragging.
+  const baseRadius = useMemo(
+    () => markerRadius(bodyTransforms, markerSizeMult),
+    [bodyTransforms, markerSizeMult],
+  );
+  const passiveR = baseRadius * 0.85;
+  const offsetR = baseRadius * 1.25;
+  const offsetRSel = baseRadius * 1.55;
 
   const markers = useMemo(() => {
     if (!isOffsetMode && !showOffsetMarkers) return [];
@@ -66,18 +78,22 @@ export default function OffsetMarkers() {
   if (isOffsetMode) {
     return (
       <group renderOrder={10}>
-        {markers.map((m) => (
-          <mesh
-            key={m.keypointName}
-            position={m.position}
-            onClick={(e) => handleClick(e, m.keypointName)}
-            onPointerOver={(e) => { e.stopPropagation(); setHover(`Offset: ${m.keypointName} → ${m.bodyName}`, [m.position.x, m.position.y, m.position.z]); }}
-            onPointerOut={() => setHover(null)}
-            renderOrder={10}
-            geometry={m.isSelected ? _offsetSphereSelected : _offsetSphere}
-            material={getMaterial(m.isSelected ? "#00ff88" : "#00cc66")}
-          />
-        ))}
+        {markers.map((m) => {
+          const r = m.isSelected ? offsetRSel : offsetR;
+          return (
+            <mesh
+              key={m.keypointName}
+              position={m.position}
+              scale={[r, r, r]}
+              onClick={(e) => handleClick(e, m.keypointName)}
+              onPointerOver={(e) => { e.stopPropagation(); setHover(`Offset: ${m.keypointName} → ${m.bodyName}`, [m.position.x, m.position.y, m.position.z]); }}
+              onPointerOut={() => setHover(null)}
+              renderOrder={10}
+              geometry={_unitSphereHigh}
+              material={getMaterial(m.isSelected ? "#00ff88" : "#00cc66")}
+            />
+          );
+        })}
       </group>
     );
   }
@@ -89,8 +105,9 @@ export default function OffsetMarkers() {
         <mesh
           key={m.keypointName}
           position={m.position}
+          scale={[passiveR, passiveR, passiveR]}
           renderOrder={10}
-          geometry={_passiveSphere}
+          geometry={_unitSphereLow}
           material={getMaterial("#00cccc")}
         />
       ))}

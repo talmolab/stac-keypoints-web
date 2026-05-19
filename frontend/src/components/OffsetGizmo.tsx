@@ -4,6 +4,7 @@ import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
+import { markerRadius } from "../sceneScale";
 
 export default function OffsetGizmo() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -14,6 +15,8 @@ export default function OffsetGizmo() {
   const mode = useStore((s) => s.mode);
   const updateOffset = useStore((s) => s.updateOffset);
   const pushHistory = useStore((s) => s.pushHistory);
+  const markerSizeMult = useStore((s) => s.markerSize);
+  const handleR = markerRadius(bodyTransforms, markerSizeMult) * 0.6;
   const meshRef = useRef<THREE.Mesh>(null!);
   const controlsRef = useRef<any>(null);
   const { controls } = useThree();
@@ -71,7 +74,7 @@ export default function OffsetGizmo() {
   return (
     <>
       <mesh ref={meshRef} position={[threePos.x, threePos.y, threePos.z]}>
-        <sphereGeometry args={[0.002]} />
+        <sphereGeometry args={[handleR]} />
         <meshBasicMaterial color="#ffff00" transparent opacity={0.5} />
       </mesh>
       <TransformControls
