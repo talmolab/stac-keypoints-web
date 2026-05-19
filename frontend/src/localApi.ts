@@ -16,6 +16,7 @@ import {
 import { loadKeypointsFromBytes } from "./h5KeypointsLoader";
 import { dumpStacYaml, dumpStacUiSidecar } from "./yamlConfig";
 import { preprocessMeshfulXml } from "./preprocessMeshfulXml";
+import { procrustesScaled } from "./procrustes";
 
 const cachedAcm: Record<string, unknown> = {};
 const cachedConfigByPath: Record<string, unknown> = {};
@@ -279,51 +280,7 @@ export async function alignToMujoco(data: Record<string, unknown>) {
   }
 
   // Procrustes alignment: find R, t, s that maps meanSrc -> mjTarget
-  const n = commonKps.length;
-  const muSrc = [0, 0, 0];
-  const muTgt = [0, 0, 0];
-  for (let i = 0; i < n; i++) {
-    for (let d = 0; d < 3; d++) {
-      muSrc[d] += meanSrc[i][d] / n;
-      muTgt[d] += mjTarget[i][d] / n;
-    }
-  }
-
-  const srcC = meanSrc.map((p) => [
-    p[0] - muSrc[0],
-    p[1] - muSrc[1],
-    p[2] - muSrc[2],
-  ]);
-  const tgtC = mjTarget.map((p) => [
-    p[0] - muTgt[0],
-    p[1] - muTgt[1],
-    p[2] - muTgt[2],
-  ]);
-
-  // H = srcC^T @ tgtC (3x3 cross-covariance)
-  const H = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < n; i++) {
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        H[r][c] += srcC[i][r] * tgtC[i][c];
-      }
-    }
-  }
-
-  // SVD-based Procrustes
-  const { R: rotMat, s: scale } = svd3x3Procrustes(H, srcC);
-
-  // t = muTgt - s * R @ muSrc
-  const t = [0, 0, 0];
-  for (let r = 0; r < 3; r++) {
-    let rmu = 0;
-    for (let c = 0; c < 3; c++) rmu += rotMat[r][c] * muSrc[c];
-    t[r] = muTgt[r] - scale * rmu;
-  }
+  const { R: rotMat, t, s: scale } = procrustesScaled(meanSrc, mjTarget);
 
   // Apply to all frames
   const aligned = new Array(positions.length);
@@ -346,140 +303,6 @@ export async function alignToMujoco(data: Record<string, unknown>) {
     translation: t,
     method: "procrustes-browser",
   };
-}
-
-// ---------------------------------------------------------------------------
-// Simple 3x3 SVD for Procrustes (Jacobi eigendecomposition approach)
-// ---------------------------------------------------------------------------
-
-function svd3x3Procrustes(
-  H: number[][],
-  srcC: number[][],
-): { R: number[][]; s: number } {
-  // H^T H -> symmetric 3x3
-  const HtH = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++)
-    for (let j = 0; j < 3; j++)
-      for (let k = 0; k < 3; k++) HtH[i][j] += H[k][i] * H[k][j];
-
-  // Jacobi eigenvalue decomposition of HtH
-  const { eigenvectors: V, eigenvalues } = jacobiEigen3x3(HtH);
-  const S = eigenvalues.map((ev) => Math.sqrt(Math.max(0, ev)));
-
-  // U = H V S^-1
-  const U = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
-      if (S[j] > 1e-10) {
-        for (let k = 0; k < 3; k++) {
-          U[i][j] += (H[i][k] * V[k][j]) / S[j];
-        }
-      }
-    }
-  }
-
-  // R = U V^T
-  let R = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++)
-    for (let j = 0; j < 3; j++)
-      for (let k = 0; k < 3; k++) R[i][j] += U[i][k] * V[j][k];
-
-  // Check determinant and correct for reflection
-  const det =
-    R[0][0] * (R[1][1] * R[2][2] - R[1][2] * R[2][1]) -
-    R[0][1] * (R[1][0] * R[2][2] - R[1][2] * R[2][0]) +
-    R[0][2] * (R[1][0] * R[2][1] - R[1][1] * R[2][0]);
-  if (det < 0) {
-    for (let i = 0; i < 3; i++) U[i][2] = -U[i][2];
-    R = [
-      [0, 0, 0],
-      [0, 0, 0],
-      [0, 0, 0],
-    ];
-    for (let i = 0; i < 3; i++)
-      for (let j = 0; j < 3; j++)
-        for (let k = 0; k < 3; k++) R[i][j] += U[i][k] * V[j][k];
-  }
-
-  // Scale: sum(S) / sum(srcC^2)
-  const sumS = S.reduce((a, b) => a + b, 0);
-  let sumSrc2 = 0;
-  for (const p of srcC) sumSrc2 += p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
-  const scale = sumSrc2 > 1e-10 ? sumS / sumSrc2 : 1.0;
-
-  return { R, s: scale };
-}
-
-function jacobiEigen3x3(A: number[][]): {
-  eigenvalues: number[];
-  eigenvectors: number[][];
-} {
-  const a = [
-    [A[0][0], A[0][1], A[0][2]],
-    [A[1][0], A[1][1], A[1][2]],
-    [A[2][0], A[2][1], A[2][2]],
-  ];
-  const v = [
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 1],
-  ];
-
-  for (let iter = 0; iter < 50; iter++) {
-    // Find largest off-diagonal element
-    let maxVal = 0,
-      p = 0,
-      q = 1;
-    for (let i = 0; i < 3; i++)
-      for (let j = i + 1; j < 3; j++)
-        if (Math.abs(a[i][j]) > maxVal) {
-          maxVal = Math.abs(a[i][j]);
-          p = i;
-          q = j;
-        }
-    if (maxVal < 1e-12) break;
-
-    const theta = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]);
-    const c = Math.cos(theta),
-      s = Math.sin(theta);
-
-    // Rotate columns of A
-    const ap = [a[0][p], a[1][p], a[2][p]];
-    const aq = [a[0][q], a[1][q], a[2][q]];
-    for (let i = 0; i < 3; i++) {
-      a[i][p] = c * ap[i] - s * aq[i];
-      a[i][q] = s * ap[i] + c * aq[i];
-    }
-    // Rotate rows of A
-    const rp = [a[p][0], a[p][1], a[p][2]];
-    const rq = [a[q][0], a[q][1], a[q][2]];
-    for (let j = 0; j < 3; j++) {
-      a[p][j] = c * rp[j] - s * rq[j];
-      a[q][j] = s * rp[j] + c * rq[j];
-    }
-
-    // Rotate eigenvector matrix
-    const vp = [v[0][p], v[1][p], v[2][p]];
-    const vq = [v[0][q], v[1][q], v[2][q]];
-    for (let i = 0; i < 3; i++) {
-      v[i][p] = c * vp[i] - s * vq[i];
-      v[i][q] = s * vp[i] + c * vq[i];
-    }
-  }
-
-  return { eigenvalues: [a[0][0], a[1][1], a[2][2]], eigenvectors: v };
 }
 
 // ---------------------------------------------------------------------------

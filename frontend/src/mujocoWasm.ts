@@ -5,9 +5,16 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { procrustesRigid, rotationMatrixToMjQuat } from "./procrustes";
+
 let mjModule: any = null;
 let mjModel: any = null;
 let mjData: any = null;
+
+// Preferred trunk keypoints for the per-frame root Procrustes seed (rat
+// conventions; matches the legacy backend's `_PREFERRED_TRUNK_KEYPOINTS`).
+// Non-rat species fall back to "any mapped, non-NaN keypoint" below.
+const PREFERRED_TRUNK_KPS = ["SpineL", "SpineM", "SpineF", "Snout"];
 
 /** Cached body name list (computed once after model load). */
 let cachedBodyNames: string[] = [];
@@ -178,22 +185,77 @@ export function jacobianIk(
 
   if (initialQpos && initialQpos.length === nq) {
     // Warm-start from the caller's pose — typically the previously solved
-    // qpos for this frame. Skips the mean-targets root seed entirely.
+    // qpos for this frame. Skips the trunk Procrustes root seed entirely.
     for (let i = 0; i < nq; i++) mjData.qpos[i] = initialQpos[i];
   } else {
-    // Cold start: set root position from mean of targets, identity quat.
-    let mx = 0, my = 0, mz = 0;
-    for (const t of targetPositions) { mx += t[0]; my += t[1]; mz += t[2]; }
-    mx /= targetPositions.length;
-    my /= targetPositions.length;
-    mz /= targetPositions.length;
-    mjData.qpos[0] = mx;
-    mjData.qpos[1] = my;
-    mjData.qpos[2] = mz;
-    mjData.qpos[3] = 1;
-    mjData.qpos[4] = 0;
-    mjData.qpos[5] = 0;
-    mjData.qpos[6] = 0;
+    // Cold start: per-frame rigid Procrustes from the default-pose MuJoCo
+    // trunk onto the current-frame keypoint trunk gives the rat its actual
+    // orientation. Without this the joints-only IK can never rotate the
+    // root — the rat sits upright while the mocap is in whatever pose, and
+    // limbs fail to snap. Matches the pre-milestone-6 backend behaviour
+    // (legacy `stac_runner._jacobian_ik` + its Procrustes block).
+    mjModule.mj_resetData(mjModel, mjData);
+    mjModule.mj_forward(mjModel, mjData);
+
+    const kpIndex: Record<string, number> = {};
+    kpNames.forEach((n, i) => { kpIndex[n] = i; });
+    const isFinite = (kp: string): boolean => {
+      const i = kpIndex[kp];
+      if (i === undefined) return false;
+      const t = targetPositions[i];
+      return !!t && t[0] === t[0] && t[1] === t[1] && t[2] === t[2];
+    };
+    const isUsable = (kp: string): boolean =>
+      kp in kpBodyMap && nameToBodyId[kpBodyMap[kp]] !== undefined && isFinite(kp);
+
+    let trunkKps = PREFERRED_TRUNK_KPS.filter(isUsable);
+    if (trunkKps.length < 3) {
+      // Non-rat species or sparse mappings: align against whatever we have.
+      trunkKps = kpNames.filter(isUsable);
+    }
+
+    if (trunkKps.length >= 3) {
+      const mjTrunk: number[][] = [];
+      const acmTrunk: number[][] = [];
+      for (const kp of trunkKps) {
+        const bi = nameToBodyId[kpBodyMap[kp]];
+        const off = offsets[kp] || [0, 0, 0];
+        mjTrunk.push([
+          mjData.xpos[bi * 3] + off[0],
+          mjData.xpos[bi * 3 + 1] + off[1],
+          mjData.xpos[bi * 3 + 2] + off[2],
+        ]);
+        const ti = kpIndex[kp];
+        acmTrunk.push([
+          targetPositions[ti][0],
+          targetPositions[ti][1],
+          targetPositions[ti][2],
+        ]);
+      }
+      const { R, t } = procrustesRigid(mjTrunk, acmTrunk);
+      const [qw, qx, qy, qz] = rotationMatrixToMjQuat(R);
+      mjData.qpos[0] = t[0];
+      mjData.qpos[1] = t[1];
+      mjData.qpos[2] = t[2];
+      mjData.qpos[3] = qw;
+      mjData.qpos[4] = qx;
+      mjData.qpos[5] = qy;
+      mjData.qpos[6] = qz;
+    } else {
+      // No usable trunk pairs (very sparse mapping, all-NaN frame). Fall
+      // back to the old mean-of-targets seed — at least gets the root near
+      // the cloud.
+      let mx = 0, my = 0, mz = 0, n = 0;
+      for (const t of targetPositions) {
+        if (t && t[0] === t[0] && t[1] === t[1] && t[2] === t[2]) {
+          mx += t[0]; my += t[1]; mz += t[2]; n++;
+        }
+      }
+      if (n > 0) {
+        mjData.qpos[0] = mx / n; mjData.qpos[1] = my / n; mjData.qpos[2] = mz / n;
+      }
+      mjData.qpos[3] = 1; mjData.qpos[4] = 0; mjData.qpos[5] = 0; mjData.qpos[6] = 0;
+    }
   }
 
   const jacp = new Float64Array(3 * nv);
