@@ -89,7 +89,7 @@ export async function runIk(
         ).toFixed(1)
       : "N/A";
   state.setIkStatus(
-    "IK: " + result.qpos.length + "f, err " + meanError + "mm"
+    "IK: " + result.qpos.length + "f, err " + meanError + "mm",
   );
   return true;
 }

@@ -1,4 +1,10 @@
-"""Tests for stac_runner — focused on NaN robustness, not IK quality."""
+"""Tests for stac_runner — wire contract, NaN robustness, cache behavior.
+
+stac_runner delegates per-frame IK to stac_mjx.StacCore.q_opt, so this whole
+module requires stac-mjx + JAX importable. Backend mode = stac-mjx (per
+project policy); standalone / pure-frontend mode uses the WASM Jacobian in
+mujocoWasm.ts and never touches this code.
+"""
 from __future__ import annotations
 
 import json
@@ -9,7 +15,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from backend.stac_runner import run_quick_stac
+
+jax = pytest.importorskip("jax")
+pytest.importorskip("stac_mjx")
+from backend.stac_runner import run_quick_stac, clear_cache, _CACHE  # noqa: E402
 
 XML_PATH = os.environ.get(
     "STAC_KEYPOINTS_XML",
@@ -20,7 +29,6 @@ if not Path(XML_PATH).exists():
     pytest.skip(f"MuJoCo XML not found at {XML_PATH}", allow_module_level=True)
 
 
-# A subset that includes 3+ trunk keypoints so the trunk Procrustes fires.
 KP_MAP = {
     "Snout": "skull",
     "SpineF": "vertebra_cervical_5",
@@ -31,14 +39,20 @@ KP_MAP = {
 KP_NAMES = list(KP_MAP.keys())
 
 
+@pytest.fixture(autouse=True)
+def _reset_cache():
+    clear_cache()
+    yield
+    clear_cache()
+
+
 def _flat_positions(n_frames=2, seed=0):
     rng = np.random.default_rng(seed)
     arr = rng.normal(0.0, 5.0, size=(n_frames, len(KP_NAMES), 3))
     return arr.flatten().tolist()
 
 
-def _run(positions_flat, n_frames, frame_indices, max_iter=5):
-    """Cheap call: low max_iter — we test plumbing, not IK convergence."""
+def _run(positions_flat, n_frames, frame_indices, max_iter=5, **kw):
     return run_quick_stac(
         kp_positions_flat=positions_flat,
         num_frames=n_frames,
@@ -48,15 +62,14 @@ def _run(positions_flat, n_frames, frame_indices, max_iter=5):
         frame_indices=frame_indices,
         mappings=KP_MAP,
         max_iterations=max_iter,
+        **kw,
     )
 
 
 def test_runs_with_no_nan():
     positions = _flat_positions()
     result = _run(positions, 2, [0, 1])
-    assert "qpos" in result
     assert len(result["qpos"]) == 2
-    # Every qpos and every error must be finite — no NaN leaks
     for q in result["qpos"]:
         assert all(math.isfinite(v) for v in q)
     for e in result["errors"]:
@@ -64,10 +77,10 @@ def test_runs_with_no_nan():
 
 
 def test_nulls_on_wire_become_nan_internally():
-    """The frontend sends `null` for missing keypoints. Quick STAC must
-    treat them as NaN and still return finite qpos/errors."""
+    """The frontend sends `null` for missing keypoints. The runner must
+    treat them as NaN, mask them out of the loss, and still return finite
+    qpos/errors."""
     positions = _flat_positions()
-    # Drop one keypoint in frame 0 (Snout, kp 0): set its 3 components to None
     positions[0 * len(KP_NAMES) * 3 + 0 * 3 + 0] = None
     positions[0 * len(KP_NAMES) * 3 + 0 * 3 + 1] = None
     positions[0 * len(KP_NAMES) * 3 + 0 * 3 + 2] = None
@@ -80,63 +93,60 @@ def test_nulls_on_wire_become_nan_internally():
         assert math.isfinite(e)
 
 
-def test_all_trunk_nan_falls_back_gracefully():
-    """If all trunk keypoints are NaN in a frame, the Procrustes path can't
-    run. Fall back to the mean-target root and don't crash."""
-    positions = np.array(_flat_positions()).reshape(2, len(KP_NAMES), 3)
-    # Wipe trunk (Snout, SpineF, SpineM, SpineL) in frame 0
-    positions[0, :4] = np.nan
-    positions_flat = [
-        None if (isinstance(v, float) and math.isnan(v)) else float(v)
-        for v in positions.flatten()
-    ]
-    result = _run(positions_flat, 2, [0, 1])
-    assert len(result["qpos"]) == 2
-    for q in result["qpos"]:
-        assert all(math.isfinite(v) for v in q)
-
-
 def test_response_is_strict_json():
-    """run_quick_stac must produce a response that round-trips through
-    stdlib json with allow_nan=False — what the browser will accept."""
+    """Response must round-trip through stdlib json with allow_nan=False —
+    what the browser will accept."""
     positions = _flat_positions()
-    positions[5] = None  # arbitrary missing component
+    positions[5] = None
     result = _run(positions, 2, [0, 1])
     json.loads(json.dumps(result, allow_nan=False))
 
 
 def test_warm_start_accepts_initial_qpos():
-    """Passing initial_qpos with the right length must seed the IK loop and
-    still return finite results. Wrong-length seeds must silently fall back
-    to cold start (no crash)."""
     positions = _flat_positions(n_frames=1)
-    seed_result = _run(positions, 1, [0], max_iter=5)
-    seed_qpos = seed_result["qpos"][0]
+    seed = _run(positions, 1, [0], max_iter=5)
+    seed_qpos = seed["qpos"][0]
 
-    # Right length: should warm-start and converge at least as fast.
-    warm = run_quick_stac(
-        kp_positions_flat=positions,
-        num_frames=1,
-        num_keypoints=len(KP_NAMES),
-        kp_names=KP_NAMES,
-        xml_path=XML_PATH,
-        frame_indices=[0],
-        mappings=KP_MAP,
-        max_iterations=1,
-        initial_qpos=seed_qpos,
-    )
+    # Right length: should warm-start and converge cleanly.
+    warm = _run(positions, 1, [0], max_iter=1, initial_qpos=seed_qpos)
     assert all(math.isfinite(v) for v in warm["qpos"][0])
 
     # Wrong length: silent fall-through, no crash.
-    bogus = run_quick_stac(
+    bogus = _run(positions, 1, [0], max_iter=1, initial_qpos=[0.0, 0.0, 0.0])
+    assert all(math.isfinite(v) for v in bogus["qpos"][0])
+
+
+def test_offset_change_does_not_recompile():
+    """Offset edits at drag-rate must not bust the cache — only mappings
+    or max_iter should trigger a rebuild (set_site_pos handles offsets
+    in-place)."""
+    positions = _flat_positions(n_frames=1)
+
+    _run(positions, 1, [0], offsets={"Snout": [0.01, 0, 0]})
+    id_before = id(_CACHE["entry"]["payload"])
+
+    _run(positions, 1, [0], offsets={"Snout": [0.02, 0, 0]})
+    id_after = id(_CACHE["entry"]["payload"])
+
+    assert id_after == id_before
+
+
+def test_mapping_change_rebuilds_cache():
+    positions = _flat_positions(n_frames=1)
+
+    _run(positions, 1, [0])
+    id_before = id(_CACHE["entry"]["payload"])
+
+    alt = dict(KP_MAP)
+    alt.pop("ShoulderL")
+    run_quick_stac(
         kp_positions_flat=positions,
         num_frames=1,
         num_keypoints=len(KP_NAMES),
         kp_names=KP_NAMES,
         xml_path=XML_PATH,
         frame_indices=[0],
-        mappings=KP_MAP,
-        max_iterations=1,
-        initial_qpos=[0.0, 0.0, 0.0],  # too short
+        mappings=alt,
+        max_iterations=5,
     )
-    assert all(math.isfinite(v) for v in bogus["qpos"][0])
+    assert id(_CACHE["entry"]["payload"]) != id_before

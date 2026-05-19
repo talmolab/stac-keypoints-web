@@ -17,6 +17,11 @@ dependencies = [
     "scipy>=1.11",
     "h5py>=3.0",
     "pyyaml>=6.0",
+    # Backend mode = stac-mjx (the IK runner in backend/stac_runner.py
+    # delegates per-frame pose optimization to StacCore.q_opt). Standalone
+    # / pure-frontend mode runs entirely in the browser via mujocoWasm.ts
+    # and doesn't install this.
+    "stac-mjx>=0.0.1",
 ]
 
 [project.optional-dependencies]

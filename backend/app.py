@@ -350,7 +350,7 @@ async def suggest_frames_endpoint(data: dict):
 
 @app.post("/api/run-quick-stac")
 async def run_quick_stac_endpoint(data: dict):
-    """Run Quick STAC on labeled frames."""
+    """Run Quick STAC on labeled frames (stac-mjx ``StacCore.q_opt``)."""
     frame_indices = data.get("frameIndices", list(range(min(4, data.get("numFrames", 0)))))
     try:
         result = run_quick_stac(
