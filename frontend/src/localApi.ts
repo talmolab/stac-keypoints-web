@@ -516,10 +516,15 @@ export async function runQuickStac(data: Record<string, unknown>) {
   const offsetsRaw = data.offsets as Record<string, number[]>;
   const mocapScale = (data.mocapScaleFactor as number) || 0.01;
   const maxIter = (data.maxIterations as number) || 25;
+  const initialQpos = data.initialQpos as number[] | undefined;
 
   const allQpos: number[][] = [];
   const allErrors: number[] = [];
   const allTransforms: any[][] = [];
+
+  // Use the explicit seed only for the first frame in this batch. Subsequent
+  // frames warm-start from the previous frame's solve (temporal coherence).
+  let warmStart: number[] | undefined = initialQpos;
 
   for (const fi of frameIndices) {
     if (fi >= numFrames) continue;
@@ -535,10 +540,13 @@ export async function runQuickStac(data: Record<string, unknown>) {
       ]);
     }
 
-    const result = jacobianIk(targets, kpNames, pairs, offsetsRaw, maxIter);
+    const result = jacobianIk(
+      targets, kpNames, pairs, offsetsRaw, maxIter, 0.3, 0.01, warmStart,
+    );
     allQpos.push(result.qpos);
     allErrors.push(result.error);
     allTransforms.push(result.transforms);
+    warmStart = result.qpos;
   }
 
   return {

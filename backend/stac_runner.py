@@ -150,6 +150,7 @@ def run_quick_stac(
     scale_factor: float = 0.9,
     mocap_scale_factor: float = 0.01,
     max_iterations: int = 200,
+    initial_qpos: list[float] | None = None,
 ) -> dict:
     """Run IK on a subset of frames and return qpos + body transforms.
 
@@ -213,7 +214,15 @@ def run_quick_stac(
     all_errors = []
     all_body_transforms = []
 
-    prev_qpos = None
+    # Warm-start: if the caller passes the previously solved pose and its
+    # length matches the model, seed the per-frame loop with it. Single-frame
+    # auto-IK then converges in ~1-5 iters instead of restarting from
+    # default + Procrustes. Length mismatch (e.g., stale across XML reload)
+    # silently falls back to cold start.
+    if initial_qpos is not None and len(initial_qpos) == model.nq:
+        prev_qpos = np.asarray(initial_qpos, dtype=float)
+    else:
+        prev_qpos = None
 
     for frame_idx in frame_indices:
         if frame_idx >= num_frames:

@@ -78,6 +78,11 @@ interface AppState {
   stacRunning: boolean;
   stacProgress: number;
 
+  // Most recent single-frame IK solution. Survives mapping/offset edits so
+  // subsequent auto-IK passes can warm-start instead of restarting from
+  // default pose + Procrustes. Cleared on XML reload (qpos length may change).
+  liveQpos: number[] | null;
+
   // Model rotation (Y-axis in Three.js = yaw)
   modelRotationY: number;
 
@@ -165,6 +170,7 @@ interface AppState {
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setIkStatus: (status: string | null) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
+  setLiveQpos: (qpos: number[] | null) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
     keypointInitialOffsets: Record<string, [number, number, number]>;
@@ -208,6 +214,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   stacBodyTransforms: null,
   stacRunning: false,
   stacProgress: 0,
+  liveQpos: null,
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
@@ -262,6 +269,8 @@ export const useStore = create<AppState>()(persist((set) => ({
     nq: data.nq,
     xmlPath: data.xmlPath,
     xmlBasename: data.xmlBasename ?? null,
+    // qpos length is model-dependent — any prior warm-start is invalid.
+    liveQpos: null,
   }),
   setAcmData: (data) => set({
     acmKeypointNames: data.keypointNames,
@@ -289,16 +298,30 @@ export const useStore = create<AppState>()(persist((set) => ({
       mappings: [...filtered, { keypointName: kp, bodyName: body }],
       _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
       _redoStack: [],
+      // Any cached multi-frame IK result is now stale; auto-IK only refits
+      // the current frame, so per-frame transforms from a previous "Run IK"
+      // would otherwise mislead scrubbing.
+      stacQpos: null,
+      stacFrameIndices: null,
+      stacBodyTransforms: null,
     };
   }),
   removeMapping: (kp) => set((state) => ({
     mappings: state.mappings.filter((m) => m.keypointName !== kp),
     _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
     _redoStack: [],
+    stacQpos: null,
+    stacFrameIndices: null,
+    stacBodyTransforms: null,
   })),
   updateOffset: (kp, x, y, z) => set((state) => {
     const filtered = state.offsets.filter((o) => o.keypointName !== kp);
-    return { offsets: [...filtered, { keypointName: kp, x, y, z }] };
+    return {
+      offsets: [...filtered, { keypointName: kp, x, y, z }],
+      stacQpos: null,
+      stacFrameIndices: null,
+      stacBodyTransforms: null,
+    };
   }),
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
   labelCurrentFrame: () => set((state) => {
@@ -341,6 +364,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     stacRunning: false,
     stacProgress: 1.0,
   }),
+  setLiveQpos: (qpos) => set({ liveQpos: qpos }),
   loadConfig: (config) => set({
     mappings: Object.entries(config.keypointModelPairs).map(([kp, body]) => ({ keypointName: kp, bodyName: body })),
     offsets: Object.entries(config.keypointInitialOffsets).map(([kp, [x, y, z]]) => ({ keypointName: kp, x, y, z })),

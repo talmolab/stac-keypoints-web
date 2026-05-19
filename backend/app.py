@@ -365,6 +365,7 @@ async def run_quick_stac_endpoint(data: dict):
             scale_factor=data.get("scaleFactor", 0.9),
             mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
             max_iterations=data.get("maxIterations", 200),
+            initial_qpos=data.get("initialQpos"),
         )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

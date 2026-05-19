@@ -103,3 +103,40 @@ def test_response_is_strict_json():
     positions[5] = None  # arbitrary missing component
     result = _run(positions, 2, [0, 1])
     json.loads(json.dumps(result, allow_nan=False))
+
+
+def test_warm_start_accepts_initial_qpos():
+    """Passing initial_qpos with the right length must seed the IK loop and
+    still return finite results. Wrong-length seeds must silently fall back
+    to cold start (no crash)."""
+    positions = _flat_positions(n_frames=1)
+    seed_result = _run(positions, 1, [0], max_iter=5)
+    seed_qpos = seed_result["qpos"][0]
+
+    # Right length: should warm-start and converge at least as fast.
+    warm = run_quick_stac(
+        kp_positions_flat=positions,
+        num_frames=1,
+        num_keypoints=len(KP_NAMES),
+        kp_names=KP_NAMES,
+        xml_path=XML_PATH,
+        frame_indices=[0],
+        mappings=KP_MAP,
+        max_iterations=1,
+        initial_qpos=seed_qpos,
+    )
+    assert all(math.isfinite(v) for v in warm["qpos"][0])
+
+    # Wrong length: silent fall-through, no crash.
+    bogus = run_quick_stac(
+        kp_positions_flat=positions,
+        num_frames=1,
+        num_keypoints=len(KP_NAMES),
+        kp_names=KP_NAMES,
+        xml_path=XML_PATH,
+        frame_indices=[0],
+        mappings=KP_MAP,
+        max_iterations=1,
+        initial_qpos=[0.0, 0.0, 0.0],  # too short
+    )
+    assert all(math.isfinite(v) for v in bogus["qpos"][0])

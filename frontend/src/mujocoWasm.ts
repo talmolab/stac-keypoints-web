@@ -166,6 +166,7 @@ export function jacobianIk(
   maxIter: number = 25,
   step: number = 0.3,
   damping: number = 0.01,
+  initialQpos?: number[] | null,
 ) {
   if (!mjModel || !mjData || !mjModule) throw new Error("Model not loaded");
 
@@ -175,20 +176,25 @@ export function jacobianIk(
   const nv = mjModel.nv;
   const nq = mjModel.nq;
 
-  // Set root position from mean of targets
-  let mx = 0, my = 0, mz = 0;
-  for (const t of targetPositions) { mx += t[0]; my += t[1]; mz += t[2]; }
-  mx /= targetPositions.length;
-  my /= targetPositions.length;
-  mz /= targetPositions.length;
-  mjData.qpos[0] = mx;
-  mjData.qpos[1] = my;
-  mjData.qpos[2] = mz;
-  // Quaternion identity
-  mjData.qpos[3] = 1;
-  mjData.qpos[4] = 0;
-  mjData.qpos[5] = 0;
-  mjData.qpos[6] = 0;
+  if (initialQpos && initialQpos.length === nq) {
+    // Warm-start from the caller's pose — typically the previously solved
+    // qpos for this frame. Skips the mean-targets root seed entirely.
+    for (let i = 0; i < nq; i++) mjData.qpos[i] = initialQpos[i];
+  } else {
+    // Cold start: set root position from mean of targets, identity quat.
+    let mx = 0, my = 0, mz = 0;
+    for (const t of targetPositions) { mx += t[0]; my += t[1]; mz += t[2]; }
+    mx /= targetPositions.length;
+    my /= targetPositions.length;
+    mz /= targetPositions.length;
+    mjData.qpos[0] = mx;
+    mjData.qpos[1] = my;
+    mjData.qpos[2] = mz;
+    mjData.qpos[3] = 1;
+    mjData.qpos[4] = 0;
+    mjData.qpos[5] = 0;
+    mjData.qpos[6] = 0;
+  }
 
   const jacp = new Float64Array(3 * nv);
 
