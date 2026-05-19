@@ -89,9 +89,16 @@ export async function listXmls(): Promise<XmlPreset[]> {
   return data.presets ?? [];
 }
 
-export async function uploadXml(file: File) {
+/** Upload an MJCF (with optional companion mesh files) and load it.
+ *  Accepts a single File or a list — the local path uses additional files
+ *  as mesh assets and runs the in-browser preprocessor. The backend path
+ *  uploads only the first .xml (server-side meshes aren't transmitted). */
+export async function uploadXml(files: File | File[]) {
+  if (!(await backendOk())) return local.uploadXml(files);
+  const list = Array.isArray(files) ? files : [files];
+  const xmlFile = list.find((f) => f.name.toLowerCase().endsWith(".xml")) ?? list[0];
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", xmlFile);
   const resp = await fetch(`${BASE}/api/load-xml`, { method: "POST", body: form });
   return resp.json();
 }

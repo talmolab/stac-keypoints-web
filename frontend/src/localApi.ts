@@ -7,12 +7,14 @@
 import {
   initMuJoCo,
   loadXmlFromUrl,
+  loadXmlFromText,
   extractGeometry,
   computeBodyTransforms,
   jacobianIk,
 } from "./mujocoWasm";
 import { loadKeypointsFromBytes } from "./h5KeypointsLoader";
 import { dumpStacYaml, dumpStacUiSidecar } from "./yamlConfig";
+import { preprocessMeshfulXml } from "./preprocessMeshfulXml";
 
 const cachedAcm: Record<string, unknown> = {};
 const cachedConfigByPath: Record<string, unknown> = {};
@@ -79,6 +81,78 @@ export async function loadXml(path?: string) {
     : BUNDLED[0].xmlPath;
   await loadXmlFromUrl(bundledUrl(target));
   return extractGeometry();
+}
+
+/** Upload a user-supplied MJCF, optionally with companion mesh assets, and
+ *  load it into the live model. When mesh assets are present, run the
+ *  meshful-XML preprocessor (capsule/sphere replacement) before loading
+ *  so the runtime XML has no remaining mesh deps.
+ *
+ *  `files` shapes:
+ *    - one File ending in `.xml`            → loaded as-is
+ *    - many Files (one .xml + assets)       → preprocess, then load
+ *
+ *  When `files[i].webkitRelativePath` is set (folder picker), it's used as
+ *  the relative path for asset staging; otherwise asset names default to
+ *  the file's basename and we assume meshes are siblings of the XML. */
+export async function uploadXml(files: File | File[]) {
+  const list = Array.isArray(files) ? files : [files];
+  if (list.length === 0) return { error: "No files supplied." };
+
+  const xmlFiles = list.filter((f) => f.name.toLowerCase().endsWith(".xml"));
+  if (xmlFiles.length === 0) return { error: "No .xml file in upload." };
+  if (xmlFiles.length > 1) {
+    return { error: `Multiple .xml files in upload (${xmlFiles.map((f) => f.name).join(", ")}). Pick one.` };
+  }
+  const xmlFile = xmlFiles[0];
+  const xmlText = new TextDecoder("utf-8").decode(await xmlFile.arrayBuffer());
+
+  // Build asset map keyed relative to the XML's directory.
+  const xmlRel = xmlFile.webkitRelativePath || xmlFile.name;
+  const xmlDir = xmlRel.includes("/") ? xmlRel.replace(/\/[^/]+$/, "") : "";
+  const assets = new Map<string, Uint8Array>();
+  for (const f of list) {
+    if (f === xmlFile) continue;
+    const rel = f.webkitRelativePath || f.name;
+    let key = rel;
+    if (xmlDir && rel.startsWith(xmlDir + "/")) key = rel.slice(xmlDir.length + 1);
+    assets.set(key, new Uint8Array(await f.arrayBuffer()));
+  }
+
+  // Always run through the preprocessor when assets are supplied — even if
+  // the XML happens to be mesh-less, it's a no-op and the report shows 0
+  // replacements. When no assets accompany the XML, try a direct load
+  // first; if it fails on missing meshes, surface a hint.
+  let finalXml = xmlText;
+  let report: { nReplaced: number; nSphere: number; nCapsule: number } | null = null;
+  if (assets.size > 0) {
+    try {
+      const out = await preprocessMeshfulXml(xmlText, assets);
+      finalXml = out.xml;
+      report = out.report;
+    } catch (e) {
+      return { error: `Preprocessor failed: ${(e as Error).message}` };
+    }
+  }
+
+  try {
+    await loadXmlFromText(finalXml);
+  } catch (e) {
+    const msg = (e as Error).message || String(e);
+    if (assets.size === 0 && /mesh|file|asset/i.test(msg)) {
+      return {
+        error:
+          "XML references external mesh files. Re-pick the model's *folder* (or select XML + mesh files together) so the preprocessor can bake them into capsules.",
+      };
+    }
+    return { error: `Failed to load XML: ${msg}` };
+  }
+  const geom = extractGeometry();
+  return {
+    ...geom,
+    xmlPath: xmlFile.name,
+    preprocessReport: report,
+  };
 }
 
 export async function loadAcmTrials(_maxTrials?: number, _decimate?: number) {

@@ -25,6 +25,19 @@ Use the **Model** dropdown in the toolbar.
 
 - **Bundled species** — rat (with demo data), stick insect, mouse, worm, fly.
   Selected automatically on first launch.
+- **Load XML** — single-file MJCF picker. Use this for models that have no
+  external mesh assets (all-primitive geoms only).
+- **Load XML folder…** — directory picker for models that reference external
+  meshes (`.obj` / `.stl`). Select the folder containing the `.xml` and its
+  mesh subdirectory; the app compiles the model in-browser to read each
+  mesh's compile-time AABB, then rewrites the XML on the fly — replacing
+  every mesh geom with a capsule (or sphere for round parts) and stripping
+  the `<asset><mesh>` entries. The resulting standalone XML is what gets
+  loaded into the live scene. Algorithm parity with
+  `scripts/preprocess_meshful_xml.py` (the build-time preprocessor used for
+  the bundled mouse / worm / fly). Texture refs (`<texture>` in the XML) are
+  **not** stripped — if the upload includes textures, the `.png` files must
+  be in the folder too.
 - **Custom path…** — point at any MuJoCo `.xml` reachable by the backend
   (only available when the backend is running).
 
@@ -120,3 +133,4 @@ browser's site-data tools if you want a fresh start.
 | Backend not detected after `./start.sh` | The smart-routing probe times out at 1 s; if your backend is slow to start, give it a moment then refresh. |
 | FSA "Save" prompts every time | You're on Firefox/Safari; FSA isn't supported there. Configs download as files instead. |
 | "size 1 must be positive" loading custom XML | A mesh geom collapsed to zero volume — see `scripts/preprocess_meshful_xml.py` for the mesh→capsule fallback. |
+| "XML references external mesh files" after Load XML | You picked a single `.xml` but it references `.obj` / `.stl` files. Click **Load XML folder…** instead and select the directory containing both. |

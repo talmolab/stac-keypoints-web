@@ -21,14 +21,22 @@ export async function initMuJoCo(): Promise<void> {
 }
 
 export async function loadXmlFromUrl(url: string): Promise<void> {
+  const resp = await fetch(url);
+  const text = await resp.text();
+  await loadXmlFromText(text);
+}
+
+/**
+ * Load a (mesh-less, standalone) MJCF XML supplied as text. Replaces any
+ * previously-loaded model. Used by the preprocessor's user-upload flow.
+ */
+export async function loadXmlFromText(text: string): Promise<void> {
   await initMuJoCo();
 
   // Clean up any previous model/data
   if (mjData) { mjData.delete(); mjData = null; }
   if (mjModel) { mjModel.delete(); mjModel = null; }
 
-  const resp = await fetch(url);
-  const text = await resp.text();
   mjModule.FS.writeFile("/working/model.xml", text);
   mjModel = mjModule.MjModel.mj_loadXML("/working/model.xml");
   mjData = new mjModule.MjData(mjModel);

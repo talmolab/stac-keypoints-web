@@ -18,6 +18,27 @@ function pickFile(accept: string): Promise<File | null> {
   });
 }
 
+/** Multi-file picker — used for XML uploads where mesh assets accompany
+ *  the model. Accepts either a folder selection (webkitdirectory) or a
+ *  multi-select of explicit files. */
+function pickFiles(accept: string, asDirectory: boolean): Promise<File[]> {
+  return new Promise((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    if (asDirectory) {
+      // webkitdirectory is non-standard but supported in Chromium + Firefox.
+      input.setAttribute("webkitdirectory", "");
+      input.setAttribute("directory", "");
+    } else {
+      input.multiple = true;
+      input.accept = accept;
+    }
+    input.onchange = () => resolve(Array.from(input.files ?? []));
+    input.oncancel = () => resolve([]);
+    input.click();
+  });
+}
+
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
   const setAcmData = useStore((s) => s.setAcmData);
@@ -49,8 +70,35 @@ export default function Toolbar() {
     // Backend stored the upload in a temp file; track that path so subsequent
     // body-transform / align calls reuse the same model.
     const data = await api.uploadXml(file);
+    if (data.error && /mesh|asset|folder/i.test(data.error)) {
+      // Standalone mode flagged missing meshes — re-prompt for the model dir.
+      setIkStatus("XML references mesh files. Pick the model's folder…");
+      const files = await pickFiles(".xml", true);
+      if (files.length === 0) { setIkStatus("Load cancelled."); return; }
+      const data2 = await api.uploadXml(files);
+      await finishXmlLoad(data2, file.name, file.name);
+      if (data2.preprocessReport) {
+        const r = data2.preprocessReport;
+        setIkStatus(`Loaded ${file.name} (preprocessed ${r.nReplaced} mesh geom(s) → ${r.nCapsule} capsule, ${r.nSphere} sphere).`);
+      }
+      return;
+    }
     await finishXmlLoad(data, file.name, file.name);
-  }, [finishXmlLoad]);
+  }, [finishXmlLoad, setIkStatus]);
+
+  const handleLoadXmlFolder = useCallback(async () => {
+    const files = await pickFiles(".xml", true);
+    if (files.length === 0) return;
+    const xmlFile = files.find((f) => f.name.toLowerCase().endsWith(".xml"));
+    if (!xmlFile) { setIkStatus("No .xml file in selected folder."); return; }
+    setIkStatus("Preprocessing meshful XML…");
+    const data = await api.uploadXml(files);
+    await finishXmlLoad(data, xmlFile.name, xmlFile.name);
+    if (data.preprocessReport) {
+      const r = data.preprocessReport;
+      setIkStatus(`Loaded ${xmlFile.name} (preprocessed ${r.nReplaced} mesh geom(s) → ${r.nCapsule} capsule, ${r.nSphere} sphere).`);
+    }
+  }, [finishXmlLoad, setIkStatus]);
 
   // Path-based load. Needed for models whose XML references external assets
   // by relative path (most non-rat models pull in mesh OBJs from `assets/`),
@@ -230,6 +278,11 @@ export default function Toolbar() {
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
+      <button
+        style={btnStyle}
+        onClick={handleLoadXmlFolder}
+        title="Pick a model folder (XML + .obj/.stl meshes). Meshes are baked into capsules client-side."
+      >Load XML folder…</button>
       <select
         onChange={handlePresetChange}
         defaultValue=""

@@ -68,6 +68,25 @@ stub a remote-backend call — is **blocked on the Wednesday meeting
 
 The roadmap defaults to (1) until that meeting decides otherwise.
 
+### User-upload texture handling (open question)
+
+The "Load XML folder…" path runs `preprocessMeshfulXml` on user uploads, which strips `<asset><mesh /></asset>` entries and replaces every mesh geom with a capsule/sphere. Textures (`<asset><texture file="…" />`) are not stripped or rewritten — if a model references textures, the user must include the texture files in the upload, otherwise `mj_loadXML` rejects the model. **Question for the Wednesday meeting (2026-05-13)**: how do we want to handle textured user uploads?
+
+1. **Status quo.** User must upload textures alongside meshes. Simple, but
+   a sharp edge for new users; the error message points at MuJoCo's
+   compile error rather than explaining the texture requirement.
+2. **Strip textures too.** Replace textured materials with a flat-color
+   default in the preprocessor. Matches the bundled-species behaviour
+   (which is already untextured), keeps uploads to "XML + meshes only".
+3. **Bake textures.** Read texture PNGs in JS, sample to a flat average
+   color per material, write that color back as `rgba`. Closer to (2)
+   but preserves perceived material variety. ~1 day of work.
+
+Default until the meeting decides: **(1) status quo**, with a clearer
+error message ("XML references textures — include the .png files in the
+upload, or remove `<texture>` refs"). Tracked here so we don't quietly
+ship (2) or (3) without alignment.
+
 ### Browser support
 
 - **Chrome/Edge**: full support including FSA save-in-place. Recommended.
