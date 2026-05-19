@@ -3,7 +3,7 @@ import { useStore } from "../store";
 
 const ROW_HEIGHT = 10;       // px per keypoint row
 const CONF_ROW_HEIGHT = 16;  // px for the min-confidence header row
-const LABEL_WIDTH = 64;      // px reserved for keypoint names
+const LABEL_WIDTH = 88;      // px reserved for keypoint names
 const PRESENT_COLOR = [42, 90, 58];   // muted green
 const MISSING_COLOR = [80, 24, 24];   // dark red
 
@@ -276,11 +276,18 @@ export default function GapHeatmap() {
         {minConfPerFrame && (
           <div
             style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
               height: CONF_ROW_HEIGHT,
               lineHeight: `${CONF_ROW_HEIGHT}px`,
               paddingLeft: 4,
               color: "#aaa",
               fontWeight: 600,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
             title="Min confidence across present keypoints, per frame"
           >
@@ -294,6 +301,10 @@ export default function GapHeatmap() {
             <div
               key={k}
               style={{
+                position: "absolute",
+                top: topOffset + k * ROW_HEIGHT,
+                left: 0,
+                right: 0,
                 height: ROW_HEIGHT,
                 lineHeight: `${ROW_HEIGHT}px`,
                 paddingLeft: 4,

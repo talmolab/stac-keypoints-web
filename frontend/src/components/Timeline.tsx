@@ -5,7 +5,7 @@ import GapHeatmap from "./GapHeatmap";
 
 // Must match the LABEL_WIDTH constant in GapHeatmap so the slider, dot row,
 // and heatmap plot area all share the same horizontal coordinate range.
-const LABEL_WIDTH = 64;
+const LABEL_WIDTH = 88;
 
 export default function Timeline() {
   const currentFrame = useStore((s) => s.currentFrame);
