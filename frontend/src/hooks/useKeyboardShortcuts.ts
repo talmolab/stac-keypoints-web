@@ -24,10 +24,12 @@ export function useKeyboardShortcuts() {
         state.redo();
         return;
       }
-      // Cmd/Ctrl-S → Export. Override the browser's save-page default.
+      // Cmd/Ctrl-S → Export (re-uses cached FSA handle if any).
+      // Cmd/Ctrl-Shift-S → Save As (re-prompts the FSA picker).
+      // Override the browser's save-page default in both cases.
       if (cmd && e.code === "KeyS") {
         e.preventDefault();
-        runExport();
+        runExport({ forcePicker: shift });
         return;
       }
       // `?` (Shift+/) toggles the help overlay; bare `/` opens it for

@@ -1,0 +1,220 @@
+{
+  "keypointModelPairs": {
+    "L1A": "coxa_T1_left",
+    "L1B": "femur_T1_left",
+    "L1C": "tibia_T1_left",
+    "L1D": "tarsus_T1_left",
+    "L1E": "claw_T1_left",
+    "R1A": "coxa_T1_right",
+    "R1B": "femur_T1_right",
+    "R1C": "tibia_T1_right",
+    "R1D": "tarsus_T1_right",
+    "R1E": "claw_T1_right",
+    "L2A": "coxa_T2_left",
+    "L2B": "femur_T2_left",
+    "L2C": "tibia_T2_left",
+    "L2D": "tarsus_T2_left",
+    "L2E": "claw_T2_left",
+    "R2A": "coxa_T2_right",
+    "R2B": "femur_T2_right",
+    "R2C": "tibia_T2_right",
+    "R2D": "tarsus_T2_right",
+    "R2E": "claw_T2_right",
+    "L3A": "coxa_T3_left",
+    "L3B": "femur_T3_left",
+    "L3C": "tibia_T3_left",
+    "L3D": "tarsus_T3_left",
+    "L3E": "claw_T3_left",
+    "R3A": "coxa_T3_right",
+    "R3B": "femur_T3_right",
+    "R3C": "tibia_T3_right",
+    "R3D": "tarsus_T3_right",
+    "R3E": "claw_T3_right"
+  },
+  "keypointInitialOffsets": {
+    "L1A": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L1B": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L1C": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L1D": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L1E": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R1A": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R1B": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R1C": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R1D": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R1E": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L2A": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L2B": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L2C": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L2D": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L2E": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R2A": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R2B": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R2C": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R2D": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R2E": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L3A": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L3B": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L3C": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L3D": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "L3E": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R3A": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R3B": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R3C": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R3D": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "R3E": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "scaleFactor": 1.0,
+  "mocapScaleFactor": 1.0,
+  "kpNames": [
+    "L1A",
+    "L1B",
+    "L1C",
+    "L1D",
+    "L1E",
+    "R1A",
+    "R1B",
+    "R1C",
+    "R1D",
+    "R1E",
+    "L2A",
+    "L2B",
+    "L2C",
+    "L2D",
+    "L2E",
+    "R2A",
+    "R2B",
+    "R2C",
+    "R2D",
+    "R2E",
+    "L3A",
+    "L3B",
+    "L3C",
+    "L3D",
+    "L3E",
+    "R3A",
+    "R3B",
+    "R3C",
+    "R3D",
+    "R3E"
+  ]
+}

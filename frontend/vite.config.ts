@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  base: process.env.GITHUB_PAGES ? "/stac-keypoints-web/" : "/",
   server: {
     proxy: {
       "/api": "http://localhost:8000",
@@ -10,7 +11,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["mujoco-js"],
+    exclude: ["@mujoco/mujoco"],
   },
   assetsInclude: ["**/*.wasm"],
 });

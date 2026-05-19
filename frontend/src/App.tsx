@@ -29,20 +29,20 @@ export default function App() {
       const loadConfigAction = useStore.getState().loadConfig;
       const setAcmData = useStore.getState().setAcmData;
 
-      // 0. Reachability check via the dedicated health endpoint.
-      try {
-        await api.health();
-      } catch (err) {
-        const msg = (err as Error).message;
-        console.error("[AutoLoad] Backend unreachable:", msg);
+      // 0. Backend-availability probe. When the backend is reachable we
+      //    continue with full functionality; when it isn't (GH Pages,
+      //    standalone build, dev without start.sh) the api.ts smart router
+      //    transparently falls back to localApi (browser-side MuJoCo).
+      const hasBackend = await api.isBackendAvailable();
+      if (!hasBackend) {
+        console.log("[AutoLoad] Backend unreachable — running in standalone mode (bundled rodent demo).");
         setBanner({
-          kind: "error",
-          text: `Backend unreachable at /api (${msg}). Is uvicorn running on :8000? Check the terminal running start.sh.`,
+          kind: "warn",
+          text: "Standalone mode: bundled rodent demo. Uploads, YAML export, and multi-species are unavailable until a backend is running.",
         });
-        return;
       }
 
-      // Fetch defaults (env-overridable, falls back to bundled data/).
+      // Fetch defaults (backend: env-overridable; standalone: bundled rodent paths).
       const defaults = await api.getDefaults();
       console.log("[AutoLoad] Defaults:", defaults);
 
@@ -109,8 +109,9 @@ export default function App() {
           }
         }
 
-        // 3. Load ACM data (requires monsees-retarget; skip if unavailable)
-        if (!defaults.monseesRetarget) {
+        // 3. Load ACM data. In backend mode this requires MONSEES_RETARGET;
+        //    in standalone mode the bundled acm_keypoints.json is the source.
+        if (hasBackend && !defaults.monseesRetarget) {
           setBanner({
             kind: "warn",
             text: "MONSEES_RETARGET not set — ACM autoload skipped. Load a .mat file manually, or set the env var and restart the backend.",
