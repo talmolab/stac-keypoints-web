@@ -53,9 +53,15 @@ def load_acm_trials(
     single trial by directory name (e.g. ``gap_20200205_155350_155550__pcutoff9e-01``).
     Useful for pre-loading a specific trial in the autoload path without
     having the user navigate to it.
+
+    If ``STAC_KEYPOINTS_ACM_WARP=1`` (or true/yes), keypoints are warped to
+    canonical MJCF proportions via ``retarget_proportions.retarget_to_mujoco``
+    before being returned. This previews exactly what STAC will see and what
+    will get concatenated into the production reference clips.
     """
     m = _import_monsees()
     config = m["load_stac_config"](config_path)
+    warp = os.environ.get("STAC_KEYPOINTS_ACM_WARP", "").lower() in {"1", "true", "yes"}
     metas = m["discover_gap_trials"](require_motiondata=True)
     pin = os.environ.get("STAC_KEYPOINTS_ACM_TRIAL_NAME")
     if pin:
@@ -66,16 +72,27 @@ def load_acm_trials(
                 f"discovered trial"
             )
     metas = metas[:max_trials]
+    xml_path = config["model"]["MJCF_PATH"] if warp else None
+    scale_factor = float(config["model"].get("SCALE_FACTOR", 1.0)) if warp else 1.0
     all_positions = []
     kp_names = None
     for meta in metas:
         trial = m["load_gap_trial"](meta)
-        positions_mm = m["acm_forward_kinematics"](trial)
-        positions_mm = positions_mm[::decimate]
-        positions_cm = positions_mm / 10.0
-        stac_pos, stac_names = m["map_acm_to_stac_keypoints"](
+        positions_cm = m["acm_forward_kinematics"](trial)[::decimate]
+        # Select STAC subset (21 keypoints) in cm — needed in cm for warp().
+        stac_pos_cm, stac_names = m["map_acm_to_stac_keypoints"](
             positions_cm, trial.joint_names, config
         )
+        if warp:
+            stac_pos_cm = m["retarget_to_mujoco"](
+                stac_pos_cm, stac_names, xml_path,
+                scale_factor=scale_factor,
+                mocap_scale_factor=0.01,  # cm → m for internal length comparisons
+                spine_blend=0.4,
+            )
+        # Match the frontend's existing scale convention (legacy: /10 of cm).
+        # Procrustes alignment in the frontend re-fits any global scale anyway.
+        stac_pos = stac_pos_cm / 10.0
         all_positions.append(stac_pos)
         if kp_names is None:
             kp_names = stac_names
