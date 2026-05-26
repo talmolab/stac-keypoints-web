@@ -47,10 +47,25 @@ def load_acm_trials(
     decimate: int = 2,
     config_path: str | None = None,
 ) -> dict:
-    """Load ACM trials, run FK, map to STAC keypoints. Returns JSON-serializable dict."""
+    """Load ACM trials, run FK, map to STAC keypoints. Returns JSON-serializable dict.
+
+    If the ``STAC_KEYPOINTS_ACM_TRIAL_NAME`` env var is set, it filters to a
+    single trial by directory name (e.g. ``gap_20200205_155350_155550__pcutoff9e-01``).
+    Useful for pre-loading a specific trial in the autoload path without
+    having the user navigate to it.
+    """
     m = _import_monsees()
     config = m["load_stac_config"](config_path)
-    metas = m["discover_gap_trials"](require_motiondata=True)[:max_trials]
+    metas = m["discover_gap_trials"](require_motiondata=True)
+    pin = os.environ.get("STAC_KEYPOINTS_ACM_TRIAL_NAME")
+    if pin:
+        metas = [mt for mt in metas if mt.trial_name == pin]
+        if not metas:
+            raise RuntimeError(
+                f"STAC_KEYPOINTS_ACM_TRIAL_NAME='{pin}' did not match any "
+                f"discovered trial"
+            )
+    metas = metas[:max_trials]
     all_positions = []
     kp_names = None
     for meta in metas:
