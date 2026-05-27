@@ -86,7 +86,12 @@ export function extractGeometry() {
   for (let g = 0; g < mjModel.ngeom; g++) {
     const geomType = mjModel.geom_type[g];
     if (geomType === PLANE_TYPE) continue;
-    if (mjModel.geom_group[g] >= 3) continue;
+    // Do NOT filter by geom_group. An old `geom_group >= 3` skip was
+    // rat-specific (the rat's visual geoms are all in groups 1-2); it silently
+    // dropped the fruitfly's primary primitives, which live in group 4 (71 of
+    // its 158 geoms — legs, abdomen detail), leaving a featureless blob. The
+    // backend dropped this same filter in PR #10; mirror it here. The rat has
+    // zero geoms in group >= 3, so this is a no-op for it.
 
     const typeName = GEOM_NAMES[geomType] || "unknown";
     const bodyId = mjModel.geom_bodyid[g];
