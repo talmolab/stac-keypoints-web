@@ -13,6 +13,12 @@ _GEOM_TYPE_NAMES = {
     mujoco.mjtGeom.mjGEOM_BOX: "box",
 }
 
+# When a mesh's smallest AABB half-extent is below this fraction of the next
+# one, it's flat (a wing/fin) and a capsule can't represent it — its radius
+# balloons to the geom's width, reading as a fat blob. An ellipsoid uses all
+# three half-extents and stays flat. Mirrors scripts/preprocess_meshful_xml.py.
+ELLIPSOID_FLAT_RATIO = 0.5
+
 
 def extract_model_geometry(xml_path: str) -> dict:
     """Parse MuJoCo XML and return geometry + hierarchy as JSON-serializable dict."""
@@ -42,27 +48,48 @@ def extract_model_geometry(xml_path: str) -> dict:
 
         if geom_type == mujoco.mjtGeom.mjGEOM_MESH:
             # The frontend has no triangle-mesh path (deferred to the WASM SPA
-            # migration in M6). Fall back to a capsule fit along the mesh's
-            # longest AABB axis — body parts are usually elongated, so a
-            # capsule reads better than a box of the same extent.
+            # migration in M6). Fall back to a primitive fit of the mesh's AABB.
             #
-            # geom_aabb is [cx, cy, cz, hx, hy, hz] in geom-local frame.
-            # MuJoCo capsules default along their local Z axis, so we rotate
-            # the geom's quat by an axis-alignment quat that maps Z onto the
-            # AABB's longest axis.
+            # geom_aabb is [cx, cy, cz, hx, hy, hz] in geom-local frame. The
+            # center offset is rotated into the body frame and added to the
+            # geom's (compiled) pos — shared by both the ellipsoid and capsule
+            # branches below.
             aabb = model.geom_aabb[g]
             center_local = np.array([aabb[0], aabb[1], aabb[2]], dtype=np.float64)
             half_x, half_y, half_z = float(aabb[3]), float(aabb[4]), float(aabb[5])
             extents = [half_x, half_y, half_z]
+
+            quat_arr = np.array(quat, dtype=np.float64)
+            rotated = np.empty(3, dtype=np.float64)
+            mujoco.mju_rotVecQuat(rotated, center_local, quat_arr)
+            prim_pos = [float(pos[0] + rotated[0]),
+                        float(pos[1] + rotated[1]),
+                        float(pos[2] + rotated[2])]
+
+            # Flat mesh (smallest half-extent << next) → ellipsoid with all
+            # three half-extents, on the geom's own axes (no longest-axis
+            # alignment). A capsule would balloon its radius to the width and
+            # read as a fat blob. Mirrors scripts/preprocess_meshful_xml.py.
+            e_sorted = sorted(extents)
+            if e_sorted[0] < ELLIPSOID_FLAT_RATIO * e_sorted[1]:
+                geoms.append({
+                    "type": "ellipsoid", "bodyId": body_id, "bodyName": body_name,
+                    "size": [max(half_x, 1e-5), max(half_y, 1e-5), max(half_z, 1e-5)],
+                    "position": prim_pos,
+                    "quaternion": [float(q) for q in quat],
+                    "color": rgba,
+                })
+                continue
+
+            # Elongated mesh → capsule along the longest AABB axis. MuJoCo
+            # capsules default along their local Z axis, so rotate the geom's
+            # quat by an axis-alignment quat that maps Z onto that axis.
             longest = int(np.argmax(extents))
             half_long = extents[longest]
             half_short = max(extents[i] for i in range(3) if i != longest)
             radius = half_short
             half_cyl = max(0.0, half_long - half_short)
 
-            # Quat (w,x,y,z) that rotates capsule's local Z onto the longest
-            # AABB axis. mujoco.mju_axisAngle2Quat would also work; the
-            # closed forms below are clearer.
             sqrt_half = float(np.sqrt(0.5))
             if longest == 0:    # Z → X via +90° around Y
                 align = np.array([sqrt_half, 0.0, sqrt_half, 0.0])
@@ -71,19 +98,13 @@ def extract_model_geometry(xml_path: str) -> dict:
             else:               # Z → Z, identity
                 align = np.array([1.0, 0.0, 0.0, 0.0])
 
-            quat_arr = np.array(quat, dtype=np.float64)
             combined = np.empty(4, dtype=np.float64)
             mujoco.mju_mulQuat(combined, quat_arr, align)
 
-            rotated = np.empty(3, dtype=np.float64)
-            mujoco.mju_rotVecQuat(rotated, center_local, quat_arr)
-            cap_pos = [float(pos[0] + rotated[0]),
-                       float(pos[1] + rotated[1]),
-                       float(pos[2] + rotated[2])]
             geoms.append({
                 "type": "capsule", "bodyId": body_id, "bodyName": body_name,
                 "size": [float(radius), float(half_cyl), 0.0],
-                "position": cap_pos,
+                "position": prim_pos,
                 "quaternion": [float(combined[0]), float(combined[1]),
                                float(combined[2]), float(combined[3])],
                 "color": rgba,
