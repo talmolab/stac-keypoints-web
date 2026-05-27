@@ -223,94 +223,94 @@
       <light name="tracking" mode="trackcom" pos="0 0 1" />
       <site name="thorax_site" />
       <site name="hover_up_dir" pos="0.0262 0 0.0262" quat="0.915 0 0.403 0" />
-      <geom name="thorax" mass="0.00034" pos="-0.00791 -0.00577948 -0.120883" quat="0 0 0 -1" type="sphere" size="0.0526589" />
+      <geom name="thorax" mass="0.00034" pos="-0.00416991 3.8147e-07 0.0046216" type="sphere" size="0.0526589" />
       <geom name="thorax_collision" class="collision" type="ellipsoid" size="0.0437 0.0437 0.0551" pos="0.00168 0 -0.00262" quat="0 -0.479 0 -0.878" />
       <geom name="thorax_collision2" class="collision" type="ellipsoid" size="0.0499 0.028 0.0114" pos="-0.00445 0 0.0219" quat="0 -0.199 0 -0.98" />
-      <geom name="thorax_black" material="black" mass="0" pos="0.00656028 0.0252377 -0.122983" quat="0 0 0 -1" type="sphere" size="0.0530646" />
+      <geom name="thorax_black" material="black" mass="0" pos="-0.0238946 -0.000445322 0.0183603" type="sphere" size="0.0530646" />
       <body name="head" childclass="head" pos="0.0567 3.81e-07 -0.00305" quat="0.702 -0.087 0.087 -0.702">
         <site name="head_site" pos="0 0.015 0" quat="0 0 0 1" />
         <geom name="head_collision" class="collision" type="ellipsoid" size="0.0455 0.0262 0.0324" pos="0 0.0149 0.000875" euler="0.3 0 0" />
-        <geom name="head" pos="0.00175858 -0.0297738 -0.131087" quat="0.702 0.087 0.087 -0.702" type="sphere" size="0.0322604" />
-        <geom name="head_red" material="red" pos="-0.00112121 -0.0337596 -0.132091" quat="0.702 0.087 0.087 -0.702" type="capsule" size="0.0259542 0.0193202" />
-        <geom name="head_ocelli" material="ocelli" pos="-8.60217e-06 -0.0330111 -0.132167" quat="0.557907 -0.434871 0.557907 -0.434871" type="capsule" size="0.00299767 0.00237788" />
+        <geom name="head" pos="3.40006e-08 0.0196711 0.00157814" type="sphere" size="0.0322604" />
+        <geom name="head_red" material="red" pos="3.40006e-08 0.0178867 0.00340486" type="capsule" size="0.0259542 0.0193202" quat="0.401538 0.582037 -0.401538 -0.582037" />
+        <geom name="head_ocelli" material="ocelli" pos="-1.1812e-05 0.0192126 0.0317863" type="capsule" size="0.00299767 0.00237788" quat="0.557699 -0.434709 0.557699 -0.434709" />
         <camera name="eye_right" fovy="140" pos="0.0219 0.0131 0" quat="0.474 0.688 -0.344 -0.429" />
         <camera name="eye_left" fovy="140" pos="-0.0219 0.0131 0" quat="0.474 0.688 0.344 0.429" />
-        <geom name="head_black" material="black" mass="0" pos="-0.000568978 -0.0361862 -0.12709" quat="0.702 0.087 0.087 -0.702" type="sphere" size="0.0439881" />
+        <geom name="head_black" material="black" mass="0" pos="-0.000956352 0.0164357 0.00955916" type="sphere" size="0.0439881" />
         <body name="rostrum" pos="0 0.0368 -0.0235" quat="2.2e-07 -1.21e-07 0.192 -0.981">
-          <geom name="rostrum" pos="0.00351116 0.105983 -0.0741083" quat="0.705 0.0494 -0.0494 0.705" type="sphere" size="0.0216166" />
+          <geom name="rostrum" pos="-2.00204e-08 0.0188873 -0.00389886" type="sphere" size="0.0216166" />
           <geom name="rostrum_collision_right" class="collision" size="0.0035" fromto="0.00613 0.0324 0 0.0114 0.0245 -0.0236" />
           <geom name="rostrum_collision_left" class="collision" size="0.0035" fromto="-0.00613 0.0324 0 -0.0114 0.0245 -0.0236" />
           <geom name="rostrum_collision" class="collision" type="ellipsoid" size="0.0131 0.0219 0.0131" pos="0 0.0175 0.00263" euler="0.1 0 0" />
-          <geom name="rostrum_bristle-brown" material="bristle-brown" pos="0.00053036 0.104709 -0.0743817" quat="0.705 0.0494 -0.0494 0.705" type="capsule" size="0.00642836 0.011294" />
+          <geom name="rostrum_bristle-brown" material="bristle-brown" pos="-1.92753e-08 0.0237805 -0.0252153" type="capsule" size="0.00642836 0.011294" quat="0.463827 0.533727 0.463827 0.533727" />
           <body name="haustellum" pos="0 0.0377 0" quat="2.33e-07 -1.56e-07 -0.347 0.938">
-            <geom name="haustellum" pos="0.000163762 -0.00354309 -0.100964" quat="0.679 0.198 0.198 -0.679" type="capsule" size="0.00908976 0.00490103" />
+            <geom name="haustellum" pos="4.66281e-08 0.0122925 -0.00107128" type="capsule" size="0.00908976 0.00490103" quat="0.632956 0.774188 0 0" />
             <geom name="haustellum_collision" class="collision" type="capsule" size="0.00788 0.00788" pos="0 0.0123 -0.000948" quat="0.633 0.774 0 0" />
-            <geom name="haustellum_black" material="black" mass="0" pos="-0.0016195 -0.00119892 -0.100953" quat="0.679 0.198 0.198 -0.679" type="capsule" size="0.00953929 0.00374094" />
+            <geom name="haustellum_black" material="black" mass="0" pos="9.39109e-05 0.0141229 -0.00269677" type="capsule" size="0.00953929 0.00374094" quat="0.340035 0.619981 -0.340035 -0.619981" />
             <body name="labrum_left" childclass="labrum" pos="-0.00263 0.0182 0" quat="0.741 -0.0142 -0.591 0.319">
-              <geom name="labrum_left_lower" material="lower" pos="-0.0969688 0.0211775 -0.0251714" quat="-0.166 0.181 -0.494 0.834" type="sphere" size="0.0102514" />
+              <geom name="labrum_left_lower" material="lower" pos="-0.000802061 0.0083688 -0.00346569" type="sphere" size="0.0102514" />
               <geom name="labrum_left_lower_collision" class="adhesion-collision" type="ellipsoid" size="0.0035 0.00875 0.0131" pos="-0.000603 0.0106 -0.00438" quat="-0.174 -0.715 0.0876 0.672" />
             </body>
             <body name="labrum_right" childclass="labrum" pos="0.00263 0.0182 0" quat="0.699 0.00274 0.642 -0.316">
-              <geom name="labrum_right_lower" material="lower" pos="0.100122 0.021585 -0.0105254" quat="-0.817 -0.509 0.236 0.133" type="sphere" size="0.0102514" />
+              <geom name="labrum_right_lower" material="lower" pos="0.00111101 0.00854922 -0.00331572" type="sphere" size="0.0102514" />
               <geom name="labrum_right_lower_collision" class="adhesion-collision" type="ellipsoid" size="0.0035 0.00875 0.0131" pos="0.00116 0.0106 -0.00414" quat="-0.175 -0.668 -0.0724 -0.719" />
             </body>
           </body>
         </body>
         <body name="antenna_left" pos="-0.00795 0.0378 0.0129" quat="0.785 -0.59 -0.0128 0.192">
-          <geom name="antenna_left" pos="0.0152707 0.105218 -0.112191" quat="0.364 0.49 0.474 -0.635" type="capsule" size="0.0168397 0.00701217" />
+          <geom name="antenna_left" pos="-0.0127332 0.0172294 0.00276934" type="ellipsoid" size="0.00540057 0.0168397 0.0238518" quat="-0.191167 0.618154 -0.382605 -0.659511" />
           <geom name="antenna_left_collision" class="collision" type="capsule" size="0.00481 0.00875" pos="0 0.0114 0.00263" quat="0.634 -0.773 0 0" />
-          <geom name="antenna_left_black" material="black" mass="0" pos="0.0149857 0.11793 -0.111803" quat="0.364 0.49 0.474 -0.635" type="sphere" size="0.00538933" />
+          <geom name="antenna_left_black" material="black" mass="0" pos="-0.00108258 0.00432222 0.00683451" type="sphere" size="0.00538933" />
         </body>
         <body name="antenna_right" pos="0.00861 0.038 0.0129" quat="0.59 0.785 -0.192 -0.0128">
-          <geom name="antenna_right" pos="-0.0148111 -0.126782 0.111888" quat="-0.474 0.635 0.364 0.49" type="capsule" size="0.0168397 0.00701218" />
+          <geom name="antenna_right" pos="0.0122325 -0.0172292 -0.00276918" type="ellipsoid" size="0.0054006 0.0168397 0.0238519" quat="-0.65951 0.382606 0.618154 0.191168" />
           <geom name="antenna_right_collision" class="collision" type="capsule" size="0.00481 0.00875" pos="-0.000616 -0.0114 -0.00231" quat="0.782 0.623 -0.0258 -0.0164" />
-          <geom name="antenna_right_black" material="black" mass="0" pos="-0.0154854 -0.11793 0.111805" quat="-0.474 0.635 0.364 0.49" type="sphere" size="0.00538934" />
+          <geom name="antenna_right_black" material="black" mass="0" pos="0.000581903 -0.00432197 -0.00683437" type="sphere" size="0.00538934" />
         </body>
       </body>
       <body name="wing_left" childclass="wing" pos="-0.00694 0.0432 0.0091" quat="0.617    -0.402    -0.304    -0.604">
-        <geom name="wing_left_brown" material="brown" mass="0" pos="-0.0799864 0.0199926 -0.0746812" quat="-0.915 0 -0.403 0" type="capsule" size="0.0525679 0.0811313" />
+        <geom name="wing_left_brown" material="brown" mass="0" pos="0.0243478 -0.128904 -0.0265263" type="ellipsoid" size="0.00312095 0.0525679 0.133699" quat="-0.656571 -0.663353 0.253573 -0.254121" />
         <geom name="wing_left_brown_collision" class="collision" type="ellipsoid" size="0.00219 0.0175 0.114" pos="0.00186 -0.11 -0.00166" quat="-0.673 -0.647 0.26 -0.248" />
-        <geom name="wing_left_membrane" material="membrane" mass="0" pos="-0.0893716 0.0398024 -0.0832072" quat="-0.915 0 -0.403 0" type="capsule" size="0.0554888 0.0745357" />
+        <geom name="wing_left_membrane" material="membrane" mass="0" pos="0.0266037 -0.132028 -0.0290936" type="ellipsoid" size="0.000174289 0.0554888 0.130025" quat="-0.649138 -0.670539 0.250921 -0.256976" />
         <geom name="wing_left_membrane_collision" class="collision-membrane" type="ellipsoid" size="0.00306 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243" />
         <geom name="wing_left_fluid" class="wing-fluid" size="0.0005 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243" />
         <geom name="wing_left_inertial" class="wing-inertial" size="0.0005 0.0551 0.114" pos="0.0263 -0.148 -0.0289" quat="-0.685 -0.634 0.265 -0.243" />
       </body>
       <body name="wing_right" childclass="wing" pos="-0.00694 -0.0432 0.0091" quat="-0.304     0.604    -0.617    -0.402 ">
-        <geom name="wing_right_brown" material="brown" mass="0" pos="0.113549 -0.0664067 0.105392" quat="-0.403 0 0.915 0" type="capsule" size="0.0525678 0.0811313" />
+        <geom name="wing_right_brown" material="brown" mass="0" pos="-0.0243472 0.128903 0.0265271" type="ellipsoid" size="0.00312096 0.0525678 0.133699" quat="0.25411 0.253564 0.663354 -0.656578" />
         <geom name="wing_right_brown_collision" class="collision" type="ellipsoid" size="0.00219 0.0175 0.114" pos="-0.00186 0.11 0.00166" quat="0.248 0.26 0.647 -0.673" />
-        <geom name="wing_right_membrane" material="membrane" mass="0" pos="0.104219 -0.0465986 0.0967931" quat="-0.403 0 0.915 0" type="capsule" size="0.0554888 0.0745357" />
+        <geom name="wing_right_membrane" material="membrane" mass="0" pos="-0.0266031 0.132027 0.0290942" type="ellipsoid" size="0.000174286 0.0554888 0.130025" quat="0.256968 0.250913 0.670542 -0.649141" />
         <geom name="wing_right_membrane_collision" class="collision-membrane" type="ellipsoid" size="0.00306 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685" />
         <geom name="wing_right_fluid" class="wing-fluid" size="0.0005 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685" />
         <geom name="wing_right_inertial" class="wing-inertial" size="0.0005 0.0551 0.114" pos="-0.0263 0.148 0.0289" quat="0.243 0.265 0.634 -0.685" />
       </body>
       <body name="abdomen" childclass="abdomen" pos="-0.0447 -0.000555 0.00428" quat="-0.704 -0.0859 -0.0853 -0.7">
-        <geom name="abdomen" pos="0.00748868 -0.0682815 -0.11461" quat="0.7 -0.0853 0.0859 0.704" type="sphere" size="0.0303679" />
-        <geom name="abdomen_lower" material="lower" pos="4.49802e-05 -0.065071 -0.115152" quat="0.7 -0.0853 0.0859 0.704" type="capsule" size="0.0105244 0.0153999" />
+        <geom name="abdomen" pos="-6.51608e-05 0.0029425 -0.012634" type="ellipsoid" size="0.00970442 0.0303679 0.0327778" quat="0.587787 0.38944 0.581575 0.405727" />
+        <geom name="abdomen_lower" material="lower" pos="-0.000338511 -0.00113727 -0.0331854" type="capsule" size="0.0105244 0.0153999" quat="0.538679 0.454951 0.542017 0.457233" />
         <geom name="abdomen_collision" class="collision" type="cylinder" size="0.0281 0.0102 0" pos="-0.000187 0.00646 -0.0146" quat="0.0104 -0.0205 0.824 0.566" />
         <body name="abdomen_2" pos="0 0.0119 0" quat="0.981 -0.192 -0.000269 0.00144">
-          <geom name="abdomen_2" pos="0.0122982 -0.0317757 -0.136835" quat="0.704 0.0507 -0.0503 0.706" type="sphere" size="0.041455" />
-          <geom name="abdomen_2_lower" material="lower" pos="-0.00187908 -0.0249254 -0.135141" quat="0.704 0.0507 -0.0503 0.706" type="capsule" size="0.0219737 0.0100268" />
+          <geom name="abdomen_2" pos="-0.000569904 0.0151522 -0.0216331" type="ellipsoid" size="0.0183528 0.041455 0.0415075" quat="0.480713 0.518568 0.47576 0.52312" />
+          <geom name="abdomen_2_lower" material="lower" pos="0.000506006 0.0169168 -0.0423167" type="capsule" size="0.0219737 0.0100268" quat="0.274881 0.650786 0.285815 0.647478" />
           <geom name="abdomen_2_collision" class="collision" type="cylinder" size="0.035 0.0142 0" pos="-0.000182 0.0166 -0.015" quat="-0.0458 -0.0256 0.694 0.718" />
           <body name="abdomen_3" pos="0 0.0212 0" quat="0.996 -0.0909 6.69e-05 0.000525">
-            <geom name="abdomen_3" pos="0.0120028 -0.027031 -0.143125" quat="0.697 0.114 -0.114 0.699" type="sphere" size="0.0422489" />
-            <geom name="abdomen_3_lower" material="lower" pos="-0.00203692 -0.0206475 -0.141333" quat="0.697 0.114 -0.114 0.699" type="capsule" size="0.0221697 0.0113192" />
+            <geom name="abdomen_3" pos="0.000114405 0.0211676 -0.0214114" type="sphere" size="0.0422489" />
+            <geom name="abdomen_3_lower" material="lower" pos="0.000551221 0.022426 -0.0453978" type="capsule" size="0.0221697 0.0113192" quat="0.128107 0.694435 0.131295 0.695781" />
             <geom name="abdomen_3_collision" class="collision" type="cylinder" size="0.0371 0.0194 0" pos="3.29e-05 0.0198 -0.0136" quat="0.697 -0.605 0.274 0.271" />
             <body name="abdomen_4" pos="0 0.0313 0" quat="0.999 -0.0332 0.000147 -0.000229">
-              <geom name="abdomen_4" pos="0.0111743 -0.0470138 -0.14566" quat="0.693 0.137 -0.138 0.695" type="sphere" size="0.0415087" />
-              <geom name="abdomen_4_lower" material="lower" pos="-0.00218202 -0.0438686 -0.144567" quat="0.693 0.137 -0.138 0.695" type="capsule" size="0.0204552 0.0135975" />
+              <geom name="abdomen_4" pos="0.000414169 0.0166373 -0.0197631" type="ellipsoid" size="0.0206209 0.0439879 0.0415087" quat="0.436858 0.549622 0.436698 0.562464" />
+              <geom name="abdomen_4_lower" material="lower" pos="0.000508993 0.0196814 -0.046953" type="capsule" size="0.0204552 0.0135975" quat="0.191225 0.679086 0.191684 0.682299" />
               <geom name="abdomen_4_collision" class="collision" type="cylinder" size="0.0377 0.0176 0" pos="9.67e-05 0.015 -0.0158" quat="-0.0133 -0.062 0.637 0.768" />
               <body name="abdomen_5" pos="0 0.0262 0" quat="0.999 -0.0368 -4.72e-05 -0.000327">
-                <geom name="abdomen_5" pos="0.00837951 -0.06079 -0.150334" quat="0.687 0.163 -0.163 0.689" type="sphere" size="0.0394784" />
-                <geom name="abdomen_5_lower" material="lower" pos="0.00367528 -0.0596115 -0.149637" quat="0.687 0.163 -0.163 0.689" type="capsule" size="0.018756 0.0165597" />
+                <geom name="abdomen_5" pos="0.000492611 0.0129724 -0.0169182" type="ellipsoid" size="0.0184518 0.0394784 0.0402031" quat="0.433272 0.559456 0.426469 0.563391" />
+                <geom name="abdomen_5_lower" material="lower" pos="0.000479531 0.0154536 -0.0433966" type="capsule" size="0.018756 0.0165597" quat="-0.405757 0.580122 -0.403897 0.579385" />
                 <geom name="abdomen_5_collision" class="collision" type="cylinder" size="0.0353 0.016 0" pos="0.000282 0.0105 -0.0156" quat="-0.00496 -0.0596 0.624 0.779" />
                 <body name="abdomen_6" pos="0 0.0213 0" quat="0.998 -0.0662 0.000156 -0.000351">
-                  <geom name="abdomen_6" pos="0.00873372 -0.0619038 -0.160366" quat="0.674 0.208 -0.208 0.677" type="sphere" size="0.0319812" />
-                  <geom name="abdomen_6_lower" material="lower" pos="0.00350476 -0.060147 -0.159501" quat="0.674 0.208 -0.208 0.677" type="capsule" size="0.0171362 0.014255" />
+                  <geom name="abdomen_6" pos="2.53447e-05 0.0120278 -0.016716" type="sphere" size="0.0319812" />
+                  <geom name="abdomen_6_lower" material="lower" pos="6.46424e-05 0.0150611 -0.0365175" type="capsule" size="0.0171362 0.014255" quat="-0.408916 0.578592 -0.406596 0.576799" />
                   <geom name="abdomen_6_collision" class="collision" type="cylinder" size="0.0318 0.0141 0" pos="-0.000157 0.00942 -0.0143" quat="-0.00411 0.000397 0.592 0.806" />
                   <body name="abdomen_7" pos="0 0.0182 0" quat="0.995 -0.102 -1.79e-06 -0.000187">
-                    <geom name="abdomen_8" pos="0.000723404 -0.0445603 -0.172644" quat="0.649 0.276 -0.276 0.653" type="sphere" size="0.021563" />
-                    <geom name="abdomen_7" pos="0.00991857 -0.0464727 -0.173799" quat="0.649 0.276 -0.276 0.653" type="sphere" size="0.0271919" />
-                    <geom name="abdomen_7_lower" material="lower" pos="0.0032253 -0.0447076 -0.172258" quat="0.649 0.276 -0.276 0.653" type="capsule" size="0.017067 0.00547658" />
+                    <geom name="abdomen_8" pos="-8.52224e-05 0.0248244 -0.00930379" type="sphere" size="0.021563" />
+                    <geom name="abdomen_7" pos="0.000258939 0.00925098 -0.0162839" type="sphere" size="0.0271919" />
+                    <geom name="abdomen_7_lower" material="lower" pos="9.75036e-05 0.0137549 -0.0292241" type="capsule" size="0.017067 0.00547658" quat="-0.406201 0.58057 -0.402287 0.579745" />
                   </body>
                 </body>
               </body>
@@ -319,44 +319,44 @@
         </body>
       </body>
       <body name="haltere_left" childclass="haltere" pos="-0.0386 0.0247 -0.00866" quat="0.291 -0.204 0.826 0.439">
-        <geom name="haltere_left" pos="0.0564963 -0.102572 0.0404685" quat="-0.439 0.826 0.204 -0.291" type="capsule" size="0.00732178 0.00785458" />
+        <geom name="haltere_left" pos="0.000759072 0.0144939 0.000921985" type="capsule" size="0.00732178 0.00785458" quat="-0.670857 0.700621 -0.160982 -0.182114" />
       </body>
       <body name="haltere_right" childclass="haltere" pos="-0.0386 -0.0247 -0.00866" quat="-0.438 -0.829 0.206 -0.28">
-        <geom name="haltere_right" pos="-0.0547554 -0.102548 0.0415653" quat="0.28 0.206 0.829 0.438" type="capsule" size="0.00732644 0.00784002" />
+        <geom name="haltere_right" pos="-0.000735649 0.0148176 0.00102949" type="capsule" size="0.00732644 0.00784002" quat="0.161071 -0.144516 0.707528 0.672737" />
       </body>
       <body name="coxa_T1_left" childclass="leg" pos="0.0317 0.0209 -0.0272" quat="-0.532 0.787 -0.311 -0.0229">
         <joint name="coxa_flexion_T1_left" class="flexion_coxa_T1" />
         <joint name="coxa_twist_T1_left" class="twist_coxa_T1" />
-        <geom name="coxa_T1_left" pos="0.0122529 0.101192 0.0111616" quat="0.0229 -0.311 -0.787 0.532" type="capsule" size="0.00787721 0.016155" />
+        <geom name="coxa_T1_left" pos="-0.000324803 0.0228864 0.000668814" type="capsule" size="0.00787721 0.016155" quat="-0.41761 -0.383358 -0.53138 0.629503" />
         <geom name="coxa_T1_left_collision" class="collision" type="ellipsoid" size="0.00679 0.00752 0.0208" pos="-2.04e-05 0.0261 -0.000454" quat="-0.417 -0.383 -0.532 0.63" />
         <site name="tracking[coxa_T1_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
         <body name="femur_T1_left" pos="0 0.0437 0" quat="0 0 0.252 0.968">
           <joint name="femur_twist_T1_left" class="twist_femur" />
           <joint name="femur_T1_left" class="extend_femur_T1" />
-          <geom name="femur_T1_left" pos="-0.0127906 -0.0466412 0.0396322" quat="0.316 -0.896 0.295 -0.101" type="capsule" size="0.00728177 0.0304885" />
+          <geom name="femur_T1_left" pos="0.00224676 0.0340335 0.00302449" type="capsule" size="0.00728177 0.0304885" quat="0.666666 -0.676013 0.226023 0.217892" />
           <geom name="femur_T1_left_collision" class="collision" size="0.005" fromto="0.00263 0.00263 0.00438 0 0.0662 0" />
           <site name="tracking[femur_T1_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
           <body name="tibia_T1_left" pos="0 0.0697 0" quat="0.186 0.162 0.677 -0.694">
             <joint name="tibia_T1_left" class="extend_tibia" />
-            <geom name="tibia_T1_left" pos="-0.0031728 -0.0376317 0.117505" quat="-0.183 0.354 0.797 0.453" type="capsule" size="0.00419274 0.0222342" />
+            <geom name="tibia_T1_left" pos="-0.000613914 -0.0268236 -8.63539e-05" type="capsule" size="0.00419274 0.0222342" quat="-0.297997 0.303125 0.660506 0.618906" />
             <geom name="tibia_T1_left_collision" class="collision" size="0.00362" fromto="0 0 0 0 -0.051 0.00175" />
             <site name="tracking[tibia_T1_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
             <body name="tarsus_T1_left" pos="0 -0.051 0.00175" quat="0.039 0.998 0.00674 0.0474">
               <joint name="tarsus_T1_left" class="extend_tarsus_T1" />
-              <geom name="tarsus_T1_left" pos="0.00790331 -0.00329545 -0.115678" quat="-0.373 -0.231 -0.468 0.767" type="capsule" size="0.00224226 0.0102124" />
+              <geom name="tarsus_T1_left" pos="-0.000558231 0.0120928 0.000950103" type="capsule" size="0.00224226 0.0102124" quat="-0.321106 -0.339421 -0.62503 0.625317" />
               <geom name="tarsus_T1_left_collision" class="collision" size="0.00204" fromto="0 0 0 -0.000165 0.0235 0.00174" />
               <site name="tracking[tarsus_T1_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
               <body name="tarsus2_T1_left" pos="-0.000165 0.0235 0.00174">
-                <geom name="tarsus2_T1_left" pos="0.00801754 -0.0262821 -0.118044" quat="0.373 0.231 0.468 -0.767" type="capsule" size="0.00394099 0.00372312" />
+                <geom name="tarsus2_T1_left" pos="-0.000179534 0.00750416 -0.00025319" type="capsule" size="0.00394099 0.00372312" quat="0.373037 0.231023 0.468046 -0.767076" />
                 <geom name="tarsus2_T1_left_collision" class="collision" size="0.00159" fromto="0 0 0 0.000113 0.0136 0.000556" />
                 <body name="tarsus3_T1_left" pos="0.000113 0.0136 0.000556">
-                  <geom name="tarsus3_T1_left" pos="0.00793128 -0.0396539 -0.119124" quat="-0.373 -0.231 -0.468 0.767" type="capsule" size="0.00272893 0.00286279" />
+                  <geom name="tarsus3_T1_left" pos="-0.000321019 0.00530192 -0.000800795" type="capsule" size="0.00272893 0.00286279" quat="-0.373037 -0.231023 -0.468046 0.767076" />
                   <geom name="tarsus3_T1_left_collision" class="collision" size="0.00149" fromto="0 0 0 -0.000255 0.00909 0.0002" />
                   <body name="tarsus4_T1_left" pos="-0.000255 0.00909 0.0002">
-                    <geom name="tarsus4_T1_left" pos="0.00816587 -0.0487137 -0.119029" quat="0.373 0.231 0.468 -0.767" type="capsule" size="0.0020973 0.0026698" />
+                    <geom name="tarsus4_T1_left" pos="-0.000312252 0.00457831 -0.000743256" type="capsule" size="0.0020973 0.0026698" quat="0.373037 0.231023 0.468046 -0.767076" />
                     <geom name="tarsus4_T1_left_collision" class="collision" size="0.00148" fromto="0 0 0 -7.12e-05 0.00906 -0.00081" />
                     <body name="claw_T1_left" pos="-7.12e-05 0.00906 -0.00081">
-                      <geom name="tarsal_claw_T1_left" material="brown" pos="0.00770122 -0.0567317 -0.11732" quat="-0.373 -0.231 -0.468 0.767" type="capsule" size="0.00395499 0.00245772" />
+                      <geom name="tarsal_claw_T1_left" material="brown" pos="-0.00119458 0.00574181 0.000681628" type="capsule" size="0.00395499 0.00245772" quat="-0.373037 -0.231023 -0.468046 0.767076" />
                       <geom name="tarsal_claw_T1_left_collision" class="adhesion-collision" type="capsule" size="0.00199" fromto="0 0 0 -7.12e-05 0.00906 -0.00081" />
                       <site name="claw_T1_left" class="adhesion-collision" size="0.00219" fromto="0 0 0 -7.12e-05 0.00906 -0.00081" />
                       <site name="tracking[claw_T1_left]" pos="0 0.005 0" size="0.005" group="0" rgba="0 1 0 1" />
@@ -371,36 +371,36 @@
       <body name="coxa_T1_right" childclass="leg" pos="0.0317 -0.0209 -0.0272" quat="0.319 0.011 -0.543 -0.777">
         <joint name="coxa_flexion_T1_right" class="flexion_coxa_T1" />
         <joint name="coxa_twist_T1_right" class="twist_coxa_T1" />
-        <geom name="coxa_T1_right" pos="-0.00964027 -0.102142 -0.00696756" quat="-0.777 0.543 0.011 0.319" type="capsule" size="0.00787722 0.016155" />
+        <geom name="coxa_T1_right" pos="0.00105469 -0.0231929 0.000273755" type="capsule" size="0.00787722 0.016155" quat="-0.507459 0.628009 0.446869 0.385225" />
         <geom name="coxa_T1_right_collision" class="collision" type="ellipsoid" size="0.00679 0.00752 0.0208" pos="0.00061 -0.026 0.00153" quat="-0.508 0.628 0.447 0.385" />
         <site name="tracking[coxa_T1_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
         <body name="femur_T1_right" pos="0 -0.0436 0" quat="0 0 0.261 0.965">
           <joint name="femur_twist_T1_right" class="twist_femur" />
           <joint name="femur_T1_right" class="extend_femur_T1" />
-          <geom name="femur_T1_right" pos="0.0108424 0.0496955 -0.0379978" quat="-0.31 0.0726 0.321 -0.892" type="capsule" size="0.0072737 0.0304967" />
+          <geom name="femur_T1_right" pos="-0.00230382 -0.0339572 -0.00290191" type="capsule" size="0.0072737 0.0304967" quat="0.231721 -0.23911 -0.67152 -0.661961" />
           <geom name="femur_T1_right_collision" class="collision" size="0.005" fromto="-0.00263 -0.00263 -0.00438 0 -0.0663 0" />
           <site name="tracking[femur_T1_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
           <body name="tibia_T1_right" pos="0 -0.0698 0" quat="0.163 0.148 0.688 -0.692">
             <joint name="tibia_T1_right" class="extend_tibia" />
-            <geom name="tibia_T1_right" pos="0.00408798 0.0364261 -0.118475" quat="-0.798 -0.45 -0.184 0.357" type="capsule" size="0.00421148 0.0222152" />
+            <geom name="tibia_T1_right" pos="1.70469e-05 0.0265693 -0.000187745" type="capsule" size="0.00421148 0.0222152" quat="-0.666105 -0.611164 -0.299741 0.304858" />
             <geom name="tibia_T1_right_collision" class="collision" size="0.00362" fromto="0 0 0 0 0.0515 -0.00175" />
             <site name="tracking[tibia_T1_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
             <body name="tarsus_T1_right" pos="0 0.0515 -0.00175" quat="-0.0745 -0.995 0.0133 0.0704">
               <joint name="tarsus_T1_right" class="extend_tarsus_T1" />
-              <geom name="tarsus_T1_right" pos="0.0207259 -0.00380637 0.11573" quat="-0.529 0.778 0.299 0.16" type="capsule" size="0.002247 0.0102077" />
+              <geom name="tarsus_T1_right" pos="-0.00015324 -0.0114806 -0.000492614" type="capsule" size="0.002247 0.0102077" quat="-0.674549 0.644256 0.235119 0.273199" />
               <geom name="tarsus_T1_right_collision" class="collision" size="0.00204" fromto="0 0 0 -0.000965 -0.0227 -0.00161" />
               <site name="tracking[tarsus_T1_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
               <body name="tarsus2_T1_right" pos="-0.000965 -0.0227 -0.00161">
-                <geom name="tarsus2_T1_right" pos="0.0217784 0.0183827 0.118036" quat="0.529 -0.778 -0.299 -0.16" type="capsule" size="0.00369573 0.00398953" />
+                <geom name="tarsus2_T1_right" pos="0.000428355 -0.00758294 -0.000280125" type="capsule" size="0.00369573 0.00398953" quat="0.528967 -0.777951 -0.298981 -0.15999" />
                 <geom name="tarsus2_T1_right_collision" class="collision" size="0.00159" fromto="0 0 0 0.000143 -0.0136 -0.00168" />
                 <body name="tarsus3_T1_right" pos="0.000143 -0.0136 -0.00168">
-                  <geom name="tarsus3_T1_right" pos="0.021558 0.0318553 0.120104" quat="-0.529 0.778 0.299 0.16" type="capsule" size="0.00273365 0.00285726" />
+                  <geom name="tarsus3_T1_right" pos="0.000413493 -0.00522729 0.000575659" type="capsule" size="0.00273365 0.00285726" quat="-0.528967 0.777951 0.298981 0.15999" />
                   <geom name="tarsus3_T1_right_collision" class="collision" size="0.00149" fromto="0 0 0 0.000437 -0.00899 -0.00063" />
                   <body name="tarsus4_T1_right" pos="0.000437 -0.00899 -0.00063">
-                    <geom name="tarsus4_T1_right" pos="0.0211188 0.0407138 0.119987" quat="0.529 -0.778 -0.299 -0.16" type="capsule" size="0.00228095 0.0024688" />
+                    <geom name="tarsus4_T1_right" pos="0.000522504 -0.00467082 -8.55839e-05" type="capsule" size="0.00228095 0.0024688" quat="0.528967 -0.777951 -0.298981 -0.15999" />
                     <geom name="tarsus4_T1_right_collision" class="collision" size="0.00148" fromto="0 0 0 0.000765 -0.00899 0.000134" />
                     <body name="claw_T1_right" pos="0.000765 -0.00899 0.000134">
-                      <geom name="tarsal_claw_T1_right" material="brown" pos="0.0207343 0.0486944 0.119179" quat="-0.529 0.778 0.299 0.16" type="capsule" size="0.00422871 0.00228663" />
+                      <geom name="tarsal_claw_T1_right" material="brown" pos="0.000996252 -0.00583564 -0.00130085" type="capsule" size="0.00422871 0.00228663" quat="-0.528967 0.777951 0.298981 0.15999" />
                       <geom name="tarsal_claw_T1_right_collision" class="adhesion-collision" type="capsule" size="0.00199" fromto="0 0 0 0.000765 -0.00899 0.000134" />
                       <site name="claw_T1_right" class="adhesion-collision" size="0.00219" fromto="0 0 0 0.000765 -0.00899 0.000134" />
                       <site name="tracking[claw_T1_right]" pos="0 0.005 0" size="0.005" group="0" rgba="0 1 0 1" />
@@ -415,36 +415,36 @@
       <body name="coxa_T2_left" childclass="leg" pos="-0.0144 0.0241 -0.0425" quat="-0.371 0.917 -0.126 -0.0722">
         <joint name="coxa_flexion_T2_left" class="flexion_coxa_T2" />
         <joint name="coxa_twist_T2_left" class="twist_coxa_T2" />
-        <geom name="coxa_T2_left" pos="0.0296037 0.0659707 0.03734" quat="0.0722 -0.126 -0.917 0.371" type="capsule" size="0.00801424 0.00727658" />
+        <geom name="coxa_T2_left" pos="0.0015033 0.0150607 -0.000523359" type="capsule" size="0.00801424 0.00727658" quat="-0.638897 -0.464659 -0.461154 0.404029" />
         <geom name="coxa_T2_left_collision" class="collision" type="ellipsoid" size="0.00788 0.007 0.0149" pos="0.000349 0.0143 -0.00216" quat="0.707 -0.707 0 0" />
         <site name="tracking[coxa_T2_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
         <body name="femur_T2_left" pos="0 0.0281 0" quat="0 0 0.128 0.992">
           <joint name="femur_twist_T2_left" class="twist_femur_T2" />
           <joint name="femur_T2_left" class="extend_femur_T2" />
           <site name="tracking[femur_T2_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
-          <geom name="femur_T2_left" pos="-0.028101 -0.0283244 0.0491269" quat="0.251 -0.957 0.116 -0.0879" type="capsule" size="0.00644685 0.0373105" />
+          <geom name="femur_T2_left" pos="-0.001005 0.0409271 0.00268603" type="capsule" size="0.00644685 0.0373105" quat="0.668213 -0.6907 -0.201865 -0.18888" />
           <geom name="femur_T2_left_collision" class="collision" size="0.00469" fromto="0 0.00263 0.00438 0 0.0789 0" />
           <body name="tibia_T2_left" pos="0 0.083 0" quat="0.107 0.0834 0.656 -0.742">
             <joint name="tibia_T2_left" class="extend_tibia_T2" />
-            <geom name="tibia_T2_left" pos="0.0200324 -0.0421656 0.116823" quat="-0.0884 0.152 0.87 0.461" type="capsule" size="0.00444673 0.0303599" />
+            <geom name="tibia_T2_left" pos="-0.000150909 -0.0343851 -0.000358559" type="capsule" size="0.00444673 0.0303599" quat="-0.113117 0.106976 0.715191 0.681368" />
             <geom name="tibia_T2_left_collision" class="collision" size="0.00352" fromto="0 0 0 0 -0.0668 0.00175" />
             <site name="tracking[tibia_T2_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
             <body name="tarsus_T2_left" pos="0 -0.0668 0.00175" quat="-0.148 0.978 -0.0216 -0.143">
               <joint name="tarsus_T2_left" class="extend_tarsus_T2" />
-              <geom name="tarsus_T2_left" pos="-0.0132448 -0.0586256 -0.102625" quat="-0.0774 0.0502 -0.342 0.935" type="capsule" size="0.00269716 0.0156399" />
+              <geom name="tarsus_T2_left" pos="-8.17861e-06 0.0172988 0.000215126" type="capsule" size="0.00269716 0.0156399" quat="-0.0146065 0.0195705 0.694017 0.719544" />
               <geom name="tarsus_T2_left_collision" class="collision" size="0.00208" fromto="0 0 0 0.000471 0.0342 0.00136" />
               <site name="tracking[tarsus_T2_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
               <body name="tarsus2_T2_left" pos="0.000471 0.0342 0.00136">
-                <geom name="tarsus2_T2_left" pos="-0.0139414 -0.091763 -0.104735" quat="0.0774 -0.0502 0.342 -0.935" type="capsule" size="0.00302112 0.00694061" />
+                <geom name="tarsus2_T2_left" pos="-1.73726e-06 0.00913434 -3.25718e-06" type="capsule" size="0.00302112 0.00694061" quat="0.078802 0.0479958 -0.694435 -0.713615" />
                 <geom name="tarsus2_T2_left_collision" class="collision" size="0.00162" fromto="0 0 0 2.42e-05 0.0178 0.000203" />
                 <body name="tarsus3_T2_left" pos="2.42e-05 0.0178 0.000203">
-                  <geom name="tarsus3_T2_left" pos="-0.0137723 -0.110452 -0.105494" quat="-0.0774 0.0502 -0.342 0.935" type="sphere" size="0.00454702" />
+                  <geom name="tarsus3_T2_left" pos="-4.20934e-06 0.00538076 -0.00103914" type="ellipsoid" size="0.00213066 0.00489016 0.00454702" quat="-0.0774116 0.0502075 -0.342051 0.93514" />
                   <geom name="tarsus3_T2_left_collision" class="collision" size="0.00149" fromto="0 0 0 -3.11e-05 0.00991 0.000292" />
                   <body name="tarsus4_T2_left" pos="-3.11e-05 0.00991 0.000292">
-                    <geom name="tarsus4_T2_left" pos="-0.0135906 -0.12045 -0.105434" quat="0.0774 -0.0502 0.342 -0.935" type="sphere" size="0.00391927" />
+                    <geom name="tarsus4_T2_left" pos="0.000212141 0.00476284 -0.000860885" type="ellipsoid" size="0.00184751 0.00391927 0.00393788" quat="0.0774116 -0.0502075 0.342051 -0.93514" />
                     <geom name="tarsus4_T2_left_collision" class="collision" size="0.00146" fromto="0 0 0 3.6e-05 0.00991 -0.000254" />
                     <body name="claw_T2_left" pos="3.6e-05 0.00991 -0.000254">
-                      <geom name="tarsal_claw_T2_left" material="brown" pos="-0.0128667 -0.129398 -0.105622" quat="-0.0192333 0.0902268 -0.902975 0.419314" type="capsule" size="0.00443138 0.00175975" />
+                      <geom name="tarsal_claw_T2_left" material="brown" pos="0.00105004 0.00570629 -3.11262e-05" type="capsule" size="0.00443138 0.00175975" quat="-0.0192362 0.0902404 -0.903111 0.419377" />
                       <geom name="tarsal_claw_T2_left_collision" class="adhesion-collision" type="capsule" size="0.002" fromto="0 0 0 3.6e-05 0.00991 -0.000254" />
                       <site name="claw_T2_left" class="adhesion-collision" size="0.0022" fromto="0 0 0 3.6e-05 0.00991 -0.000254" />
                       <site name="tracking[claw_T2_left]" pos="0 0.005 0" size="0.005" group="0" rgba="0 1 0 1" />
@@ -459,36 +459,36 @@
       <body name="coxa_T2_right" childclass="leg" pos="-0.0144 -0.0241 -0.0425" quat="0.126 -0.0709 -0.374 -0.916">
         <joint name="coxa_flexion_T2_right" class="flexion_coxa_T2" />
         <joint name="coxa_twist_T2_right" class="twist_coxa_T2" />
-        <geom name="coxa_T2_right" pos="-0.0306944 -0.0698288 -0.0432309" quat="-0.916 0.374 -0.0709 0.126" type="capsule" size="0.00801424 0.00727658" />
+        <geom name="coxa_T2_right" pos="-0.00142502 -0.0150621 0.000313839" type="capsule" size="0.00801424 0.00727658" quat="-0.404832 -0.459614 0.462593 -0.640994" />
         <geom name="coxa_T2_right_collision" class="collision" type="ellipsoid" size="0.00788 0.007 0.0149" pos="-0.000335 -0.0143 0.00206" quat="0.707 0.707 0 0" />
         <site name="tracking[coxa_T2_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
         <body name="femur_T2_right" pos="0 -0.0282 0" quat="0 0 0.134 0.991">
           <joint name="femur_twist_T2_right" class="twist_femur_T2" />
           <joint name="femur_T2_right" class="extend_femur_T2" />
-          <geom name="femur_T2_right" pos="0.0281236 0.0286353 -0.0498742" quat="-0.115 0.0871 0.247 -0.958" type="capsule" size="0.00644594 0.0373115" />
+          <geom name="femur_T2_right" pos="0.00103509 -0.0408955 -0.00236317" type="capsule" size="0.00644594 0.0373115" quat="-0.186774 0.202597 -0.693423 -0.665759" />
           <geom name="femur_T2_right_collision" class="collision" size="0.00469" fromto="0 -0.00263 -0.00438 0 -0.0798 0" />
           <site name="tracking[femur_T2_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
           <body name="tibia_T2_right" pos="0 -0.084 0" quat="0.0902 0.103 0.659 -0.739">
             <joint name="tibia_T2_right" class="extend_tibia_T2" />
-            <geom name="tibia_T2_right" pos="-0.0135847 0.0426804 -0.118812" quat="-0.87 -0.469 -0.064 0.139" type="capsule" size="0.0044463 0.0303605" />
+            <geom name="tibia_T2_right" pos="-0.000103461 0.0338353 -0.000743129" type="capsule" size="0.0044463 0.0303605" quat="-0.715035 -0.687356 -0.0927806 0.0875114" />
             <geom name="tibia_T2_right_collision" class="collision" size="0.00353" fromto="0 0 0 0 0.0665 -0.00175" />
             <site name="tracking[tibia_T2_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
             <body name="tarsus_T2_right" pos="0 0.0665 -0.00175" quat="0.15 -0.982 0.0172 0.113">
               <joint name="tarsus_T2_right" class="extend_tarsus_T2" />
-              <geom name="tarsus_T2_right" pos="0.0128692 0.0572575 0.104375" quat="-0.344 0.934 0.0789 -0.0479" type="capsule" size="0.00269717 0.0156399" />
+              <geom name="tarsus_T2_right" pos="5.69099e-06 -0.0171039 0.000352446" type="capsule" size="0.00269717 0.0156399" quat="-0.721281 0.692296 -0.0173448 -0.0133781" />
               <geom name="tarsus_T2_right_collision" class="collision" size="0.00208" fromto="0 0 0 -0.000367 -0.0339 -0.00103" />
               <site name="tracking[tarsus_T2_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
               <body name="tarsus2_T2_right" pos="-0.000367 -0.0339 -0.00103">
-                <geom name="tarsus2_T2_right" pos="0.0130867 0.0922448 0.104267" quat="0.344 -0.934 -0.0788 0.0479" type="capsule" size="0.00302117 0.00694056" />
+                <geom name="tarsus2_T2_right" pos="8.44848e-06 -0.00923444 0.000442751" type="capsule" size="0.00302117 0.00694056" quat="0.715175 -0.69283 -0.0502663 0.0773563" />
                 <geom name="tarsus2_T2_right_collision" class="collision" size="0.00162" fromto="0 0 0 1.72e-05 -0.0177 -0.000553" />
                 <body name="tarsus3_T2_right" pos="1.72e-05 -0.0177 -0.000553">
-                  <geom name="tarsus3_T2_right" pos="0.0130694 0.109449 0.105495" quat="-0.344 0.934 0.0788 -0.0479" type="sphere" size="0.00454674" />
+                  <geom name="tarsus3_T2_right" pos="-7.51769e-05 -0.00588121 0.00040906" type="ellipsoid" size="0.00213075 0.00489033 0.00454674" quat="-0.344138 0.934376 0.0788317 -0.0479193" />
                   <geom name="tarsus3_T2_right_collision" class="collision" size="0.00149" fromto="0 0 0 5.07e-05 -0.00988 -0.000293" />
                   <body name="tarsus4_T2_right" pos="5.07e-05 -0.00988 -0.000293">
-                    <geom name="tarsus4_T2_right" pos="0.012988 0.119447 0.106435" quat="0.344 -0.934 -0.0788 0.0479" type="sphere" size="0.00391947" />
+                    <geom name="tarsus4_T2_right" pos="-0.000181731 -0.00526226 0.00118362" type="ellipsoid" size="0.0018476 0.00391947 0.0039376" quat="0.344138 -0.934376 -0.0788317 0.0479193" />
                     <geom name="tarsus4_T2_right_collision" class="collision" size="0.00146" fromto="0 0 0 -9.66e-05 -0.00988 0.000252" />
                     <body name="claw_T2_right" pos="-9.66e-05 -0.00988 0.000252">
-                      <geom name="tarsal_claw_T2_right" material="brown" pos="0.0122634 0.128394 0.105613" quat="0.417193 0.903682 0.0895904 0.0218496" type="capsule" size="0.00443099 0.0017604" />
+                      <geom name="tarsal_claw_T2_right" material="brown" pos="-0.00100491 -0.00620247 -0.000705426" type="capsule" size="0.00443099 0.0017604" quat="0.417361 0.904046 0.0896265 0.0218584" />
                       <geom name="tarsal_claw_T2_right_collision" class="adhesion-collision" type="capsule" size="0.002" fromto="0 0 0 -9.66e-05 -0.00988 0.000252" />
                       <site name="claw_T2_right" class="adhesion-collision" size="0.0022" fromto="0 0 0 -9.66e-05 -0.00988 0.000252" />
                       <site name="tracking[claw_T2_right]" pos="0 0.005 0" size="0.005" group="0" rgba="0 1 0 1" />
@@ -503,36 +503,36 @@
       <body name="coxa_T3_left" childclass="leg" pos="-0.0377 0.0192 -0.0402" quat="0.681 -0.529 -0.0882 0.498">
         <joint name="coxa_flexion_T3_left" class="flexion_coxa_T3" />
         <joint name="coxa_twist_T3_left" class="twist_coxa_T3" />
-        <geom name="coxa_T3_left" pos="0.0343224 0.0491723 -0.0672812" quat="-0.498 -0.0882 0.529 -0.681" type="capsule" size="0.00925032 0.00573129" />
+        <geom name="coxa_T3_left" pos="-0.00225878 0.0138035 -0.0055289" type="capsule" size="0.00925032 0.00573129" quat="0.383739 0.0590956 0.510237 -0.767405" />
         <geom name="coxa_T3_left_collision" class="collision" type="ellipsoid" size="0.007 0.00875 0.0166" pos="-0.00348 0.0116 -0.00687" quat="0.603 -0.786 -0.135 0" />
         <site name="tracking[coxa_T3_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
         <body name="femur_T3_left" pos="-0.00398 0.0232 -0.00668" quat="0 0 -0.668 -0.744">
           <joint name="femur_twist_T3_left" class="twist_femur_T3" />
           <joint name="femur_T3_left" class="extend_femur_T3" />
-          <geom name="femur_T3_left" pos="-0.035946 -0.0597032 0.0178272" quat="0.153 -0.849 -0.398 -0.312" type="capsule" size="0.00797497 0.0354335" />
+          <geom name="femur_T3_left" pos="-0.00250665 0.0376055 0.00156746" type="capsule" size="0.00797497 0.0354335" quat="0.670499 -0.704525 -0.178072 -0.149554" />
           <geom name="femur_T3_left_collision" class="collision" size="0.00544" fromto="-0.00263 0.00263 0.00438 -0.00263 0.0766 1.52e-07" />
           <site name="tracking[femur_T3_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
           <body name="tibia_T3_left" pos="0 0.0779 1.6e-07" quat="-0.117 -0.104 -0.711 0.685">
             <joint name="tibia_T3_left" class="extend_tibia_T3" />
-            <geom name="tibia_T3_left" pos="0.030289 -0.0367353 0.138839" quat="-0.14 0.379 -0.77 -0.494" type="capsule" size="0.00537691 0.0314036" />
+            <geom name="tibia_T3_left" pos="-0.000131536 -0.0364342 -0.00134745" type="capsule" size="0.00537691 0.0314036" quat="0.127755 -0.11138 -0.712807 -0.680573" />
             <geom name="tibia_T3_left_collision" class="collision" size="0.00365" fromto="0 -0.003 -0.005 0 -0.0715 0.00175" />
             <site name="tracking[tibia_T3_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
             <body name="tarsus_T3_left" pos="0 -0.0715 0.00175" quat="-0.23 0.963 -0.033 -0.138">
               <joint name="tarsus_T3_left" class="extend_tarsus_T3" />
-              <geom name="tarsus_T3_left" pos="-0.00909774 -0.0951159 -0.107887" quat="-0.49 -0.138 0.251 -0.823" type="capsule" size="0.00345418 0.0153137" />
+              <geom name="tarsus_T3_left" pos="6.36662e-05 0.016825 0.000825405" type="capsule" size="0.00345418 0.0153137" quat="-0.104142 0.100234 -0.685124 -0.713942" />
               <geom name="tarsus_T3_left_collision" class="collision" size="0.00234" fromto="0 0 0 0.00027 0.0337 0.00102" />
               <site name="tracking[tarsus_T3_left]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
               <body name="tarsus2_T3_left" pos="0.00027 0.0337 0.00102">
-                <geom name="tarsus2_T3_left" pos="-0.00913618 -0.127718 -0.110433" quat="0.49 0.138 -0.251 0.823" type="capsule" size="0.00168317 0.00965405" />
+                <geom name="tarsus2_T3_left" pos="-0.000176763 0.00961818 0.00135869" type="capsule" size="0.00168317 0.00965405" quat="0.103637 -0.0978009 0.681781 0.717544" />
                 <geom name="tarsus2_T3_left_collision" class="collision" size="0.00168" fromto="0 0 0 -7.97e-05 0.0197 0.00158" />
                 <body name="tarsus3_T3_left" pos="-7.97e-05 0.0197 0.00158">
-                  <geom name="tarsus3_T3_left" pos="-0.00887826 -0.148306 -0.112374" quat="-0.49 -0.138 0.251 -0.823" type="sphere" size="0.0045838" />
+                  <geom name="tarsus3_T3_left" pos="0.000110867 0.00543305 -0.000546486" type="sphere" size="0.0045838" />
                   <geom name="tarsus3_T3_left_collision" class="collision" size="0.00145" fromto="0 0 0 8e-05 0.0111 -2.78e-05" />
                   <body name="tarsus4_T3_left" pos="8e-05 0.0111 -2.78e-05">
-                    <geom name="tarsus4_T3_left" pos="-0.00890954 -0.159375 -0.112321" quat="0.49 0.138 -0.251 0.823" type="sphere" size="0.00401168" />
+                    <geom name="tarsus4_T3_left" pos="9.80962e-05 0.0047176 -0.000987733" type="sphere" size="0.00401168" />
                     <geom name="tarsus4_T3_left_collision" class="collision" size="0.00145" fromto="0 0 0 0.000222 0.0111 -0.00108" />
                     <body name="claw_T3_left" pos="0.000222 0.0111 -0.00108">
-                      <geom name="tarsal_claw_T3_left" material="brown" pos="-0.00851034 -0.169395 -0.110882" quat="-0.523966 0.484368 -0.168999 -0.67953" type="capsule" size="0.00504623 0.00165156" />
+                      <geom name="tarsal_claw_T3_left" material="brown" pos="0.000443392 0.00609254 0.000140847" type="capsule" size="0.00504623 0.00165156" quat="-0.524104 0.484496 -0.169043 -0.679708" />
                       <geom name="tarsal_claw_T3_left_collision" class="adhesion-collision" type="capsule" size="0.0019" fromto="0 0 0 0.000222 0.0111 -0.00108" />
                       <site name="claw_T3_left" class="adhesion-collision" size="0.00209" fromto="0 0 0 0.000222 0.0111 -0.00108" />
                       <site name="tracking[claw_T3_left]" pos="0 0.005 0" size="0.005" group="0" rgba="0 1 0 1" />
@@ -547,36 +547,36 @@
       <body name="coxa_T3_right" childclass="leg" pos="-0.0377 -0.0192 -0.0402" quat="-0.0854 -0.505 -0.673 -0.534">
         <joint name="coxa_flexion_T3_right" class="flexion_coxa_T3" />
         <joint name="coxa_twist_T3_right" class="twist_coxa_T3" />
-        <geom name="coxa_T3_right" pos="-0.0330901 -0.051254 0.0648921" quat="0.534 -0.673 0.505 0.0854" type="capsule" size="0.00925032 0.0057313" />
+        <geom name="coxa_T3_right" pos="0.00214477 -0.0138905 0.00544315" type="capsule" size="0.00925032 0.0057313" quat="0.0666874 -0.375181 0.768576 0.513891" />
         <geom name="coxa_T3_right_collision" class="collision" type="ellipsoid" size="0.007 0.00875 0.0166" pos="0.00338 -0.0117 0.00678" quat="0.797 0.596 0.0983 0" />
         <site name="tracking[coxa_T3_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
         <body name="femur_T3_right" pos="0.00383 -0.0232 0.0066" quat="0 0 0.661 0.751">
           <joint name="femur_twist_T3_right" class="twist_femur_T3" />
           <joint name="femur_T3_right" class="extend_femur_T3" />
-          <geom name="femur_T3_right" pos="0.0394513 0.0648746 -0.0231118" quat="-0.398 -0.322 -0.152 0.846" type="capsule" size="0.00797497 0.0354334" />
+          <geom name="femur_T3_right" pos="0.00271217 -0.0377012 -0.00168473" type="capsule" size="0.00797497 0.0354334" quat="0.157538 -0.183546 0.700687 0.671215" />
           <geom name="femur_T3_right_collision" class="collision" size="0.00544" fromto="0.00263 -0.00263 -0.00438 0.00263 -0.0758 1.87e-07" />
           <site name="tracking[femur_T3_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
           <body name="tibia_T3_right" pos="0 -0.077 1.96e-07" quat="-0.121 -0.111 -0.708 0.686">
             <joint name="tibia_T3_right" class="extend_tibia_T3" />
-            <geom name="tibia_T3_right" pos="-0.0314063 0.035105 -0.13785" quat="-0.772 -0.489 0.136 -0.382" type="capsule" size="0.0053747 0.0314059" />
+            <geom name="tibia_T3_right" pos="0.000127308 0.0371135 0.00234218" type="capsule" size="0.0053747 0.0314059" quat="-0.110252 -0.128932 0.675258 -0.717808" />
             <geom name="tibia_T3_right_collision" class="collision" size="0.00365" fromto="0 0.003 0.005 0 0.0721 -0.00175" />
             <site name="tracking[tibia_T3_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
             <body name="tarsus_T3_right" pos="0 0.0721 -0.00175" quat="0.223 -0.965 0.0313 0.136">
               <joint name="tarsus_T3_right" class="extend_tarsus_T3" />
-              <geom name="tarsus_T3_right" pos="0.00781532 0.0947199 0.10762" quat="-0.252 0.823 -0.49 -0.136" type="capsule" size="0.00345415 0.0153138" />
+              <geom name="tarsus_T3_right" pos="-0.000626102 -0.0168471 -0.000796384" type="capsule" size="0.00345415 0.0153138" quat="-0.101392 -0.106043 -0.713487 0.685136" />
               <geom name="tarsus_T3_right_collision" class="collision" size="0.00234" fromto="0 0 0 -0.00073 -0.0338 -0.00122" />
               <site name="tracking[tarsus_T3_right]" pos="0 0 0" size="0.005" group="0" rgba="0 1 0 1" />
               <body name="tarsus2_T3_right" pos="-0.00073 -0.0338 -0.00122">
-                <geom name="tarsus2_T3_right" pos="0.00869215 0.127715 0.111431" quat="0.252 -0.823 0.49 0.136" type="capsule" size="0.00168318 0.00965407" />
+                <geom name="tarsus2_T3_right" pos="3.54713e-05 -0.00964064 -0.000339697" type="capsule" size="0.00168318 0.00965407" quat="0.0988319 0.105577 0.717216 -0.68168" />
                 <geom name="tarsus2_T3_right_collision" class="collision" size="0.00168" fromto="0 0 0 0.000185 -0.0197 -0.00157" />
                 <body name="tarsus3_T3_right" pos="0.000185 -0.0197 -0.00157">
-                  <geom name="tarsus3_T3_right" pos="0.00831691 0.148306 0.112373" quat="-0.252 0.823 -0.49 -0.136" type="sphere" size="0.00458119" />
+                  <geom name="tarsus3_T3_right" pos="-0.000385205 -0.00545552 0.000564768" type="sphere" size="0.00458119" />
                   <geom name="tarsus3_T3_right_collision" class="collision" size="0.00145" fromto="0 0 0 1.98e-05 -0.011 1.95e-05" />
                   <body name="tarsus4_T3_right" pos="1.98e-05 -0.011 1.95e-05">
-                    <geom name="tarsus4_T3_right" pos="0.0082486 0.159375 0.11232" quat="0.252 -0.823 0.49 0.136" type="sphere" size="0.00401283" />
+                    <geom name="tarsus4_T3_right" pos="-0.000490798 -0.00474006 0.00100283" type="sphere" size="0.00401283" />
                     <geom name="tarsus4_T3_right_collision" class="collision" size="0.00145" fromto="0 0 0 4.3e-05 -0.011 0.00125" />
                     <body name="claw_T3_right" pos="4.3e-05 -0.011 0.00125">
-                      <geom name="tarsal_claw_T3_right" material="brown" pos="0.00759082 0.169396 0.110879" quat="0.168291 0.678115 -0.524673 0.485782" type="capsule" size="0.0050418 0.00165757" />
+                      <geom name="tarsal_claw_T3_right" material="brown" pos="-0.00111539 -0.00611487 -0.00013312" type="capsule" size="0.0050418 0.00165757" quat="0.168339 0.678309 -0.524823 0.485921" />
                       <geom name="tarsal_claw_T3_right_collision" class="adhesion-collision" type="capsule" size="0.0019" fromto="0 0 0 4.3e-05 -0.011 0.00125" />
                       <site name="claw_T3_right" class="adhesion-collision" size="0.00209" fromto="0 0 0 4.3e-05 -0.011 0.00125" />
                       <site name="tracking[claw_T3_right]" pos="0 0.005 0" size="0.005" group="0" rgba="0 1 0 1" />

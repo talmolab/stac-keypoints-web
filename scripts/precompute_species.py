@@ -47,6 +47,7 @@ def export_species(
             f"  XML: {xml_src.name} -> {xml_dst.relative_to(REPO_ROOT)} "
             f"(replaced {report['n_replaced']} mesh geoms: "
             f"{report['n_sphere']} sphere, {report['n_capsule']} capsule, "
+            f"{report.get('n_ellipsoid', 0)} ellipsoid, "
             f"{report['out_bytes']:,} bytes)"
         )
     else:
