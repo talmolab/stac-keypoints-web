@@ -346,11 +346,16 @@ export async function runQuickStac(data: Record<string, unknown>) {
   const allErrors: number[] = [];
   const allTransforms: any[][] = [];
 
-  // Use the explicit seed only for the first frame in this batch. Subsequent
-  // frames warm-start from the previous frame's solve (temporal coherence).
-  let warmStart: number[] | undefined = initialQpos;
-
-  for (const fi of frameIndices) {
+  // Every frame cold-starts via jacobianIk's per-frame trunk Procrustes seed,
+  // which re-orients the root correctly for that frame. We do NOT chain
+  // warm-starts across frames: jacobianIk runs a fixed iteration count
+  // regardless of seed, so chaining buys no speed, and a previous frame's pose
+  // is a bad root seed for a frame far away — the joints-only refinement can't
+  // rotate the root back, so the skeleton detaches from the mocap on big
+  // scrubs. The caller's explicit `initialQpos` is honored only for a
+  // single-frame live edit (length-1 batch, frame i === 0).
+  for (let i = 0; i < frameIndices.length; i++) {
+    const fi = frameIndices[i];
     if (fi >= numFrames) continue;
 
     // Extract target positions for this frame (cm -> meters)
@@ -364,13 +369,13 @@ export async function runQuickStac(data: Record<string, unknown>) {
       ]);
     }
 
+    const seed = i === 0 ? initialQpos : undefined;
     const result = jacobianIk(
-      targets, kpNames, pairs, offsetsRaw, maxIter, 0.3, 0.01, warmStart,
+      targets, kpNames, pairs, offsetsRaw, maxIter, 0.3, 0.01, seed,
     );
     allQpos.push(result.qpos);
     allErrors.push(result.error);
     allTransforms.push(result.transforms);
-    warmStart = result.qpos;
   }
 
   return {

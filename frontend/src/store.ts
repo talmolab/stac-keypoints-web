@@ -83,6 +83,12 @@ interface AppState {
   // default pose + Procrustes. Cleared on XML reload (qpos length may change).
   liveQpos: number[] | null;
 
+  // The frame index `liveQpos` was solved for. Warm-start is only valid when
+  // re-solving that same frame (an edit); on a frame change (a scrub) the seed
+  // is stale and auto-IK must cold-start so the per-frame trunk Procrustes
+  // re-seeds the root. null = unknown frame ⇒ never warm-start.
+  liveQposFrame: number | null;
+
   // Model rotation (Y-axis in Three.js = yaw)
   modelRotationY: number;
 
@@ -176,7 +182,7 @@ interface AppState {
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setIkStatus: (status: string | null) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
-  setLiveQpos: (qpos: number[] | null) => void;
+  setLiveQpos: (qpos: number[] | null, frame?: number | null) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
     keypointInitialOffsets: Record<string, [number, number, number]>;
@@ -221,6 +227,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   stacRunning: false,
   stacProgress: 0,
   liveQpos: null,
+  liveQposFrame: null,
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
@@ -278,6 +285,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     xmlBasename: data.xmlBasename ?? null,
     // qpos length is model-dependent — any prior warm-start is invalid.
     liveQpos: null,
+    liveQposFrame: null,
   }),
   setAcmData: (data) => set({
     acmKeypointNames: data.keypointNames,
@@ -389,7 +397,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     stacRunning: false,
     stacProgress: 1.0,
   }),
-  setLiveQpos: (qpos) => set({ liveQpos: qpos }),
+  setLiveQpos: (qpos, frame = null) => set({ liveQpos: qpos, liveQposFrame: frame }),
   loadConfig: (config) => set({
     mappings: Object.entries(config.keypointModelPairs).map(([kp, body]) => ({ keypointName: kp, bodyName: body })),
     offsets: Object.entries(config.keypointInitialOffsets).map(([kp, [x, y, z]]) => ({ keypointName: kp, x, y, z })),

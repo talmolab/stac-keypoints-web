@@ -7,16 +7,21 @@ import * as api from "./api";
 export interface RunIkOpts {
   /**
    * Seed the solver with the previously rendered pose (`state.liveQpos`)
-   * instead of cold-starting. Only meaningful for single-frame calls —
-   * a multi-frame batch chains prev_qpos internally and seeding frame 0
-   * with a pose solved for a different frame would just slow it down.
+   * instead of cold-starting — but *only* when re-solving the very frame that
+   * pose was solved for (`liveQposFrame === currentFrame`). That is the
+   * edit-on-a-fixed-frame case, where the pose is already near-optimal and the
+   * warm-start keeps it stable.
+   *
+   * On a frame change (a scrub) the seed is from a different frame, so even
+   * with this flag set we cold-start: the per-frame trunk Procrustes re-seeds
+   * the root. Warm-starting a far frame leaves the root mis-oriented and the
+   * joints-only refinement can't recover it (the skeleton detaches from the
+   * mocap).
    *
    * Use cases:
-   *   - Auto-IK (live preview on edits): true. Converges in 1-5 iters
-   *     because adjacent edits leave the pose almost unchanged.
+   *   - Auto-IK (live preview): true. Warm on same-frame edits, cold on scrub.
    *   - Manual Run IK / IK Frame / IK Sequence: false. The user explicitly
-   *     asked for a fresh solve; warm-starting from an already-converged
-   *     pose would just re-emit the same answer and feel inert.
+   *     asked for a fresh solve; every frame cold-starts.
    */
   warmStart?: boolean;
 }
@@ -43,7 +48,11 @@ export async function runIk(
   const positions = state.adjustedPositions ?? state.alignedPositions ?? state.acmPositions;
 
   const initialQpos =
-    opts.warmStart && frameIndices.length === 1 && state.liveQpos && state.liveQpos.length === state.nq
+    opts.warmStart &&
+    frameIndices.length === 1 &&
+    state.liveQpos &&
+    state.liveQpos.length === state.nq &&
+    state.liveQposFrame === frameIndices[0]
       ? state.liveQpos
       : undefined;
 
@@ -79,13 +88,17 @@ export async function runIk(
   }
 
   // Update warm-start cache from the frame matching state.currentFrame,
-  // falling back to the last frame in the batch.
+  // falling back to the last frame in the batch. Record which frame the cached
+  // pose belongs to so the next pass only warm-starts when it's that same frame.
   if (result.qpos && result.qpos.length > 0) {
     const matchIdx = result.frameIndices
       ? result.frameIndices.indexOf(state.currentFrame)
       : -1;
     const idx = matchIdx >= 0 ? matchIdx : result.qpos.length - 1;
-    state.setLiveQpos(result.qpos[idx]);
+    const solvedFrame = result.frameIndices
+      ? result.frameIndices[idx]
+      : state.currentFrame;
+    state.setLiveQpos(result.qpos[idx], solvedFrame);
   }
 
   // Apply body transforms for current frame

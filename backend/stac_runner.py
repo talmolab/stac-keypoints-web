@@ -172,6 +172,17 @@ def run_quick_stac(
     Warm-start: caller passes ``initial_qpos`` (the previously solved pose).
     Single-frame auto-IK then converges in 1-5 iters; multi-frame batches
     chain via ``prev_q`` so frame N seeds frame N+1.
+
+    NOTE (scrub-drift asymmetry vs standalone): ``q_opt`` optimizes the full
+    qpos including the root freejoint (``qs_to_opt = ones(nq)``), so on a big
+    timeline jump it can re-orient the root from the chained ``prev_q`` seed.
+    The standalone JS path (``localApi.runQuickStac`` → ``mujocoWasm.jacobianIk``)
+    cannot — it only moves joints — so it was changed to cold-start every frame
+    with a per-frame trunk Procrustes root seed instead of chaining. This
+    backend still chains; if backend-mode scrubbing is found to drift on
+    discontinuous clips, mirror that fix by seeding each frame's root with a
+    Procrustes fit rather than ``prev_q``. Verify on the GPU box — needs JAX +
+    stac-mjx, which isn't exercised by the standalone test suite.
     """
     if not mappings:
         # No sites → no loss → q_opt returns initial; faster to bail. The
