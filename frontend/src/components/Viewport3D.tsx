@@ -7,6 +7,7 @@ import ModelGizmo from "./ModelGizmo";
 import HoverTooltip from "./HoverTooltip";
 import ErrorLines from "./ErrorLines";
 import FollowCamera from "./FollowCamera";
+import FitCameraOnLoad from "./FitCameraOnLoad";
 import { CameraKeyboardControls } from "../hooks/useCameraControls";
 import { useStore } from "../store";
 
@@ -39,6 +40,7 @@ export default function Viewport3D() {
       />
       <OrbitControls makeDefault />
       <CameraKeyboardControls />
+      <FitCameraOnLoad />
       <FollowCamera />
     </Canvas>
   );

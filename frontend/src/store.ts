@@ -287,6 +287,12 @@ export const useStore = create<AppState>()(persist((set) => ({
     // qpos length is model-dependent — any prior warm-start is invalid.
     liveQpos: null,
     liveQposFrame: null,
+    // Model view-transform is per-model: a rotation/scale/offset tuned for one
+    // species is meaningless for the next. Reset on every model load so a
+    // value set (or persisted) for the rat doesn't silently apply to the fly.
+    modelRotationY: 0,
+    modelPosition: [0, 0, 0] as [number, number, number],
+    modelScale: 1.0,
   }),
   setAcmData: (data) => set({
     acmKeypointNames: data.keypointNames,
@@ -441,10 +447,9 @@ export const useStore = create<AppState>()(persist((set) => ({
     offsets: state.offsets,
     segmentScales: state.segmentScales,
     rawTemplate: state.rawTemplate,
-    // Model transform
-    modelRotationY: state.modelRotationY,
-    modelPosition: state.modelPosition,
-    modelScale: state.modelScale,
+    // Model view-transform (rotation/position/scale) is intentionally NOT
+    // persisted — it's per-model and reset on every load by setXmlData, so
+    // persisting it would just flash a stale value before the reset.
     modelOpacity: state.modelOpacity,
     markerSize: state.markerSize,
     // Preferences
