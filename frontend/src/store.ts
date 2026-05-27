@@ -153,6 +153,7 @@ interface AppState {
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: ReadonlyArray<number | null>; numFrames: number; numKeypoints: number; confidences?: ReadonlyArray<number | null> }) => void;
+  clearAcmData: () => void;
   setAlignedPositions: (positions: ReadonlyArray<number | null>) => void;
   setCurrentFrame: (frame: number) => void;
   setMode: (mode: InteractionMode) => void;
@@ -299,6 +300,31 @@ export const useStore = create<AppState>()(persist((set) => ({
     adjustedPositions: null,
     alignedPositions: null,
     isAligned: false,
+  }),
+  // Drop the loaded keypoint clip and everything derived from it (alignment,
+  // IK caches, warm-start, per-frame state). Used when switching model presets
+  // so a previous species' markers + animation don't linger over the new
+  // model. Deliberately does NOT touch mappings/offsets/scaleFactor — the
+  // preset's own config has just set those.
+  clearAcmData: () => set({
+    acmKeypointNames: [],
+    acmBones: [],
+    acmPositions: null,
+    acmConfidences: null,
+    acmNumFrames: 0,
+    acmNumKeypoints: 0,
+    frameStatuses: [],
+    labeledFrames: new Set(),
+    adjustedPositions: null,
+    alignedPositions: null,
+    isAligned: false,
+    stacQpos: null,
+    stacFrameIndices: null,
+    stacBodyTransforms: null,
+    liveQpos: null,
+    liveQposFrame: null,
+    perKeypointErrors: [],
+    currentFrame: 0,
   }),
   setAlignedPositions: (positions) => set({ alignedPositions: nullsToNaNFloat32(positions), isAligned: true }),
   setCurrentFrame: (frame) => set({ currentFrame: frame }),

@@ -171,6 +171,41 @@ function warmStarts(opts: {
   );
 }
 
+describe("clearAcmData (preset switch)", () => {
+  beforeEach(reset);
+
+  it("drops the keypoint clip + IK caches but keeps mappings/offsets", () => {
+    // Simulate state after a clip is loaded, aligned, and IK has run.
+    useStore.getState().addMapping("Snout", "skull");
+    useStore.getState().updateOffset("Snout", 0.01, 0, 0);
+    useStore.getState().setAcmData({
+      keypointNames: ["Snout"],
+      bones: [],
+      positions: [0, 0, 0],
+      numFrames: 1,
+      numKeypoints: 1,
+    });
+    useStore.getState().setStacResults([[0, 0, 0, 1, 0, 0, 0]], [0], [[]]);
+    useStore.getState().setLiveQpos([0, 0, 0, 1, 0, 0, 0], 0);
+    expect(useStore.getState().acmPositions).not.toBeNull();
+
+    useStore.getState().clearAcmData();
+
+    const s = useStore.getState();
+    // Clip + derived state gone.
+    expect(s.acmPositions).toBeNull();
+    expect(s.acmKeypointNames).toEqual([]);
+    expect(s.acmNumFrames).toBe(0);
+    expect(s.isAligned).toBe(false);
+    expect(s.stacBodyTransforms).toBeNull();
+    expect(s.liveQpos).toBeNull();
+    expect(s.liveQposFrame).toBeNull();
+    // Mappings/offsets from the new preset's config survive.
+    expect(s.mappings).toEqual([{ keypointName: "Snout", bodyName: "skull" }]);
+    expect(s.offsets).toEqual([{ keypointName: "Snout", x: 0.01, y: 0, z: 0 }]);
+  });
+});
+
 describe("warm-start seed selection (scrub vs edit)", () => {
   const base = { warmStart: true, liveQpos: [0, 0, 0, 1, 0, 0, 0], nq: 7 };
 

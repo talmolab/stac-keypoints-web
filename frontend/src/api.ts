@@ -77,6 +77,10 @@ export interface XmlPreset {
    *  by the preset dropdown handler so switching species also restores
    *  that species' mappings + `mocapScaleFactor`. */
   configPath?: string;
+  /** True iff a bundled demo keypoint clip accompanies this preset (standalone
+   *  mode only — rat today). The dropdown handler auto-loads it after the
+   *  model+config so re-picking the species restores its markers. */
+  hasDemoData?: boolean;
 }
 
 export async function listXmls(): Promise<XmlPreset[]> {
@@ -86,6 +90,7 @@ export async function listXmls(): Promise<XmlPreset[]> {
       path: s.xmlPath,
       root: "bundled",
       configPath: s.configPath,
+      hasDemoData: s.hasDemoData,
     }));
   }
   const resp = await fetch(`${BASE}/api/list-xmls`);

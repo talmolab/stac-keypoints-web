@@ -42,6 +42,7 @@ function pickFiles(accept: string, asDirectory: boolean): Promise<File[]> {
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
   const setAcmData = useStore((s) => s.setAcmData);
+  const clearAcmData = useStore((s) => s.clearAcmData);
   const setBodyTransforms = useStore((s) => s.setBodyTransforms);
   const loadConfigAction = useStore((s) => s.loadConfig);
   const ikStatus = useStore((s) => s.ikStatus);
@@ -107,7 +108,7 @@ export default function Toolbar() {
   // (mappings, offsets, mocapScaleFactor) is loaded right after the XML so
   // switching species replaces stale mappings instead of stacking them on
   // top of whatever the previous species left in the store.
-  const loadByPath = useCallback(async (path: string, configPath?: string) => {
+  const loadByPath = useCallback(async (path: string, configPath?: string, hasDemoData?: boolean) => {
     if (!path) return;
     const data = await api.loadXml(path);
     if (!data.error) localStorage.setItem("stac.lastXmlPath", path);
@@ -117,7 +118,17 @@ export default function Toolbar() {
       const cfg = await api.loadConfig(configPath);
       if (!cfg.error) loadConfigAction(cfg);
     }
-  }, [finishXmlLoad, loadConfigAction]);
+    // The model + mappings just switched, but the previously-loaded keypoint
+    // clip would otherwise linger — only rat bundles demo mocap, so switching
+    // to another species left the rat markers + animation rendering over the
+    // new model. Drop the stale clip; if this species ships a demo clip, load
+    // it (setAcmData clears isAligned, so useAutoAlign re-aligns automatically).
+    clearAcmData();
+    if (hasDemoData) {
+      const acm = await api.loadAcmTrials();
+      if (!acm.error && acm.numFrames > 0) setAcmData(acm);
+    }
+  }, [finishXmlLoad, loadConfigAction, clearAcmData, setAcmData]);
 
   // Discovered XMLs from the backend's configured search roots — populates
   // the "Load preset" dropdown so users don't have to type absolute paths.
@@ -137,7 +148,7 @@ export default function Toolbar() {
       return;
     }
     const preset = xmlPresets.find((p) => p.path === value);
-    await loadByPath(value, preset?.configPath);
+    await loadByPath(value, preset?.configPath, preset?.hasDemoData);
   }, [loadByPath, xmlPresets]);
 
   const handleLoadMat = useCallback(async () => {
