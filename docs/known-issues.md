@@ -8,9 +8,12 @@ re-deriving context.
 
 - Backend mode is fully featured: ACM `.mat` loading, Procrustes
   alignment, Jacobian IK preview, batched body transforms, YAML round-trip.
-- Standalone (SPA) mode covers everything except IK preview and ACM
-  loading. Mapping, offsets, alignment math, YAML export, quality report —
-  all run in the browser.
+- Standalone (SPA) mode now covers live IK preview and offset refit too,
+  ported to JS over the MuJoCo WASM module in #58 (addresses #53 and #54).
+  Mapping, offsets, Procrustes alignment, live Jacobian-IK preview,
+  closed-form offset refit, YAML export, and quality report all run in the
+  browser. Only ACM multi-trial autoload and custom model paths stay
+  backend-only.
 - Five species bundled and verified end-to-end (rat, stick, worm, mouse,
   fly). Each has a JSON config and a single-file XML in
   `frontend/public/data/`.
@@ -23,7 +26,6 @@ re-deriving context.
 
 | Limitation | Impact | Workaround |
 |------------|--------|------------|
-| No IK preview in standalone | Researchers can't see live solved-pose error before running STAC | Run the FastAPI backend locally (1 command), or run STAC on the GPU box and load the H5 back |
 | No ACM trial loader in standalone | Monsees `.mat` files load OK, but the multi-trial autoload path is backend-only because it depends on `monsees-retarget` (lab-private) | Backend mode for ACM-pipeline researchers; everyone else uses Load KP / Load .mat |
 | `Custom path…` is backend-only | The model dropdown's free-form file path entry only works against the FastAPI backend | Use one of the five bundled species, or extend `BUNDLED` (see developer-guide.md) |
 
@@ -53,10 +55,12 @@ handles it.
 ### Quick STAC preview (open question)
 
 Scott's prototype branch had a Jacobian-IK proxy ("Quick STAC") that
-previewed registration quality without the full STAC pipeline. M6
-preserved the placeholder but the open question — keep it, drop it, or
-stub a remote-backend call — is **blocked on the Wednesday meeting
-(2026-05-13 with Talmo and Scott)**. Three plausible answers:
+previewed registration quality without the full STAC pipeline. #58 took
+option (1): the proxy now runs standalone (JS port over MuJoCo WASM, with
+per-frame trunk-Procrustes seeding and warm-start), addressing #53/#54.
+The remaining open question — keep the proxy long-term, drop it, or stub a
+remote-backend call — is **blocked on the Wednesday meeting (2026-05-13
+with Talmo and Scott)**. Three plausible answers:
 
 1. **Keep Jacobian-IK proxy** as M5 had it. Cheap to maintain. Risk:
    researchers misinterpret proxy output as final-quality STAC.

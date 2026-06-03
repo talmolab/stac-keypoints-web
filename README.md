@@ -8,11 +8,14 @@ The app supports five species out of the box (rat, fly, mouse, worm, stick
 insect) and runs in two modes:
 
 - **Standalone (default)** — static SPA, all computation in the browser via
-  the MuJoCo WebAssembly module. Hosted on GitHub Pages, no install required.
+  the MuJoCo WebAssembly module. Mapping, Procrustes alignment, live
+  Jacobian-IK preview, and closed-form offset refit all run client-side.
+  Hosted on GitHub Pages, no install required.
 - **With local backend** — start the FastAPI backend and the SPA picks it up
-  automatically (per-call probe). Adds the heavier features that need
-  Python: ACM `.mat` loading via `monsees-retarget`, Procrustes alignment
-  on full-resolution data, and the Jacobian-IK preview.
+  automatically (per-call probe). Adds the features that need lab-private
+  Python: ACM multi-trial auto-load via `monsees-retarget` and custom
+  model-path loading. IK, offset refit, and alignment then route through the
+  real `stac-mjx` core instead of the in-browser JS ports.
 
 ## Quick start (browser-only)
 
