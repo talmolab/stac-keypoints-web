@@ -130,6 +130,13 @@ interface AppState {
   // IK status message (inline, replaces alert popups)
   ikStatus: string | null;
 
+  // IK Sequence progress + cooperative cancellation (transient, not persisted).
+  // ikRunning gates the progress UI; ikProgress drives the bar; the chunked
+  // solver loop polls ikCancelRequested between frames and stops early.
+  ikRunning: boolean;
+  ikProgress: { current: number; total: number } | null;
+  ikCancelRequested: boolean;
+
   // Auto IK toggle
   autoIk: boolean;
 
@@ -185,6 +192,10 @@ interface AppState {
   setAutoIk: (enabled: boolean) => void;
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setIkStatus: (status: string | null) => void;
+  setIkRunning: (running: boolean) => void;
+  setIkProgress: (progress: { current: number; total: number } | null) => void;
+  requestIkCancel: () => void;
+  resetIkCancel: () => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
   setLiveQpos: (qpos: number[] | null, frame?: number | null) => void;
   loadConfig: (config: {
@@ -247,6 +258,9 @@ export const useStore = create<AppState>()(persist((set) => ({
   adjustedPositions: null,
   hoveredSegment: null,
   ikStatus: null,
+  ikRunning: false,
+  ikProgress: null,
+  ikCancelRequested: false,
   autoIk: true,
   hoveredName: null,
   hoveredPosition: null,
@@ -431,6 +445,10 @@ export const useStore = create<AppState>()(persist((set) => ({
   setAutoIk: (enabled) => set({ autoIk: enabled }),
   setHover: (name, position) => set({ hoveredName: name, hoveredPosition: position || null }),
   setIkStatus: (status) => set({ ikStatus: status }),
+  setIkRunning: (running) => set({ ikRunning: running }),
+  setIkProgress: (progress) => set({ ikProgress: progress }),
+  requestIkCancel: () => set({ ikCancelRequested: true }),
+  resetIkCancel: () => set({ ikCancelRequested: false }),
   setStacResults: (qpos, frameIndices, bodyTransforms) => set({
     stacQpos: qpos,
     stacFrameIndices: frameIndices || null,

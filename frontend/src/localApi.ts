@@ -21,6 +21,21 @@ import { procrustesScaled } from "./procrustes";
 const cachedAcm: Record<string, unknown> = {};
 const cachedConfigByPath: Record<string, unknown> = {};
 
+/**
+ * Yield control to the event loop so the browser can repaint (progress bar)
+ * and dispatch pending input (the Cancel click) between synchronous frame
+ * solves. Uses a MessageChannel macrotask, which — unlike `setTimeout(0)` —
+ * is not subject to the 4 ms minimum-delay clamp, so the per-frame overhead
+ * over a long IK Sequence stays negligible.
+ */
+function yieldToMain(): Promise<void> {
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => resolve();
+    ch.port2.postMessage(undefined);
+  });
+}
+
 /** Bundled species index — extend by dropping a dir into `frontend/public/data/`
  * via `scripts/precompute_species.py` (or precompute_assets.py for rat). */
 interface BundledSpecies {
@@ -392,10 +407,19 @@ export async function runQuickStac(data: Record<string, unknown>) {
   // model to keypoints / modelScale so the ×modelScale-rendered bodies overlay
   // the (unscaled) keypoint cloud. modelScale defaults to 1 → no-op.
   const modelScale = (data.modelScale as number) || 1;
+  // Cooperative progress + cancellation for long multi-frame runs (IK
+  // Sequence). Both are plain callbacks supplied by the in-process caller;
+  // they're absent on the backend path (JSON.stringify drops functions) and on
+  // the hot single-frame live-preview path, so the per-frame yield below is
+  // skipped entirely unless a caller opts in.
+  const onProgress = data.onProgress as ((done: number, total: number) => void) | undefined;
+  const shouldCancel = data.shouldCancel as (() => boolean) | undefined;
+  const wantsCoop = typeof onProgress === "function" || typeof shouldCancel === "function";
 
   const allQpos: number[][] = [];
   const allErrors: number[] = [];
   const allTransforms: any[][] = [];
+  let cancelled = false;
 
   // Every frame cold-starts via jacobianIk's per-frame trunk Procrustes seed,
   // which re-orients the root correctly for that frame. We do NOT chain
@@ -431,6 +455,18 @@ export async function runQuickStac(data: Record<string, unknown>) {
     // native frame where targets were divided by modelScale.
     allErrors.push(result.error * modelScale);
     allTransforms.push(result.transforms);
+
+    // Between frames: surface progress, then hand the main thread back so the
+    // UI can repaint and process a Cancel click before we poll it. Honour the
+    // cancel after recording this frame's result, so partial output is usable.
+    if (wantsCoop) {
+      onProgress?.(allQpos.length, frameIndices.length);
+      await yieldToMain();
+      if (shouldCancel?.()) {
+        cancelled = true;
+        break;
+      }
+    }
   }
 
   return {
@@ -438,6 +474,7 @@ export async function runQuickStac(data: Record<string, unknown>) {
     errors: allErrors,
     frameIndices: frameIndices.slice(0, allQpos.length),
     bodyTransforms: allTransforms,
+    cancelled,
   };
 }
 
