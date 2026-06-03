@@ -388,6 +388,10 @@ export async function runQuickStac(data: Record<string, unknown>) {
   const mocapScale = (data.mocapScaleFactor as number) || 0.01;
   const maxIter = (data.maxIterations as number) || 25;
   const initialQpos = data.initialQpos as number[] | undefined;
+  // The model is rendered scaled about the origin by modelScale. Fit the native
+  // model to keypoints / modelScale so the ×modelScale-rendered bodies overlay
+  // the (unscaled) keypoint cloud. modelScale defaults to 1 → no-op.
+  const modelScale = (data.modelScale as number) || 1;
 
   const allQpos: number[][] = [];
   const allErrors: number[] = [];
@@ -405,14 +409,16 @@ export async function runQuickStac(data: Record<string, unknown>) {
     const fi = frameIndices[i];
     if (fi >= numFrames) continue;
 
-    // Extract target positions for this frame (cm -> meters)
+    // Extract target positions for this frame (cm -> meters), brought into the
+    // native (unscaled) model frame by dividing out modelScale.
+    const targetScale = mocapScale / modelScale;
     const targets: number[][] = [];
     for (let k = 0; k < numKp; k++) {
       const idx = (fi * numKp + k) * 3;
       targets.push([
-        positions[idx] * mocapScale,
-        positions[idx + 1] * mocapScale,
-        positions[idx + 2] * mocapScale,
+        positions[idx] * targetScale,
+        positions[idx + 1] * targetScale,
+        positions[idx + 2] * targetScale,
       ]);
     }
 
@@ -421,7 +427,9 @@ export async function runQuickStac(data: Record<string, unknown>) {
       targets, kpNames, pairs, offsetsRaw, maxIter, 0.3, 0.01, seed,
     );
     allQpos.push(result.qpos);
-    allErrors.push(result.error);
+    // Report the error back in rendered (world) space — the solve ran in the
+    // native frame where targets were divided by modelScale.
+    allErrors.push(result.error * modelScale);
     allTransforms.push(result.transforms);
   }
 

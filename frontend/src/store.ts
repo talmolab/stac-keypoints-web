@@ -403,7 +403,11 @@ export const useStore = create<AppState>()(persist((set) => ({
   setBodyTransforms: (transforms) => set({ bodyTransforms: transforms }),
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
-  setModelScale: (scale) => set({ modelScale: scale }),
+  // Changing modelScale changes the IK targets (they're divided by it), so the
+  // cached warm-start pose is stale. Clear it to force the next auto-IK pass to
+  // cold-start and re-seed the root via trunk Procrustes — joints-only warm
+  // refinement can't recover the root after a big scale jump.
+  setModelScale: (scale) => set({ modelScale: scale, liveQpos: null, liveQposFrame: null }),
   setMocapScaleFactor: (scale) => set({ mocapScaleFactor: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setMarkerSize: (size) => set({ markerSize: size }),

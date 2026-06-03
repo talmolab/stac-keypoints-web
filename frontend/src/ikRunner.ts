@@ -65,7 +65,13 @@ export async function runIk(
     frameIndices,
     mappings: pairs,
     offsets: offsetMap,
-    scaleFactor: state.scaleFactor * state.modelScale,
+    scaleFactor: state.scaleFactor,
+    // The model is rendered scaled about the origin by modelScale, so the IK
+    // must fit the native model to (keypoints / modelScale) for the rendered
+    // bodies to land on the keypoints. localApi.runQuickStac divides the
+    // targets by this. (The backend's q_opt ignores it today — standalone-only
+    // fix, matching where the slider is actually used.)
+    modelScale: state.modelScale,
     mocapScaleFactor: state.mocapScaleFactor,
     maxIterations,
     initialQpos,
