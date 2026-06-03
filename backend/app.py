@@ -224,6 +224,7 @@ async def align_endpoint(data: dict):
         data["keypointModelPairs"],
         scale_factor=data.get("scaleFactor", 0.9),
         mocap_scale_factor=data.get("mocapScaleFactor", 0.01),
+        frame_index=data.get("frameIndex"),
     )
     return result
 

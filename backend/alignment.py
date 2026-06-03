@@ -94,11 +94,22 @@ def align_acm_to_mujoco(
     kp_body_map: dict[str, str],
     scale_factor: float = 0.9,
     mocap_scale_factor: float = 0.01,
+    frame_index: int | None = None,
 ) -> dict:
     """Align ACM keypoints (cm) to MuJoCo default pose.
 
     First tries Procrustes alignment. If the resulting scale is unreasonable
     (>10 or <0.001), falls back to bounding-box alignment.
+
+    The rigid+scale transform is fit on a SINGLE representative pose -- the
+    frame ``frame_index`` (the one the user is viewing), not the time-averaged
+    mean. When the animal walks or turns across the clip the per-keypoint mean
+    collapses toward the centroid, shrinking the apparent pose to a fraction of
+    its true size; Procrustes then picks a hugely inflated scale and a
+    meaningless rotation, so the keypoints render several times too big and at
+    the wrong angle. We pick the nearest frame to ``frame_index`` whose mapped
+    keypoints are all present, falling back to the (legacy) time-mean only if
+    no frame has a complete set.
     """
     mj_positions = get_mujoco_keypoint_positions(xml_path, kp_body_map, scale_factor)
     # Only align keypoints that exist in both sets
@@ -108,20 +119,32 @@ def align_acm_to_mujoco(
     kp_indices = [kp_names.index(kp) for kp in common_kps]
     # MuJoCo positions in "ACM-comparable" space (divide out mocap scale)
     mj_array = np.array([mj_positions[kp] / mocap_scale_factor for kp in common_kps])
-    # nanmean: a keypoint missing in some frames still contributes from frames
-    # where it is present. A keypoint missing in *all* frames stays NaN here
-    # and is dropped from the alignment subset below; np.nanmean's
-    # "Mean of empty slice" RuntimeWarning is expected in that case.
-    with warnings.catch_warnings():
-        warnings.filterwarnings("ignore", r"Mean of empty slice", RuntimeWarning)
-        mean_acm = np.nanmean(acm_positions, axis=0)
-    source_subset = mean_acm[kp_indices]
 
-    valid = ~np.isnan(source_subset).any(axis=1)
-    if int(valid.sum()) < 3:
-        return {"error": "Need at least 3 non-missing common keypoints for alignment"}
-    source_valid = source_subset[valid]
-    mj_valid = mj_array[valid]
+    # Per-frame subset of just the mapped keypoints: (T, len(common_kps), 3).
+    subset_all = acm_positions[:, kp_indices, :]
+    complete = ~np.isnan(subset_all).any(axis=(1, 2))  # frames with no gaps
+    n_frames = acm_positions.shape[0]
+    req = 0 if frame_index is None else int(np.clip(frame_index, 0, n_frames - 1))
+
+    fit_frame = -1
+    if complete.any():
+        # Search outward from the requested frame for the closest complete one.
+        order = sorted(range(n_frames), key=lambda f: abs(f - req))
+        fit_frame = next(f for f in order if complete[f])
+
+    if fit_frame >= 0:
+        source_valid = subset_all[fit_frame]
+        mj_valid = mj_array
+    else:
+        # No gap-free frame -- fall back to the nan-aware time mean (legacy).
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", r"Mean of empty slice", RuntimeWarning)
+            source_subset = np.nanmean(subset_all, axis=0)
+        valid = ~np.isnan(source_subset).any(axis=1)
+        if int(valid.sum()) < 3:
+            return {"error": "Need at least 3 non-missing common keypoints for alignment"}
+        source_valid = source_subset[valid]
+        mj_valid = mj_array[valid]
 
     # Try Procrustes alignment
     result = procrustes_align(source_valid, mj_valid, allow_scale=True)

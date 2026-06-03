@@ -67,6 +67,12 @@ const BUNDLED: BundledSpecies[] = [
 
 const BUNDLED_BY_XML = Object.fromEntries(BUNDLED.map((s) => [s.xmlPath, s]));
 
+/** True iff `path` names a bundled species that ships in-browser ACM demo
+ *  keypoints — i.e. whether "Load ACM" can do anything without a backend. */
+export function hasBundledDemo(path?: string | null): boolean {
+  return !!(path && BUNDLED_BY_XML[path]?.hasDemoData);
+}
+
 /** Resolve a bundled-data URL from a virtual path like `data/rat/foo.json`. */
 function bundledUrl(path: string): string {
   return import.meta.env.BASE_URL + path;
@@ -252,19 +258,60 @@ export async function alignToMujoco(data: Record<string, unknown>) {
     kpNames.map((n, i) => [n, i]),
   );
 
-  // Mean ACM source pose (cm)
+  // Source pose to fit the global rigid+scale on. We deliberately use a SINGLE
+  // representative frame (the one the user is viewing) rather than the
+  // time-averaged mean over all frames: when the animal walks or turns across
+  // the clip, the per-keypoint mean collapses toward the centroid, shrinking
+  // the apparent pose to a fraction of its real size. Procrustes then picks a
+  // huge scale (e.g. 23x instead of ~8x) to inflate that collapsed blob onto
+  // the model, and the rotation it fits is essentially noise. Applying that
+  // transform to real (full-size) frames renders the keypoints several times
+  // too big and at a meaningless angle. Per-frame fitting avoids both.
+  //
+  // `frameIndex` is the live current frame. We pick the nearest frame whose
+  // mapped keypoints are all present (no NaN), so a gap on the exact current
+  // frame doesn't degrade the fit. Falls back to the time-mean only if no
+  // frame has a complete set (keeps the old behaviour as a safety net).
+  const reqFrame = Math.min(
+    Math.max(0, Math.floor((data.frameIndex as number) ?? 0)),
+    numFrames - 1,
+  );
+  const commonKi = commonKps.map((kp) => kpIdxMap[kp]);
+  const frameComplete = (f: number): boolean =>
+    commonKi.every((ki) => {
+      const b = (f * numKp + ki) * 3;
+      return (
+        Number.isFinite(positions[b]) &&
+        Number.isFinite(positions[b + 1]) &&
+        Number.isFinite(positions[b + 2])
+      );
+    });
+  // Search outward from the requested frame for the closest complete one.
+  let fitFrame = -1;
+  for (let d = 0; d < numFrames; d++) {
+    if (reqFrame + d < numFrames && frameComplete(reqFrame + d)) { fitFrame = reqFrame + d; break; }
+    if (reqFrame - d >= 0 && frameComplete(reqFrame - d)) { fitFrame = reqFrame - d; break; }
+  }
+
   const meanSrc: number[][] = [];
-  for (const kp of commonKps) {
-    const ki = kpIdxMap[kp];
-    let sx = 0,
-      sy = 0,
-      sz = 0;
-    for (let f = 0; f < numFrames; f++) {
-      sx += positions[(f * numKp + ki) * 3 + 0];
-      sy += positions[(f * numKp + ki) * 3 + 1];
-      sz += positions[(f * numKp + ki) * 3 + 2];
+  if (fitFrame >= 0) {
+    for (const ki of commonKi) {
+      const b = (fitFrame * numKp + ki) * 3;
+      meanSrc.push([positions[b], positions[b + 1], positions[b + 2]]);
     }
-    meanSrc.push([sx / numFrames, sy / numFrames, sz / numFrames]);
+  } else {
+    // No complete frame — fall back to the per-keypoint time mean (nan-aware).
+    for (const ki of commonKi) {
+      let sx = 0, sy = 0, sz = 0, n = 0;
+      for (let f = 0; f < numFrames; f++) {
+        const b = (f * numKp + ki) * 3;
+        if (Number.isFinite(positions[b]) && Number.isFinite(positions[b + 1]) && Number.isFinite(positions[b + 2])) {
+          sx += positions[b]; sy += positions[b + 1]; sz += positions[b + 2]; n++;
+        }
+      }
+      const inv = n > 0 ? 1 / n : 0;
+      meanSrc.push([sx * inv, sy * inv, sz * inv]);
+    }
   }
 
   // MuJoCo target pose (meters -> cm via scaleFactor / mocapScale)
