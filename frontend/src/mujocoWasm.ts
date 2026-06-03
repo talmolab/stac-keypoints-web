@@ -263,7 +263,15 @@ export function jacobianIk(
     }
   }
 
-  const jacp = new Float64Array(3 * nv);
+  // mj_jacBody writes its (3 × nv) position Jacobian into this out-parameter.
+  // It MUST be a heap-allocated DoubleBuffer, not a plain Float64Array: embind
+  // copies a plain JS array *in* but never writes it *back*, so the Jacobian
+  // would read as all-zeros — a zero gradient, and the joints-only refinement
+  // never moves (the solver returns the trunk-Procrustes seed unchanged). Read
+  // the written values through GetView(); free with delete() before returning.
+  // (Constructor takes an element count and the methods are PascalCase per the
+  // generated bindings — the README's lowercase getView()/array-ctor is stale.)
+  const jacpBuf = new mjModule.DoubleBuffer(3 * nv);
 
   let bestError = Infinity;
   let bestQpos = new Float64Array(nq);
@@ -293,9 +301,10 @@ export function jacobianIk(
       const ez = target[2] - cz;
       totalError += Math.sqrt(ex * ex + ey * ey + ez * ez);
 
-      // Compute Jacobian for this body
-      jacp.fill(0);
-      mjModule.mj_jacBody(mjModel, mjData, jacp, null, bodyId);
+      // Compute Jacobian for this body. getView() is re-fetched each call in
+      // case the WASM heap grew (which detaches earlier views).
+      mjModule.mj_jacBody(mjModel, mjData, jacpBuf, null, bodyId);
+      const jacp = jacpBuf.GetView();
 
       // J^T @ error -> gradient (skip freejoint 6 DOFs)
       for (let j = 6; j < nv; j++) {
@@ -328,6 +337,8 @@ export function jacobianIk(
       }
     }
   }
+
+  jacpBuf.delete();
 
   // Restore best
   for (let i = 0; i < nq; i++) mjData.qpos[i] = bestQpos[i];
