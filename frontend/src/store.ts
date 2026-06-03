@@ -29,6 +29,9 @@ interface AppState {
   // Original basename of the uploaded XML, for producing a portable
   // MJCF_PATH on export (xmlPath may be a server-side /tmp path).
   xmlBasename: string | null;
+  // True iff the loaded model ships in-browser ACM demo data. Gates "Load ACM"
+  // in standalone mode, where that's the only thing it can pull in.
+  modelHasDemoData: boolean;
   geoms: GeomData[];
   bodyNames: string[];
   bodyTransforms: BodyTransform[];
@@ -151,7 +154,7 @@ interface AppState {
   setFollowCamera: (follow: boolean) => void;
 
   // Actions
-  setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null }) => void;
+  setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null; hasDemoData?: boolean }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: ReadonlyArray<number | null>; numFrames: number; numKeypoints: number; confidences?: ReadonlyArray<number | null> }) => void;
   clearAcmData: () => void;
   setAlignedPositions: (positions: ReadonlyArray<number | null>) => void;
@@ -196,6 +199,7 @@ interface AppState {
 export const useStore = create<AppState>()(persist((set) => ({
   xmlPath: null,
   xmlBasename: null,
+  modelHasDemoData: false,
   geoms: [],
   bodyNames: [],
   bodyTransforms: [],
@@ -284,6 +288,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     nq: data.nq,
     xmlPath: data.xmlPath,
     xmlBasename: data.xmlBasename ?? null,
+    modelHasDemoData: data.hasDemoData ?? false,
     // qpos length is model-dependent — any prior warm-start is invalid.
     liveQpos: null,
     liveQposFrame: null,
@@ -398,7 +403,11 @@ export const useStore = create<AppState>()(persist((set) => ({
   setBodyTransforms: (transforms) => set({ bodyTransforms: transforms }),
   setModelRotationY: (radians) => set({ modelRotationY: radians }),
   setModelPosition: (pos) => set({ modelPosition: pos }),
-  setModelScale: (scale) => set({ modelScale: scale }),
+  // Changing modelScale changes the IK targets (they're divided by it), so the
+  // cached warm-start pose is stale. Clear it to force the next auto-IK pass to
+  // cold-start and re-seed the root via trunk Procrustes — joints-only warm
+  // refinement can't recover the root after a big scale jump.
+  setModelScale: (scale) => set({ modelScale: scale, liveQpos: null, liveQposFrame: null }),
   setMocapScaleFactor: (scale) => set({ mocapScaleFactor: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
   setMarkerSize: (size) => set({ markerSize: size }),

@@ -47,9 +47,11 @@ export default function Toolbar() {
   const loadConfigAction = useStore((s) => s.loadConfig);
   const ikStatus = useStore((s) => s.ikStatus);
   const setIkStatus = useStore((s) => s.setIkStatus);
+  const modelHasDemoData = useStore((s) => s.modelHasDemoData);
 
   const finishXmlLoad = useCallback(async (
     data: any, fallbackPath: string, fallbackBasename: string,
+    hasDemoData = false,
   ) => {
     if (data.error) { alert(data.error); return; }
     setXmlData({
@@ -58,6 +60,7 @@ export default function Toolbar() {
       nq: data.nq,
       xmlPath: data.xmlPath ?? fallbackPath,
       xmlBasename: fallbackBasename,
+      hasDemoData,
     });
     const defaultQpos = new Array(data.nq).fill(0);
     defaultQpos[3] = 1.0;
@@ -113,7 +116,7 @@ export default function Toolbar() {
     const data = await api.loadXml(path);
     if (!data.error) localStorage.setItem("stac.lastXmlPath", path);
     const basename = path.split("/").pop() || path;
-    await finishXmlLoad(data, path, basename);
+    await finishXmlLoad(data, path, basename, hasDemoData);
     if (configPath) {
       const cfg = await api.loadConfig(configPath);
       if (!cfg.error) loadConfigAction(cfg);
@@ -135,6 +138,14 @@ export default function Toolbar() {
   const [xmlPresets, setXmlPresets] = useState<api.XmlPreset[]>([]);
   useEffect(() => {
     api.listXmls().then(setXmlPresets).catch(() => setXmlPresets([]));
+  }, []);
+
+  // Backend availability gates the few actions that have no in-browser
+  // fallback (server-side H5 loading, non-rat ACM trials). Default to `true`
+  // so buttons stay enabled until the probe resolves, avoiding a flicker.
+  const [hasBackend, setHasBackend] = useState(true);
+  useEffect(() => {
+    api.isBackendAvailable().then(setHasBackend).catch(() => setHasBackend(false));
   }, []);
 
   const handlePresetChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -365,6 +376,10 @@ export default function Toolbar() {
     setIkStatus(`Refit: ${Object.keys(result.offsets).length} kp on ${result.frameIndicesUsed.length}f, err ${errMm}mm`);
   }, [setIkStatus]);
 
+  // "Load ACM" needs the backend's data root; in standalone the only source is
+  // a bundled demo clip, so it's a dead end unless a demo-bearing model is loaded.
+  const acmDisabled = !hasBackend && !modelHasDemoData;
+
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
@@ -387,10 +402,24 @@ export default function Toolbar() {
       </select>
       <button style={btnStyle} onClick={handleLoadKeypoints}>Load KP</button>
       <button style={btnStyle} onClick={handleLoadMat}>Load .mat</button>
-      <button style={btnStyle} onClick={handleLoadAcm}>Load ACM</button>
+      <button
+        style={acmDisabled ? disabledBtnStyle : btnStyle}
+        onClick={handleLoadAcm}
+        disabled={acmDisabled}
+        title={acmDisabled
+          ? "Needs the backend — standalone mode can only load ACM demo data for a bundled demo model (e.g. the rat). Use Load KP / Load .mat instead."
+          : "Auto-load ACM trials (backend data root, or the bundled demo clip in standalone mode)"}
+      >Load ACM</button>
       <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
       <button style={btnStyle} onClick={handleAlign}>Align</button>
-      <button style={btnStyle} onClick={handleLoadStacOutput}>Load STAC H5</button>
+      <button
+        style={hasBackend ? btnStyle : disabledBtnStyle}
+        onClick={handleLoadStacOutput}
+        disabled={!hasBackend}
+        title={hasBackend
+          ? "Load a STAC output .h5 (learned offsets + solved poses) from the backend"
+          : "Needs the backend — there's no in-browser path to load a STAC output .h5 in standalone mode."}
+      >Load STAC H5</button>
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
       <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
@@ -420,6 +449,12 @@ export default function Toolbar() {
 const btnStyle: React.CSSProperties = {
   background: "#2a2a4a", border: "1px solid #555", color: "#ccc",
   padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12,
+};
+
+// Backend-only actions in standalone mode: dimmed + not-allowed so the
+// disabled state is visually obvious rather than a silent dead end.
+const disabledBtnStyle: React.CSSProperties = {
+  ...btnStyle, opacity: 0.4, cursor: "not-allowed", color: "#888",
 };
 
 const statusStyle: React.CSSProperties = {

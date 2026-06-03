@@ -29,6 +29,13 @@ export async function isBackendAvailable(): Promise<boolean> {
   return backendOk();
 }
 
+/** Sync check: does `path` name a bundled species with in-browser ACM demo
+ *  data? Used to gate the "Load ACM" button in standalone mode, where the
+ *  only thing it can load is a bundled demo clip. */
+export function xmlHasDemoData(path: string | null): boolean {
+  return local.hasBundledDemo(path);
+}
+
 export async function health(): Promise<{ status: string }> {
   const resp = await fetch(`${BASE}/api/health`);
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);

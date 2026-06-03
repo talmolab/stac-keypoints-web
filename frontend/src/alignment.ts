@@ -30,6 +30,11 @@ export async function runAlignment(): Promise<AlignOutcome> {
     keypointModelPairs: pairs,
     scaleFactor: state.scaleFactor,
     mocapScaleFactor: state.mocapScaleFactor,
+    // Fit the global rigid+scale on the *currently displayed* pose, not the
+    // time-averaged mean. The mean pose collapses when the animal turns/walks
+    // across the clip, which over-inflates the Procrustes scale and yields a
+    // meaningless rotation. See localApi.alignToMujoco.
+    frameIndex: state.currentFrame,
   });
   if (result.error) return { ok: false, error: result.error };
 

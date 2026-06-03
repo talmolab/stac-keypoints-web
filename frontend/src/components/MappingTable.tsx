@@ -198,7 +198,9 @@ export default function MappingTable() {
         </div>
       )}
 
-      <div style={{ flex: 1, overflow: "auto" }}>
+      {/* paddingRight reserves room so the delete "x" never hides under the
+          scrollbar (overlay scrollbars otherwise float on top of it). */}
+      <div style={{ flex: 1, overflow: "auto", paddingRight: 10 }}>
         {mappings.length === 0 ? (
           <div style={{ color: "#555", fontSize: 12 }}>No mappings yet</div>
         ) : (
@@ -226,9 +228,10 @@ export default function MappingTable() {
                 <span style={{ color: selectedKp === m.keypointName ? "#ffff00" : "#ffaa00" }}>{m.keypointName}</span>{" \u2192 "}
                 <span style={{ color: "#66bbff" }}>{m.bodyName}</span>
               </span>
-              <button onClick={(e) => { e.stopPropagation(); removeMapping(m.keypointName); }} style={{
-                background: "none", border: "none", color: "#ff4444", cursor: "pointer", fontSize: 14,
-              }}>x</button>
+              <button onClick={(e) => { e.stopPropagation(); removeMapping(m.keypointName); }} title="Remove mapping" style={{
+                background: "none", border: "none", color: "#ff4444", cursor: "pointer",
+                fontSize: 16, lineHeight: 1, padding: "0 4px", flexShrink: 0,
+              }}>{"×"}</button>
             </div>
             );
           })

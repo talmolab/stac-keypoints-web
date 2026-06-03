@@ -81,9 +81,15 @@ export default function MuJoCoModel() {
   const cz = modelCenter.z + modelPosition[2];
 
   return (
-    <group position={[cx, cy, cz]}>
-      <group rotation={[0, modelRotationY, 0]}>
-        <group scale={[modelScale, modelScale, modelScale]}>
+    // modelScale scales about the ORIGIN (outermost group), not the model
+    // centre. That keeps it invertible by the IK: the solver fits the native
+    // model to (keypoints / modelScale) so the ×modelScale-rendered bodies land
+    // back on the fixed keypoint cloud (localApi.runQuickStac divides targets by
+    // it; ErrorLines multiplies the body endpoint by it). Rotation/position
+    // still pivot about the model centre inside this scale.
+    <group scale={[modelScale, modelScale, modelScale]}>
+      <group position={[cx, cy, cz]}>
+        <group rotation={[0, modelRotationY, 0]}>
           <group position={[-cx, -cy, -cz]}>
             <group position={modelPosition}>
               {bodyGroups.map(({ bodyId, items }) => (
@@ -98,8 +104,12 @@ export default function MuJoCoModel() {
                       const bodyName = storeBodyNames[bodyId] || "";
                       addMapping(selectedKp, bodyName);
                       if (e.point && bodyTransforms[bodyId]) {
+                        // e.point is world-space; the model is scaled about the
+                        // origin by modelScale, so divide it back to the native
+                        // model frame before differencing against the (native)
+                        // body position to get a native-frame offset.
                         const pt = e.point;
-                        const clickMj = [pt.x, -pt.z, pt.y];
+                        const clickMj = [pt.x / modelScale, -pt.z / modelScale, pt.y / modelScale];
                         const bodyMj = bodyTransforms[bodyId].position;
                         updateOffset(
                           selectedKp,

@@ -85,6 +85,7 @@ export default function App() {
           nq: xmlData.nq,
           xmlPath: xmlPathToLoad,
           xmlBasename: basename,
+          hasDemoData: api.xmlHasDemoData(xmlPathToLoad),
         });
 
         // Get default body transforms

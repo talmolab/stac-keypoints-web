@@ -23,6 +23,7 @@ export default function ErrorLines() {
   const numKp = useStore((s) => s.acmNumKeypoints);
   const currentFrame = useStore((s) => s.currentFrame);
   const mocapScale = useStore((s) => s.mocapScaleFactor);
+  const modelScale = useStore((s) => s.modelScale);
   const kpNames = useStore((s) => s.acmKeypointNames);
 
   // Compute error pairs whenever the underlying data is present, regardless
@@ -55,10 +56,15 @@ export default function ErrorLines() {
       const acmZ = rawZ * mocapScale;
       const acmPos = mjToThree([acmX, acmY, acmZ]);
 
-      // MuJoCo body + offset position (in Three.js coords)
+      // MuJoCo body + offset position (in Three.js coords). The model is
+      // rendered scaled about the origin by modelScale, so scale the body+offset
+      // world position to match — otherwise the line detaches from the rendered
+      // body and the error reads the unscaled distance.
       const offset = offsetMap[m.keypointName] || { x: 0, y: 0, z: 0 };
       const mjWorld: [number, number, number] = [
-        bt.position[0] + offset.x, bt.position[1] + offset.y, bt.position[2] + offset.z,
+        (bt.position[0] + offset.x) * modelScale,
+        (bt.position[1] + offset.y) * modelScale,
+        (bt.position[2] + offset.z) * modelScale,
       ];
       const bodyPos = mjToThree(mjWorld);
 
@@ -92,7 +98,7 @@ export default function ErrorLines() {
       errorMm: number;
       mid: [number, number, number];
     }[];
-  }, [mappings, offsets, bodyTransforms, bodyNames, positions, numKp, currentFrame, mocapScale, kpNames]);
+  }, [mappings, offsets, bodyTransforms, bodyNames, positions, numKp, currentFrame, mocapScale, modelScale, kpNames]);
 
   const setPerKeypointErrors = useStore((s) => s.setPerKeypointErrors);
 
