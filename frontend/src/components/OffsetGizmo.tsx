@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { TransformControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -17,11 +17,19 @@ export default function OffsetGizmo() {
   const pushHistory = useStore((s) => s.pushHistory);
   const markerSizeMult = useStore((s) => s.markerSize);
   const handleR = markerRadius(bodyTransforms, markerSizeMult) * 0.6;
-  const meshRef = useRef<THREE.Mesh>(null!);
+  // Hold the handle mesh in state (set via callback ref) rather than a plain
+  // ref: a ref doesn't trigger a re-render, so on the first render after a
+  // keypoint is selected `meshRef.current` is still null and TransformControls
+  // would attach to nothing and sit at the world origin until some later
+  // re-render. State forces a re-render the instant the mesh mounts, so the
+  // gizmo attaches to the (already-positioned) handle straight away.
+  const [handleMesh, setHandleMesh] = useState<THREE.Mesh | null>(null);
   const controlsRef = useRef<any>(null);
   const { controls } = useThree();
 
-  // Disable orbit controls while dragging
+  // Disable orbit controls while dragging. Re-runs when `handleMesh` appears so
+  // the listener binds to the TransformControls instance that only mounts once
+  // the handle exists.
   useEffect(() => {
     const ctrl = controlsRef.current;
     if (!ctrl) return;
@@ -33,7 +41,7 @@ export default function OffsetGizmo() {
     };
     ctrl.addEventListener("dragging-changed", onDragChanged);
     return () => ctrl.removeEventListener("dragging-changed", onDragChanged);
-  }, [controls, pushHistory]);
+  }, [controls, pushHistory, handleMesh]);
 
   if (mode !== "offset" || !selectedKp) return null;
 
@@ -59,8 +67,8 @@ export default function OffsetGizmo() {
   const threePos = mjToThree(worldMj);
 
   const handleChange = () => {
-    if (!meshRef.current) return;
-    const p = meshRef.current.position;
+    if (!handleMesh) return;
+    const p = handleMesh.position;
     // Three.js (x, y, z) -> MuJoCo (x, -z, y)
     const newMjWorld = [p.x, -p.z, p.y];
     updateOffset(
@@ -73,17 +81,19 @@ export default function OffsetGizmo() {
 
   return (
     <>
-      <mesh ref={meshRef} position={[threePos.x, threePos.y, threePos.z]}>
+      <mesh ref={setHandleMesh} position={[threePos.x, threePos.y, threePos.z]}>
         <sphereGeometry args={[handleR]} />
         <meshBasicMaterial color="#ffff00" transparent opacity={0.5} />
       </mesh>
-      <TransformControls
-        ref={controlsRef}
-        object={meshRef.current || undefined}
-        mode="translate"
-        size={0.5}
-        onObjectChange={handleChange}
-      />
+      {handleMesh && (
+        <TransformControls
+          ref={controlsRef}
+          object={handleMesh}
+          mode="translate"
+          size={0.5}
+          onObjectChange={handleChange}
+        />
+      )}
     </>
   );
 }
