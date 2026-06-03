@@ -1,141 +1,147 @@
 """Quick STAC runner for subset of frames.
 
-Uses Procrustes alignment for root pose, then Jacobian transpose IK to solve
-joint angles so the model posture matches the target keypoints.
+Delegates per-frame pose optimization to ``stac_mjx.stac_core.StacCore.q_opt``
+— the same projected-gradient solver the full stac-mjx pipeline uses. Backend
+mode therefore implies stac-mjx (and JAX); standalone / pure-frontend mode
+uses a separate WASM Jacobian-transpose loop in ``mujocoWasm.ts`` and never
+touches this file.
+
+The compiled MuJoCo model + sites + ``StacCore`` are cached per process keyed
+by ``(xml_path, mappings_signature, max_iter)``. Offsets change every drag
+tick and are applied via in-place ``site_pos`` updates — no JIT recompile.
 """
 from __future__ import annotations
 
+import threading
+from typing import Any
+
 import numpy as np
 import mujoco
-from scipy.spatial.transform import Rotation
 
-from backend.alignment import procrustes_align
-
-
-# Preferred trunk keypoints for root Procrustes (rat conventions). These are
-# central, low-variance markers that give a stable estimate of root pose. If
-# fewer than 3 of these exist in the loaded keypoint set — e.g., on a
-# non-rat species — we fall back to "any mapped keypoint" below, which still
-# produces a reasonable root fit when no anatomical preference is available.
-_PREFERRED_TRUNK_KEYPOINTS = ["SpineL", "SpineM", "SpineF", "Snout"]
+# stac-mjx + JAX are heavy imports — defer them so the module loads on
+# stac-mjx-less dev / CI setups (test collection, /api/health, etc.).
+# Production backend installs `stac-keypoints-web` which pulls stac-mjx as
+# a hard dep, so any IK call there resolves these at first use.
+_jax = None
+_jp = None
+_stac_core = None
+_stac_utils = None
 
 
-def _rotation_matrix_to_quat(R: np.ndarray) -> np.ndarray:
-    """Convert 3x3 rotation matrix to MuJoCo quaternion (w, x, y, z)."""
-    rot = Rotation.from_matrix(R)
-    q = rot.as_quat()  # scipy returns (x, y, z, w)
-    return np.array([q[3], q[0], q[1], q[2]])  # MuJoCo wants (w, x, y, z)
+def _lazy_imports():
+    global _jax, _jp, _stac_core, _stac_utils
+    if _jax is not None:
+        return
+    import jax as _j
+    from jax import numpy as _jpm
+    from stac_mjx import stac_core as _sc, utils as _su
+    _jax, _jp, _stac_core, _stac_utils = _j, _jpm, _sc, _su
 
 
-def _jacobian_ik(
-    model: mujoco.MjModel,
-    data: mujoco.MjData,
-    target_positions: np.ndarray,
-    kp_names: list[str],
-    kp_body_map: dict[str, str],
-    offsets: dict[str, list[float]] | None = None,
-    max_iter: int = 200,
-    step: float = 0.5,
-    damping: float = 0.01,
-) -> np.ndarray:
-    """Jacobian transpose IK to solve joint angles.
+# Single-entry cache. Most sessions stick to one (model, mappings, max_iter)
+# triple; swapping is cheap if users compare two. A larger LRU would just
+# hold JAX state for nothing.
+_CACHE_LOCK = threading.Lock()
+_CACHE: dict[str, Any] = {}
 
-    Keeps root position/orientation fixed (set externally via Procrustes)
-    and only updates joint DOFs (qpos[7:]).
 
-    Parameters
-    ----------
-    model : MjModel
-    data : MjData with root qpos already set.
-    target_positions : (num_keypoints, 3) target world positions in meters.
-    kp_names : keypoint names in target_positions order.
-    kp_body_map : keypoint name -> MuJoCo body name.
-    offsets : keypoint name -> [x, y, z] offset from body origin.
-    max_iter : max Jacobian iterations.
-    step : gradient step size.
-    damping : regularisation for gradient norm.
+def _cache_key(xml_path: str, mappings: dict[str, str], max_iter: int) -> tuple:
+    return (xml_path, tuple(sorted(mappings.items())), int(max_iter))
 
-    Returns
-    -------
-    qpos copy after IK.
-    """
-    nv = model.nv
 
-    # Resolve body IDs and active keypoint indices once
-    active: list[tuple[int, int, np.ndarray]] = []  # (kp_idx, body_id, offset)
-    for kp_name, body_name in kp_body_map.items():
-        if kp_name not in kp_names:
+def _build(
+    xml_path: str,
+    mappings: dict[str, str],
+    offsets: dict[str, list[float]],
+    max_iter: int,
+) -> dict[str, Any]:
+    """Compile model + sites, mjx-load, build StacCore + bounds."""
+    _lazy_imports()
+    spec = mujoco.MjSpec.from_file(xml_path)
+    site_kp_order: list[str] = []
+    for kp, body_name in mappings.items():
+        body = spec.body(body_name)
+        if body is None:
             continue
-        body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
-        if body_id < 0:
+        pos = list(offsets.get(kp, [0.0, 0.0, 0.0]))
+        body.add_site(
+            name=kp,
+            size=[0.001, 0.001, 0.001],
+            pos=pos,
+            rgba=[1, 0, 0, 0.5],
+            group=3,
+        )
+        site_kp_order.append(kp)
+
+    mj_model = spec.compile()
+    site_idxs_np = np.array(
+        [mujoco.mj_name2id(mj_model, mujoco.mjtObj.mjOBJ_SITE, kp) for kp in site_kp_order]
+    )
+    site_idxs = _jp.asarray(site_idxs_np)
+
+    mjx_model, mjx_data = _stac_utils.mjx_load(mj_model)
+
+    # Bounds: free root (qpos[0:3]) unbounded in position, qpos[3:7] quaternion
+    # components in [-1, 1]. Non-root joints use jnt_range when limited, else
+    # fall back to [-pi, pi]. Simpler than stac_mjx.stac._align_joint_dims
+    # which carries per-part masks the live preview doesn't need.
+    nq = mj_model.nq
+    lb = np.full(nq, -np.pi, dtype=np.float32)
+    ub = np.full(nq, np.pi, dtype=np.float32)
+    if mj_model.njnt > 0 and mj_model.jnt_type[0] == mujoco.mjtJoint.mjJNT_FREE:
+        lb[0:3] = -np.inf
+        ub[0:3] = np.inf
+        lb[3:7] = -1.0
+        ub[3:7] = 1.0
+        next_q = 7
+    else:
+        next_q = 0
+    for j in range(1, mj_model.njnt):
+        addr = mj_model.jnt_qposadr[j]
+        if addr < next_q:
             continue
-        kp_idx = kp_names.index(kp_name)
-        off = np.array(offsets[kp_name]) if offsets and kp_name in offsets else np.zeros(3)
-        active.append((kp_idx, body_id, off))
+        if mj_model.jnt_limited[j]:
+            lo, hi = mj_model.jnt_range[j]
+            lb[addr] = lo
+            ub[addr] = hi
+    lb_j = _jp.asarray(lb)
+    ub_j = _jp.asarray(ub)
 
-    # Drop keypoints whose target is NaN — missing tracking data should
-    # contribute nothing to the gradient. NaN in `target` would otherwise
-    # poison `error`, `grad_nv`, and ultimately every joint angle.
-    active = [
-        a for a in active if not np.isnan(target_positions[a[0]]).any()
-    ]
-    if not active:
-        mujoco.mj_forward(model, data)
-        return data.qpos.copy()
+    core = _stac_core.StacCore(tol=1e-5, n_iter_q=int(max_iter))
 
-    best_qpos = data.qpos.copy()
-    best_error = float("inf")
+    return {
+        "mj_model": mj_model,
+        "mjx_model_base": mjx_model,
+        "mjx_data": mjx_data,
+        "core": core,
+        "site_idxs": site_idxs,
+        "lb": lb_j,
+        "ub": ub_j,
+        "kp_order": site_kp_order,
+        "nq": nq,
+    }
 
-    for iteration in range(max_iter):
-        mujoco.mj_forward(model, data)
 
-        total_error = 0.0
-        grad_nv = np.zeros(nv)
+def _get(
+    xml_path: str,
+    mappings: dict[str, str],
+    offsets: dict[str, list[float]],
+    max_iter: int,
+) -> dict[str, Any]:
+    key = _cache_key(xml_path, mappings, max_iter)
+    with _CACHE_LOCK:
+        cached = _CACHE.get("entry")
+        if cached and cached["key"] == key:
+            return cached["payload"]
+        payload = _build(xml_path, mappings, offsets, max_iter)
+        _CACHE["entry"] = {"key": key, "payload": payload}
+        return payload
 
-        for kp_idx, body_id, off in active:
-            target = target_positions[kp_idx]
-            current = data.xpos[body_id] + off
-            error = target - current
-            total_error += np.linalg.norm(error)
 
-            # Positional Jacobian for this body: shape (3, nv)
-            jacp = np.zeros((3, nv))
-            mujoco.mj_jacBody(model, data, jacp, None, body_id)
-
-            # Accumulate gradient in velocity space: J^T @ error
-            grad_nv += jacp.T @ error
-
-        # Track best solution
-        if total_error < best_error:
-            best_error = total_error
-            best_qpos[:] = data.qpos
-
-        # Convergence check (mean per-keypoint error < 1mm)
-        if total_error / len(active) < 0.001:
-            break
-
-        # Only update joint DOFs: skip freejoint 6 DOFs in vel space (indices 0:6),
-        # which correspond to qpos[0:7] (3 pos + 4 quat).
-        # Joint angles qpos[7:] map 1:1 to qvel[6:].
-        joint_grad = grad_nv[6:]
-        grad_norm = np.linalg.norm(joint_grad)
-        if grad_norm > 1e-10:
-            data.qpos[7:] += step * joint_grad / (grad_norm + damping)
-
-        # Clamp to joint limits
-        for i in range(model.njnt):
-            if model.jnt_limited[i]:
-                addr = model.jnt_qposadr[i]
-                if addr < 7:
-                    continue  # skip root
-                lo = model.jnt_range[i, 0]
-                hi = model.jnt_range[i, 1]
-                data.qpos[addr] = np.clip(data.qpos[addr], lo, hi)
-
-    # Use best solution found
-    data.qpos[:] = best_qpos
-    mujoco.mj_forward(model, data)
-    return data.qpos.copy()
+def clear_cache() -> None:
+    """For tests: drop the cached compiled model."""
+    with _CACHE_LOCK:
+        _CACHE.pop("entry", None)
 
 
 def run_quick_stac(
@@ -150,19 +156,50 @@ def run_quick_stac(
     scale_factor: float = 0.9,
     mocap_scale_factor: float = 0.01,
     max_iterations: int = 200,
+    initial_qpos: list[float] | None = None,
 ) -> dict:
     """Run IK on a subset of frames and return qpos + body transforms.
 
     For each frame:
-    1. Find trunk keypoints in both ACM and MuJoCo spaces
-    2. Procrustes align MuJoCo trunk to ACM trunk to get root R, t
-    3. Set qpos root position/quaternion accordingly
-    4. Run Jacobian transpose IK to solve joint angles
-    5. Collect body transforms
+      1. Apply current offsets in-place on the cached mjx.Model
+         (``set_site_pos`` — no recompile).
+      2. Build the mocap-order → mapping-order remap and a kps_to_opt mask
+         that zeros NaN rows out of the loss.
+      3. Call ``StacCore.q_opt`` (projected gradient over ``q_loss``).
+      4. Forward-kinematics for body transforms; mean Euclidean marker error
+         over finite keypoints.
+
+    Warm-start: caller passes ``initial_qpos`` (the previously solved pose).
+    Single-frame auto-IK then converges in 1-5 iters; multi-frame batches
+    chain via ``prev_q`` so frame N seeds frame N+1.
+
+    NOTE (scrub-drift asymmetry vs standalone): ``q_opt`` optimizes the full
+    qpos including the root freejoint (``qs_to_opt = ones(nq)``), so on a big
+    timeline jump it can re-orient the root from the chained ``prev_q`` seed.
+    The standalone JS path (``localApi.runQuickStac`` → ``mujocoWasm.jacobianIk``)
+    cannot — it only moves joints — so it was changed to cold-start every frame
+    with a per-frame trunk Procrustes root seed instead of chaining. This
+    backend still chains; if backend-mode scrubbing is found to drift on
+    discontinuous clips, mirror that fix by seeding each frame's root with a
+    Procrustes fit rather than ``prev_q``. Verify on the GPU box — needs JAX +
+    stac-mjx, which isn't exercised by the standalone test suite.
     """
+    if not mappings:
+        # No sites → no loss → q_opt returns initial; faster to bail. The
+        # frontend wouldn't construct an empty mapping request anyway.
+        return {
+            "qpos": [],
+            "errors": [],
+            "frameIndices": [],
+            "bodyTransforms": [],
+            "modelCenter": [0.0, 0.0, 0.0],
+        }
+
+    _lazy_imports()
+
     # The frontend uses `null` on the wire for missing keypoints (JSON
-    # disallows the NaN literal). Restore as NaN so downstream NaN-aware
-    # math (np.isnan checks below) works.
+    # disallows the NaN literal). Restore as NaN so the kps_to_opt mask
+    # downstream works.
     if any(v is None for v in kp_positions_flat):
         flat = np.array(
             [np.nan if v is None else v for v in kp_positions_flat], dtype=float
@@ -171,158 +208,231 @@ def run_quick_stac(
         flat = np.asarray(kp_positions_flat, dtype=float)
     positions = flat.reshape(num_frames, num_keypoints, 3)
 
-    model = mujoco.MjModel.from_xml_path(xml_path)
-    data = mujoco.MjData(model)
+    ctx = _get(xml_path, mappings, offsets or {}, max_iterations)
+    nq = ctx["nq"]
+    mj_model = ctx["mj_model"]
+    mjx_model = ctx["mjx_model_base"]
+    mjx_data = ctx["mjx_data"]
+    core = ctx["core"]
+    site_idxs = ctx["site_idxs"]
+    lb, ub = ctx["lb"], ctx["ub"]
+    kp_order: list[str] = ctx["kp_order"]
 
-    # Get MuJoCo default pose body positions for trunk keypoints
-    mujoco.mj_resetData(model, data)
-    mujoco.mj_forward(model, data)
+    if offsets:
+        site_pos_np = np.array(
+            [offsets.get(kp, [0.0, 0.0, 0.0]) for kp in kp_order], dtype=np.float32
+        )
+        mjx_model = _stac_utils.set_site_pos(
+            mjx_model, _jp.asarray(site_pos_np), site_idxs
+        )
 
-    # Determine which trunk keypoints we can use (need both kp_name in kp_names and body in mappings)
-    trunk_kps_available = []
-    if mappings:
-        for tkp in _PREFERRED_TRUNK_KEYPOINTS:
-            if tkp in kp_names and tkp in mappings:
-                body_name = mappings[tkp]
-                body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
-                if body_id >= 0:
-                    trunk_kps_available.append(tkp)
+    kp_idx = {name: i for i, name in enumerate(kp_names)}
+    missing = [kp for kp in kp_order if kp not in kp_idx]
+    if missing:
+        raise ValueError(f"Mapped keypoints not present in kp_names: {missing}")
+    remap = np.array([kp_idx[kp] for kp in kp_order], dtype=np.int32)
 
-    # If we don't have enough trunk keypoints, use any mapped keypoints
-    if len(trunk_kps_available) < 3 and mappings:
-        trunk_kps_available = [
-            kp for kp in kp_names
-            if kp in mappings and mujoco.mj_name2id(
-                model, mujoco.mjtObj.mjOBJ_BODY, mappings[kp]
-            ) >= 0
-        ]
+    targets_m = positions * mocap_scale_factor  # (n_frames, n_kp, 3) → meters
+    qs_to_opt = _jp.ones(nq, dtype=_jp.bool_)
 
-    # Get MuJoCo default-pose positions for selected keypoints (in meters, scaled)
-    mj_trunk_positions = []
-    for kp in trunk_kps_available:
-        if mappings and kp in mappings:
-            body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, mappings[kp])
-            if body_id >= 0:
-                pos = data.xpos[body_id].copy() * scale_factor
-                if offsets and kp in offsets:
-                    pos += np.array(offsets[kp])
-                mj_trunk_positions.append(pos)
-    mj_trunk_arr = np.array(mj_trunk_positions) if mj_trunk_positions else None
+    if initial_qpos is not None and len(initial_qpos) == nq:
+        prev_q = _jp.asarray(initial_qpos, dtype=_jp.float32)
+    else:
+        prev_q = _jp.asarray(mjx_data.qpos)
 
-    all_qpos = []
-    all_errors = []
-    all_body_transforms = []
-
-    prev_qpos = None
+    all_qpos: list[list[float]] = []
+    all_errors: list[float] = []
+    all_body_transforms: list[list[dict]] = []
 
     for frame_idx in frame_indices:
         if frame_idx >= num_frames:
             continue
 
-        # Target positions for this frame (cm -> meters)
-        target_m = positions[frame_idx] * mocap_scale_factor
+        targets_mapped = targets_m[frame_idx][remap]
+        finite_mask = ~np.isnan(targets_mapped).any(axis=1)
+        targets_clean = np.where(
+            finite_mask[:, None], targets_mapped, 0.0
+        ).astype(np.float32)
+        ref_flat = _jp.asarray(targets_clean.flatten())
+        kps_to_opt = _jp.asarray(np.repeat(finite_mask, 3).astype(np.bool_))
 
-        # Reset to default pose or use previous frame for temporal coherence
-        if prev_qpos is not None:
-            data.qpos[:] = prev_qpos
-        else:
-            mujoco.mj_resetData(model, data)
+        new_mjx_data, result = core.q_opt(
+            mjx_model,
+            mjx_data,
+            ref_flat,
+            qs_to_opt,
+            kps_to_opt,
+            prev_q,
+            lb,
+            ub,
+            site_idxs,
+        )
+        new_q = prev_q if result is None else result.params
 
-        # Build per-frame trunk pairs, dropping any kp whose target is NaN.
-        # A NaN slipping into the Procrustes input would yield a NaN R/t and
-        # blow up qpos for the rest of the run via temporal coherence.
-        acm_trunk_positions: list[np.ndarray] = []
-        mj_trunk_for_frame: list[np.ndarray] = []
-        if mj_trunk_arr is not None:
-            for trunk_i, kp in enumerate(trunk_kps_available):
-                kp_idx = kp_names.index(kp)
-                if np.isnan(target_m[kp_idx]).any():
-                    continue
-                acm_trunk_positions.append(target_m[kp_idx])
-                mj_trunk_for_frame.append(mj_trunk_arr[trunk_i])
+        new_mjx_data = new_mjx_data.replace(qpos=new_q)
+        new_mjx_data = _stac_utils.kinematics(mjx_model, new_mjx_data)
 
-        if len(acm_trunk_positions) >= 3:
-            mj_arr = np.array(mj_trunk_for_frame)
-            acm_arr = np.array(acm_trunk_positions)
+        marker_pos = np.array(_stac_utils.get_site_xpos(new_mjx_data, site_idxs))
+        diffs = marker_pos - np.array(targets_mapped)
+        per_kp_err = np.linalg.norm(diffs, axis=1)
+        per_kp_err = np.where(finite_mask, per_kp_err, np.nan)
+        with np.errstate(invalid="ignore"):
+            mean_err = float(np.nanmean(per_kp_err)) if finite_mask.any() else 0.0
 
-            # Procrustes: align MuJoCo trunk to ACM trunk
-            result = procrustes_align(mj_arr, acm_arr, allow_scale=False)
-            R = result["R"]
-            t = result["t"]
-            quat = _rotation_matrix_to_quat(R)
-
-            data.qpos[0:3] = t
-            data.qpos[3:7] = quat
-        else:
-            # Fallback: set root position to mean of finite target keypoints.
-            # nanmean across all keypoints — if every one is NaN we fall through
-            # with whatever qpos we had (carryover from prev frame or default).
-            if not np.isnan(target_m).all():
-                mean_target = np.nanmean(target_m, axis=0)
-                data.qpos[0] = mean_target[0]
-                data.qpos[1] = mean_target[1]
-                data.qpos[2] = mean_target[2]
-                data.qpos[3] = 1.0  # quaternion w
-
-        # Run Jacobian IK to solve joint angles
-        if mappings:
-            solved_qpos = _jacobian_ik(
-                model, data, target_m, kp_names, mappings,
-                offsets=offsets, max_iter=max_iterations, step=0.5, damping=0.01,
-            )
-            data.qpos[:] = solved_qpos
-        mujoco.mj_forward(model, data)
-
-        prev_qpos = data.qpos.copy()
-
-        # Compute error: mean distance from model bodies to target keypoints
-        if mappings:
-            errors = []
-            for kp_name, body_name in mappings.items():
-                if kp_name not in kp_names:
-                    continue
-                kp_idx = kp_names.index(kp_name)
-                body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
-                if body_id >= 0:
-                    target = target_m[kp_idx]
-                    if np.isnan(target).any():
-                        continue
-                    body_pos = data.xpos[body_id]
-                    offset = np.zeros(3)
-                    if offsets and kp_name in offsets:
-                        offset = np.array(offsets[kp_name])
-                    dist = np.linalg.norm((body_pos + offset) - target)
-                    errors.append(dist)
-            mean_error = float(np.mean(errors)) if errors else 0.0
-        else:
-            mean_error = 0.0
-
-        # Collect body transforms for this frame
-        frame_transforms = []
-        for b in range(model.nbody):
-            frame_transforms.append({
+        xpos_np = np.array(new_mjx_data.xpos)
+        xquat_np = np.array(new_mjx_data.xquat)
+        frame_transforms = [
+            {
                 "bodyId": b,
-                "position": [float(data.xpos[b, i]) for i in range(3)],
-                "quaternion": [float(data.xquat[b, i]) for i in range(4)],
-            })
+                "position": [float(v) for v in xpos_np[b]],
+                "quaternion": [float(v) for v in xquat_np[b]],
+            }
+            for b in range(mj_model.nbody)
+        ]
 
-        all_qpos.append(data.qpos[:].tolist())
-        all_errors.append(mean_error)
+        all_qpos.append([float(v) for v in np.array(new_q)])
+        all_errors.append(mean_err)
         all_body_transforms.append(frame_transforms)
 
-    # Compute model center from last frame body positions (for frontend positioning)
+        prev_q = new_q
+
     model_center = [0.0, 0.0, 0.0]
     if all_body_transforms:
-        last_frame = all_body_transforms[-1]
-        if last_frame:
-            positions_arr = np.array([bt["position"] for bt in last_frame])
-            center = positions_arr.mean(axis=0)
-            model_center = center.tolist()
+        positions_arr = np.array([bt["position"] for bt in all_body_transforms[-1]])
+        model_center = positions_arr.mean(axis=0).tolist()
 
     return {
         "qpos": all_qpos,
         "errors": all_errors,
-        "frameIndices": frame_indices[:len(all_qpos)],
+        "frameIndices": frame_indices[: len(all_qpos)],
         "bodyTransforms": all_body_transforms,
         "modelCenter": model_center,
+    }
+
+
+def refit_offsets(
+    kp_positions_flat: list[float],
+    num_frames: int,
+    num_keypoints: int,
+    kp_names: list[str],
+    xml_path: str,
+    frame_indices: list[int],
+    qposes_per_frame: list[list[float]],
+    mappings: dict[str, str],
+    offsets: dict[str, list[float]] | None = None,
+    mocap_scale_factor: float = 0.01,
+    max_iterations: int = 200,
+) -> dict:
+    """Closed-form marker-offset solve over the given (labeled) frames.
+
+    Calls ``StacCore.m_opt`` which exactly solves
+        min_m  sum_t || y_t - (p_t + R_t m) ||^2
+    per keypoint (no SGD iterations, no JIT recompile beyond the first).
+    Requires that the caller has already solved IK on these frames and is
+    passing the corresponding qposes — m_opt fits offsets given fixed pose.
+
+    Cache key matches ``run_quick_stac`` (xml_path, mappings, max_iter), so
+    the same compiled mjx.Model is reused.
+    """
+    if not mappings:
+        return {"offsets": {}, "error": 0.0, "frameIndicesUsed": []}
+    if len(qposes_per_frame) != len(frame_indices):
+        raise ValueError(
+            f"qposes_per_frame ({len(qposes_per_frame)}) must align with "
+            f"frame_indices ({len(frame_indices)})"
+        )
+
+    _lazy_imports()
+
+    if any(v is None for v in kp_positions_flat):
+        flat = np.array(
+            [np.nan if v is None else v for v in kp_positions_flat], dtype=float
+        )
+    else:
+        flat = np.asarray(kp_positions_flat, dtype=float)
+    positions = flat.reshape(num_frames, num_keypoints, 3)
+
+    ctx = _get(xml_path, mappings, offsets or {}, max_iterations)
+    mjx_model = ctx["mjx_model_base"]
+    mjx_data = ctx["mjx_data"]
+    core = ctx["core"]
+    site_idxs = ctx["site_idxs"]
+    kp_order: list[str] = ctx["kp_order"]
+    nq = ctx["nq"]
+
+    if offsets:
+        site_pos_np = np.array(
+            [offsets.get(kp, [0.0, 0.0, 0.0]) for kp in kp_order], dtype=np.float32
+        )
+        mjx_model = _stac_utils.set_site_pos(
+            mjx_model, _jp.asarray(site_pos_np), site_idxs
+        )
+
+    kp_idx = {name: i for i, name in enumerate(kp_names)}
+    missing = [kp for kp in kp_order if kp not in kp_idx]
+    if missing:
+        raise ValueError(f"Mapped keypoints not present in kp_names: {missing}")
+    remap = np.array([kp_idx[kp] for kp in kp_order], dtype=np.int32)
+    n_kp = len(kp_order)
+
+    # Build the (T, n_kp_xyz) target array. m_opt has no per-keypoint NaN
+    # mask, so any frame with a missing mapped keypoint must be skipped
+    # rather than poison the closed-form solve.
+    valid_idx: list[int] = []
+    targets_rows: list[np.ndarray] = []
+    qpose_rows: list[np.ndarray] = []
+    for i, frame_idx in enumerate(frame_indices):
+        if frame_idx >= num_frames or frame_idx < 0:
+            continue
+        targets_mapped = positions[frame_idx][remap] * mocap_scale_factor
+        if np.isnan(targets_mapped).any():
+            continue
+        q_arr = np.asarray(qposes_per_frame[i], dtype=np.float32)
+        if q_arr.shape[0] != nq:
+            raise ValueError(
+                f"Frame {frame_idx}: qpos length {q_arr.shape[0]} != model nq {nq}"
+            )
+        valid_idx.append(frame_idx)
+        targets_rows.append(targets_mapped.flatten())
+        qpose_rows.append(q_arr)
+
+    if len(valid_idx) == 0:
+        return {"offsets": {}, "error": 0.0, "frameIndicesUsed": []}
+
+    keypoints = _jp.asarray(np.stack(targets_rows).astype(np.float32))
+    q_traj = _jp.asarray(np.stack(qpose_rows).astype(np.float32))
+
+    initial_off_np = np.array(
+        [offsets.get(kp, [0.0, 0.0, 0.0]) if offsets else [0.0, 0.0, 0.0] for kp in kp_order],
+        dtype=np.float32,
+    )
+    initial_off = _jp.asarray(initial_off_np)
+    # No per-coord regularization — user is explicitly asking to recompute
+    # offsets; we don't want to anchor them to their prior values. The
+    # reg_coef multiplier zeros the regularization term entirely.
+    is_regularized = _jp.zeros((n_kp, 3), dtype=_jp.float32)
+
+    result = core.m_opt(
+        mjx_model,
+        mjx_data,
+        keypoints,
+        q_traj,
+        initial_off,
+        is_regularized,
+        reg_coef=0.0,
+        site_idxs=site_idxs,
+    )
+
+    new_offsets_np = np.array(result.params)
+    new_offsets = {
+        kp: [float(v) for v in new_offsets_np[i]] for i, kp in enumerate(kp_order)
+    }
+    # Mean per-keypoint error in meters at the solved offsets.
+    n_xyz = n_kp * 3
+    mean_err = float(np.sqrt(np.array(result.error) / (len(valid_idx) * n_xyz)))
+
+    return {
+        "offsets": new_offsets,
+        "error": mean_err,
+        "frameIndicesUsed": valid_idx,
     }

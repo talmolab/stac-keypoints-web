@@ -5,6 +5,7 @@ import { useStore } from "../store";
 import { mjToThree } from "../mujocoLoader";
 import { segmentKey } from "../skeletonEditor";
 import { errorToColor } from "../errorColor";
+import { markerRadius } from "../sceneScale";
 
 // Canonical hues for the rat keypoint set. Anything not listed here falls
 // back to a hash-derived hue (see colorForKp), so other species still get
@@ -32,9 +33,10 @@ function colorForKp(name: string): string {
   return `hsl(${hue}, 75%, 60%)`;
 }
 
-// Shared geometries — created once, reused across renders
-const _smallSphere = new THREE.SphereGeometry(0.003, 12, 8);
-const _largeSphere = new THREE.SphereGeometry(0.005, 12, 8);
+// Unit-radius shared geometry — meshes scale this to the bbox-derived size
+// (see sceneScale.ts). Selection / highlight bumps the mesh `scale` by 1.6x
+// rather than swapping to a fatter geometry.
+const _unitSphere = new THREE.SphereGeometry(1, 12, 8);
 
 // Shared material cache (by color string)
 const _materialCache = new Map<string, THREE.MeshBasicMaterial>();
@@ -81,6 +83,15 @@ export default function ACMSkeleton() {
   const colorByError = useStore((s) => s.colorByError);
   const perKeypointErrors = useStore((s) => s.perKeypointErrors);
   const confidences = useStore((s) => s.acmConfidences);
+  const bodyTransforms = useStore((s) => s.bodyTransforms);
+  const markerSizeMult = useStore((s) => s.markerSize);
+  // Bbox-derived radius: ~3.6mm for a rat, ~2mm for a stick bug. Recomputes
+  // when the model loads (and per-frame after IK, but the diagonal is stable
+  // since IK changes pose, not extent).
+  const baseRadius = useMemo(
+    () => markerRadius(bodyTransforms, markerSizeMult),
+    [bodyTransforms, markerSizeMult],
+  );
 
   // Cache mesh refs for imperative position updates (avoids re-render)
   const meshRefs = useRef<Map<string, THREE.Mesh>>(new Map());
@@ -175,13 +186,14 @@ export default function ACMSkeleton() {
           const c = confidences[currentFrame * numKp + i];
           if (Number.isFinite(c)) color = tintByConfidence(color, c);
         }
-        const geom = (isSelected || isHighlighted) ? _largeSphere : _smallSphere;
+        const r = baseRadius * ((isSelected || isHighlighted) ? 1.6 : 1.0);
         return (
           <mesh
             key={name}
             ref={(ref: THREE.Mesh | null) => { if (ref) meshRefs.current.set(name, ref); }}
             position={pos}
-            geometry={geom}
+            scale={[r, r, r]}
+            geometry={_unitSphere}
             material={getMaterial(color)}
             renderOrder={11}
             onClick={(e) => { e.stopPropagation(); handleClick(name); }}

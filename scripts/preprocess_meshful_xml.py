@@ -30,6 +30,13 @@ import numpy as np
 CAPSULE_MIN_CYL_RATIO = 0.3
 CAPSULE_MIN_CYL_ABS = 1e-5
 
+# When the smallest AABB half-extent is below this fraction of the next one,
+# the mesh is flat (a wing/fin) and a capsule can't represent it — its radius
+# would balloon to the geom's *width*, reading as a fat blob over the model.
+# An ellipsoid uses all three half-extents and stays flat. (The fly's wings
+# already carry thin collision *ellipsoids*; this makes the visual geom match.)
+ELLIPSOID_FLAT_RATIO = 0.5
+
 
 def _is_mesh_geom(geom: ET.Element) -> bool:
     """A geom is mesh-typed if it explicitly says so, or if it has a `mesh`
@@ -37,18 +44,29 @@ def _is_mesh_geom(geom: ET.Element) -> bool:
     return geom.get("type") == "mesh" or "mesh" in geom.attrib
 
 
-def _collect_aabbs(model: "mujoco.MjModel") -> dict[str, deque[np.ndarray]]:
-    """Walk compiled mesh geoms in document order, queueing their AABBs by
-    parent-body name. The XML walker pops from these queues in matching
-    document order — this keeps multiple mesh geoms on the same body lined
-    up correctly."""
-    queues: dict[str, deque[np.ndarray]] = defaultdict(deque)
+def _collect_mesh_geoms(model: "mujoco.MjModel") -> dict[str, deque[tuple]]:
+    """Walk compiled mesh geoms in document order, queueing (aabb, pos, quat)
+    by parent-body name. The XML walker pops from these queues in matching
+    document order — this keeps multiple mesh geoms on the same body lined up.
+
+    Critically, we use the COMPILED ``geom_pos``/``geom_quat`` rather than the
+    XML element's own ``pos``/``quat`` attributes: a mesh geom's compiled frame
+    bakes in the mesh asset's reference frame and any class-inherited transform,
+    so it differs from the raw attributes (often wildly). The raw attributes
+    placed the replacement primitive in the wrong spot — capsules hid it as a
+    blob, ellipsoids made it obvious. This matches the backend extractor, which
+    reads the compiled values."""
+    queues: dict[str, deque[tuple]] = defaultdict(deque)
     for g in range(model.ngeom):
         if int(model.geom_type[g]) != int(mujoco.mjtGeom.mjGEOM_MESH):
             continue
         body_id = int(model.geom_bodyid[g])
         body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_id)
-        queues[body_name].append(np.array(model.geom_aabb[g]))
+        queues[body_name].append((
+            np.array(model.geom_aabb[g]),
+            np.array(model.geom_pos[g]),
+            np.array(model.geom_quat[g]),
+        ))
     return queues
 
 
@@ -67,6 +85,17 @@ def _mesh_to_capsule_attrs(aabb: np.ndarray, pos0: np.ndarray, quat0: np.ndarray
     new_pos = pos0 + rotated
 
     attrs: dict[str, str] = {"pos": " ".join(f"{v:.6g}" for v in new_pos)}
+
+    # Flat mesh → ellipsoid. Must precede the sphere/capsule split: a capsule
+    # would balloon its radius to the width, and a sphere would discard the
+    # flatness. The ellipsoid's axes are the geom-local frame, so it keeps the
+    # geom's own quat (no Z-to-longest alignment needed).
+    e_sorted = sorted(extents)
+    if e_sorted[0] < ELLIPSOID_FLAT_RATIO * e_sorted[1]:
+        attrs["type"] = "ellipsoid"
+        attrs["size"] = " ".join(f"{max(h, 1e-5):.6g}" for h in extents)
+        attrs["quat"] = " ".join(f"{v:.6g}" for v in quat0)
+        return attrs
 
     if (half_short < 1e-9
         or cyl < CAPSULE_MIN_CYL_RATIO * half_short
@@ -93,32 +122,34 @@ def preprocess(xml_path: Path, out_path: Path) -> dict:
     """Read xml_path, write out_path with mesh geoms replaced. Returns
     a {n_replaced, n_sphere, n_capsule, out_bytes} report."""
     model = mujoco.MjModel.from_xml_path(str(xml_path))
-    queues = _collect_aabbs(model)
+    queues = _collect_mesh_geoms(model)
 
     tree = ET.parse(xml_path)
     root = tree.getroot()
-    n_replaced = n_sphere = 0
+    n_replaced = n_sphere = n_ellipsoid = 0
 
     def walk_body(body_el: ET.Element, body_name: str) -> None:
-        nonlocal n_replaced, n_sphere
+        nonlocal n_replaced, n_sphere, n_ellipsoid
         for geom in list(body_el.findall("geom")):
             if not _is_mesh_geom(geom):
                 continue
             queue = queues.get(body_name)
             if not queue:
                 continue
-            aabb = queue.popleft()
-            pos0 = np.array([float(x) for x in geom.get("pos", "0 0 0").split()], dtype=np.float64)
-            quat0 = np.array([float(x) for x in geom.get("quat", "1 0 0 0").split()], dtype=np.float64)
+            # Compiled pos/quat (not the XML attributes — see _collect_mesh_geoms).
+            aabb, pos0, quat0 = queue.popleft()
             new_attrs = _mesh_to_capsule_attrs(aabb, pos0, quat0)
             # Strip mesh-only attrs and any class= that supplied type="mesh".
-            for attr in ("mesh", "fitscale", "type", "class"):
+            # pos/quat are overwritten from new_attrs with the compiled frame.
+            for attr in ("mesh", "fitscale", "type", "class", "pos", "quat"):
                 geom.attrib.pop(attr, None)
             for k, v in new_attrs.items():
                 geom.set(k, v)
             n_replaced += 1
             if new_attrs["type"] == "sphere":
                 n_sphere += 1
+            elif new_attrs["type"] == "ellipsoid":
+                n_ellipsoid += 1
         for child in body_el.findall("body"):
             walk_body(child, child.get("name") or "")
 
@@ -144,6 +175,7 @@ def preprocess(xml_path: Path, out_path: Path) -> dict:
     return {
         "n_replaced": n_replaced,
         "n_sphere": n_sphere,
-        "n_capsule": n_replaced - n_sphere,
+        "n_ellipsoid": n_ellipsoid,
+        "n_capsule": n_replaced - n_sphere - n_ellipsoid,
         "out_bytes": out_path.stat().st_size,
     }

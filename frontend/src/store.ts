@@ -78,6 +78,17 @@ interface AppState {
   stacRunning: boolean;
   stacProgress: number;
 
+  // Most recent single-frame IK solution. Survives mapping/offset edits so
+  // subsequent auto-IK passes can warm-start instead of restarting from
+  // default pose + Procrustes. Cleared on XML reload (qpos length may change).
+  liveQpos: number[] | null;
+
+  // The frame index `liveQpos` was solved for. Warm-start is only valid when
+  // re-solving that same frame (an edit); on a frame change (a scrub) the seed
+  // is stale and auto-IK must cold-start so the per-frame trunk Procrustes
+  // re-seeds the root. null = unknown frame ⇒ never warm-start.
+  liveQposFrame: number | null;
+
   // Model rotation (Y-axis in Three.js = yaw)
   modelRotationY: number;
 
@@ -89,6 +100,10 @@ interface AppState {
 
   // Model opacity (0-1)
   modelOpacity: number;
+
+  // Marker size multiplier (UI sphere radii are bbox-derived; this is a
+  // user-facing tweak on top). 1.0 = derived default; range 0.1–5.0.
+  markerSize: number;
 
   // Global controls visibility
   showGlobalControls: boolean;
@@ -138,6 +153,7 @@ interface AppState {
   // Actions
   setXmlData: (data: { geoms: GeomData[]; bodyNames: string[]; nq: number; xmlPath: string; xmlBasename?: string | null }) => void;
   setAcmData: (data: { keypointNames: string[]; bones: Bone[]; positions: ReadonlyArray<number | null>; numFrames: number; numKeypoints: number; confidences?: ReadonlyArray<number | null> }) => void;
+  clearAcmData: () => void;
   setAlignedPositions: (positions: ReadonlyArray<number | null>) => void;
   setCurrentFrame: (frame: number) => void;
   setMode: (mode: InteractionMode) => void;
@@ -148,6 +164,7 @@ interface AppState {
   addMapping: (kp: string, body: string) => void;
   removeMapping: (kp: string) => void;
   updateOffset: (kp: string, x: number, y: number, z: number) => void;
+  setOffsetsBulk: (offsets: Record<string, [number, number, number]>) => void;
   togglePlay: () => void;
   labelCurrentFrame: () => void;
   setBodyTransforms: (transforms: BodyTransform[]) => void;
@@ -156,6 +173,7 @@ interface AppState {
   setModelScale: (scale: number) => void;
   setMocapScaleFactor: (scale: number) => void;
   setModelOpacity: (opacity: number) => void;
+  setMarkerSize: (size: number) => void;
   setShowGlobalControls: (show: boolean) => void;
   setShowErrorLines: (show: boolean) => void;
   setSegmentScale: (key: string, value: number) => void;
@@ -165,6 +183,7 @@ interface AppState {
   setHover: (name: string | null, position?: [number, number, number]) => void;
   setIkStatus: (status: string | null) => void;
   setStacResults: (qpos: number[][], frameIndices?: number[], bodyTransforms?: BodyTransform[][]) => void;
+  setLiveQpos: (qpos: number[] | null, frame?: number | null) => void;
   loadConfig: (config: {
     keypointModelPairs: Record<string, string>;
     keypointInitialOffsets: Record<string, [number, number, number]>;
@@ -208,10 +227,13 @@ export const useStore = create<AppState>()(persist((set) => ({
   stacBodyTransforms: null,
   stacRunning: false,
   stacProgress: 0,
+  liveQpos: null,
+  liveQposFrame: null,
   modelRotationY: 0,
   modelPosition: [0, 0, 0] as [number, number, number],
   modelScale: 1.0,
   modelOpacity: 0.5,
+  markerSize: 1.0,
   showGlobalControls: false,
   showErrorLines: false,
   colorByError: false,
@@ -262,6 +284,15 @@ export const useStore = create<AppState>()(persist((set) => ({
     nq: data.nq,
     xmlPath: data.xmlPath,
     xmlBasename: data.xmlBasename ?? null,
+    // qpos length is model-dependent — any prior warm-start is invalid.
+    liveQpos: null,
+    liveQposFrame: null,
+    // Model view-transform is per-model: a rotation/scale/offset tuned for one
+    // species is meaningless for the next. Reset on every model load so a
+    // value set (or persisted) for the rat doesn't silently apply to the fly.
+    modelRotationY: 0,
+    modelPosition: [0, 0, 0] as [number, number, number],
+    modelScale: 1.0,
   }),
   setAcmData: (data) => set({
     acmKeypointNames: data.keypointNames,
@@ -276,6 +307,31 @@ export const useStore = create<AppState>()(persist((set) => ({
     alignedPositions: null,
     isAligned: false,
   }),
+  // Drop the loaded keypoint clip and everything derived from it (alignment,
+  // IK caches, warm-start, per-frame state). Used when switching model presets
+  // so a previous species' markers + animation don't linger over the new
+  // model. Deliberately does NOT touch mappings/offsets/scaleFactor — the
+  // preset's own config has just set those.
+  clearAcmData: () => set({
+    acmKeypointNames: [],
+    acmBones: [],
+    acmPositions: null,
+    acmConfidences: null,
+    acmNumFrames: 0,
+    acmNumKeypoints: 0,
+    frameStatuses: [],
+    labeledFrames: new Set(),
+    adjustedPositions: null,
+    alignedPositions: null,
+    isAligned: false,
+    stacQpos: null,
+    stacFrameIndices: null,
+    stacBodyTransforms: null,
+    liveQpos: null,
+    liveQposFrame: null,
+    perKeypointErrors: [],
+    currentFrame: 0,
+  }),
   setAlignedPositions: (positions) => set({ alignedPositions: nullsToNaNFloat32(positions), isAligned: true }),
   setCurrentFrame: (frame) => set({ currentFrame: frame }),
   setMode: (mode) => set({ mode }),
@@ -289,16 +345,47 @@ export const useStore = create<AppState>()(persist((set) => ({
       mappings: [...filtered, { keypointName: kp, bodyName: body }],
       _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
       _redoStack: [],
+      // Any cached multi-frame IK result is now stale; auto-IK only refits
+      // the current frame, so per-frame transforms from a previous "Run IK"
+      // would otherwise mislead scrubbing.
+      stacQpos: null,
+      stacFrameIndices: null,
+      stacBodyTransforms: null,
     };
   }),
   removeMapping: (kp) => set((state) => ({
     mappings: state.mappings.filter((m) => m.keypointName !== kp),
     _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
     _redoStack: [],
+    stacQpos: null,
+    stacFrameIndices: null,
+    stacBodyTransforms: null,
   })),
   updateOffset: (kp, x, y, z) => set((state) => {
     const filtered = state.offsets.filter((o) => o.keypointName !== kp);
-    return { offsets: [...filtered, { keypointName: kp, x, y, z }] };
+    return {
+      offsets: [...filtered, { keypointName: kp, x, y, z }],
+      stacQpos: null,
+      stacFrameIndices: null,
+      stacBodyTransforms: null,
+    };
+  }),
+  setOffsetsBulk: (bulk) => set((state) => {
+    // Preserve any existing offsets for keypoints not present in `bulk`.
+    // Single set + single history snapshot — avoids the 30-render storm
+    // that mapping `updateOffset` over the dict would cause.
+    const carried = state.offsets.filter((o) => !(o.keypointName in bulk));
+    const incoming = Object.entries(bulk).map(([kp, [x, y, z]]) => ({
+      keypointName: kp, x, y, z,
+    }));
+    return {
+      offsets: [...carried, ...incoming],
+      _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
+      _redoStack: [],
+      stacQpos: null,
+      stacFrameIndices: null,
+      stacBodyTransforms: null,
+    };
   }),
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
   labelCurrentFrame: () => set((state) => {
@@ -314,6 +401,7 @@ export const useStore = create<AppState>()(persist((set) => ({
   setModelScale: (scale) => set({ modelScale: scale }),
   setMocapScaleFactor: (scale) => set({ mocapScaleFactor: scale }),
   setModelOpacity: (opacity) => set({ modelOpacity: opacity }),
+  setMarkerSize: (size) => set({ markerSize: size }),
   setShowGlobalControls: (show) => set({ showGlobalControls: show }),
   setShowErrorLines: (show) => set({ showErrorLines: show }),
   setShowOffsetMarkers: (show) => set({ showOffsetMarkers: show }),
@@ -341,6 +429,7 @@ export const useStore = create<AppState>()(persist((set) => ({
     stacRunning: false,
     stacProgress: 1.0,
   }),
+  setLiveQpos: (qpos, frame = null) => set({ liveQpos: qpos, liveQposFrame: frame }),
   loadConfig: (config) => set({
     mappings: Object.entries(config.keypointModelPairs).map(([kp, body]) => ({ keypointName: kp, bodyName: body })),
     offsets: Object.entries(config.keypointInitialOffsets).map(([kp, [x, y, z]]) => ({ keypointName: kp, x, y, z })),
@@ -358,11 +447,11 @@ export const useStore = create<AppState>()(persist((set) => ({
     offsets: state.offsets,
     segmentScales: state.segmentScales,
     rawTemplate: state.rawTemplate,
-    // Model transform
-    modelRotationY: state.modelRotationY,
-    modelPosition: state.modelPosition,
-    modelScale: state.modelScale,
+    // Model view-transform (rotation/position/scale) is intentionally NOT
+    // persisted — it's per-model and reset on every load by setXmlData, so
+    // persisting it would just flash a stale value before the reset.
     modelOpacity: state.modelOpacity,
+    markerSize: state.markerSize,
     // Preferences
     showGlobalControls: state.showGlobalControls,
     showErrorLines: state.showErrorLines,

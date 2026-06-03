@@ -42,6 +42,7 @@ function pickFiles(accept: string, asDirectory: boolean): Promise<File[]> {
 export default function Toolbar() {
   const setXmlData = useStore((s) => s.setXmlData);
   const setAcmData = useStore((s) => s.setAcmData);
+  const clearAcmData = useStore((s) => s.clearAcmData);
   const setBodyTransforms = useStore((s) => s.setBodyTransforms);
   const loadConfigAction = useStore((s) => s.loadConfig);
   const ikStatus = useStore((s) => s.ikStatus);
@@ -103,13 +104,31 @@ export default function Toolbar() {
   // Path-based load. Needed for models whose XML references external assets
   // by relative path (most non-rat models pull in mesh OBJs from `assets/`),
   // since file uploads land in /tmp where those relative paths don't resolve.
-  const loadByPath = useCallback(async (path: string) => {
+  // If `configPath` is supplied (bundled species), the per-species config
+  // (mappings, offsets, mocapScaleFactor) is loaded right after the XML so
+  // switching species replaces stale mappings instead of stacking them on
+  // top of whatever the previous species left in the store.
+  const loadByPath = useCallback(async (path: string, configPath?: string, hasDemoData?: boolean) => {
     if (!path) return;
     const data = await api.loadXml(path);
     if (!data.error) localStorage.setItem("stac.lastXmlPath", path);
     const basename = path.split("/").pop() || path;
     await finishXmlLoad(data, path, basename);
-  }, [finishXmlLoad]);
+    if (configPath) {
+      const cfg = await api.loadConfig(configPath);
+      if (!cfg.error) loadConfigAction(cfg);
+    }
+    // The model + mappings just switched, but the previously-loaded keypoint
+    // clip would otherwise linger — only rat bundles demo mocap, so switching
+    // to another species left the rat markers + animation rendering over the
+    // new model. Drop the stale clip; if this species ships a demo clip, load
+    // it (setAcmData clears isAligned, so useAutoAlign re-aligns automatically).
+    clearAcmData();
+    if (hasDemoData) {
+      const acm = await api.loadAcmTrials();
+      if (!acm.error && acm.numFrames > 0) setAcmData(acm);
+    }
+  }, [finishXmlLoad, loadConfigAction, clearAcmData, setAcmData]);
 
   // Discovered XMLs from the backend's configured search roots — populates
   // the "Load preset" dropdown so users don't have to type absolute paths.
@@ -128,8 +147,9 @@ export default function Toolbar() {
       if (path) await loadByPath(path);
       return;
     }
-    await loadByPath(value);
-  }, [loadByPath]);
+    const preset = xmlPresets.find((p) => p.path === value);
+    await loadByPath(value, preset?.configPath, preset?.hasDemoData);
+  }, [loadByPath, xmlPresets]);
 
   const handleLoadMat = useCallback(async () => {
     const file = await pickFile(".mat");
@@ -275,6 +295,76 @@ export default function Toolbar() {
     await runIkOnFrames(allFrames, 50);
   }, [runIkOnFrames, setIkStatus]);
 
+  const handleRefitOffsets = useCallback(async () => {
+    const state = useStore.getState();
+    if (!state.acmPositions || !state.xmlPath) {
+      setIkStatus("Load XML and ACM data first.");
+      return;
+    }
+    const labeled = Array.from(state.labeledFrames).sort((a, b) => a - b);
+    if (labeled.length === 0) {
+      setIkStatus("Label at least one frame first (Label button on the timeline).");
+      return;
+    }
+    if (!state.stacQpos || !state.stacFrameIndices) {
+      setIkStatus("Run IK first — Refit Offsets needs solved poses for the labeled frames.");
+      return;
+    }
+    // Align labeled frames with their solved qposes from the last Run IK.
+    // If a labeled frame isn't in the last result (user labeled it after
+    // the run), surface a clear "re-run IK" hint rather than silently
+    // ignoring it.
+    const idxMap: Record<number, number> = {};
+    state.stacFrameIndices.forEach((f, i) => { idxMap[f] = i; });
+    const usableFrames: number[] = [];
+    const usableQposes: number[][] = [];
+    for (const f of labeled) {
+      const i = idxMap[f];
+      if (i === undefined) continue;
+      usableFrames.push(f);
+      usableQposes.push(state.stacQpos[i]);
+    }
+    if (usableFrames.length === 0) {
+      setIkStatus("Labeled frames don't match the last IK result — re-run IK then try again.");
+      return;
+    }
+
+    const pairs: Record<string, string> = {};
+    for (const m of state.mappings) pairs[m.keypointName] = m.bodyName;
+    if (Object.keys(pairs).length === 0) {
+      setIkStatus("Map at least one keypoint first.");
+      return;
+    }
+    const offsetMap: Record<string, [number, number, number]> = {};
+    for (const o of state.offsets) offsetMap[o.keypointName] = [o.x, o.y, o.z];
+    const positions = state.adjustedPositions ?? state.alignedPositions ?? state.acmPositions;
+
+    setIkStatus(`Refitting offsets on ${usableFrames.length} labeled frame(s)...`);
+    const result = await api.refitOffsets({
+      positions: Array.from(positions),
+      numFrames: state.acmNumFrames,
+      numKeypoints: state.acmNumKeypoints,
+      keypointNames: state.acmKeypointNames,
+      xmlPath: state.xmlPath,
+      frameIndices: usableFrames,
+      qposesPerFrame: usableQposes,
+      mappings: pairs,
+      offsets: offsetMap,
+      mocapScaleFactor: state.mocapScaleFactor,
+    });
+    if (result.error) {
+      setIkStatus("Refit error: " + result.error);
+      return;
+    }
+    if (!result.offsets || Object.keys(result.offsets).length === 0) {
+      setIkStatus("Refit produced no offsets (no usable frames).");
+      return;
+    }
+    state.setOffsetsBulk(result.offsets);
+    const errMm = (result.error * 1000).toFixed(1);
+    setIkStatus(`Refit: ${Object.keys(result.offsets).length} kp on ${result.frameIndicesUsed.length}f, err ${errMm}mm`);
+  }, [setIkStatus]);
+
   return (
     <>
       <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
@@ -304,6 +394,13 @@ export default function Toolbar() {
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
       <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
+      <button
+        style={{...btnStyle, background: "#3a2a4a", border: "1px solid #84c"}}
+        onClick={handleRefitOffsets}
+        title="Closed-form marker-offset solve over labeled frames (StacCore.m_opt). Needs a prior Run IK so each labeled frame has a solved pose."
+      >
+        Refit Offsets
+      </button>
       <button style={btnStyle} onClick={handleExport} title="Cmd/Ctrl-S — re-saves to the file you picked first">Export</button>
       <button style={btnStyle} onClick={handleExportAs} title="Cmd/Ctrl-Shift-S — choose a new location">Save As…</button>
       <button style={btnStyle} onClick={handleQualityReport} title="Per-keypoint gap %, confidence histogram, error">Quality Report</button>

@@ -35,10 +35,10 @@ export default function App() {
       //    transparently falls back to localApi (browser-side MuJoCo).
       const hasBackend = await api.isBackendAvailable();
       if (!hasBackend) {
-        console.log("[AutoLoad] Backend unreachable — running in standalone mode (bundled rodent demo).");
+        console.log("[AutoLoad] Backend unreachable — running in standalone mode (in-browser MuJoCo).");
         setBanner({
           kind: "warn",
-          text: "Standalone mode: bundled rodent demo. Uploads, YAML export, and multi-species are unavailable until a backend is running.",
+          text: "Standalone mode (in-browser MuJoCo). Loading a STAC H5 from a server path needs the backend.",
         });
       }
 

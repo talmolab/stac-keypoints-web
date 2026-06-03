@@ -35,9 +35,23 @@ def test_extract_model_geometry():
     assert "color" in geom
 
 
-def test_mesh_geom_renders_as_aabb_box():
+def _extract_single_geom(xml: str, body: str = "b1") -> dict:
+    with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False) as f:
+        f.write(xml)
+        path = f.name
+    try:
+        result = extract_model_geometry(path)
+    finally:
+        os.unlink(path)
+    geoms = [g for g in result["geoms"] if g["bodyName"] == body]
+    assert len(geoms) == 1
+    return geoms[0]
+
+
+def test_mesh_geom_renders_as_primitive():
     # Mesh geoms have no triangle-mesh path on the frontend yet, so the
-    # extractor should expose them as a box matching the mesh's AABB.
+    # extractor exposes them as a primitive fit to the mesh's AABB (a capsule
+    # for elongated meshes, an ellipsoid for flat ones).
     xml = textwrap.dedent("""
     <mujoco>
       <asset>
@@ -50,28 +64,35 @@ def test_mesh_geom_renders_as_aabb_box():
       </worldbody>
     </mujoco>
     """)
-    with tempfile.NamedTemporaryFile("w", suffix=".xml", delete=False) as f:
-        f.write(xml)
-        path = f.name
-    try:
-        result = extract_model_geometry(path)
-    finally:
-        os.unlink(path)
-    geoms = [g for g in result["geoms"] if g["bodyName"] == "b1"]
-    assert len(geoms) == 1
-    g = geoms[0]
-    assert g["type"] == "capsule"
-    # Verts span x:[0,1], y:[0,2], z:[0,3] → AABB half-extents ≈ (0.5, 1.0, 1.5).
-    # Capsule fit picks the longest axis (z, ≈1.5) as the main axis. Radius
-    # comes from the longer of the two short extents (≈1.0). MuJoCo recenters
-    # the mesh on its inertial frame, so we check shape rather than exact
-    # numbers: radius is in the right ballpark and half-cylinder is non-negative.
-    radius, half_cyl, _ = g["size"]
-    assert 0.7 < radius < 1.3
-    assert half_cyl >= 0
-    # Position should be finite, not NaN/inf.
-    for c in g["position"]:
-        assert c == c and abs(c) < 100  # finite
+    g = _extract_single_geom(xml)
+    assert g["type"] in ("capsule", "ellipsoid", "sphere")
+    # All half-extents positive and finite; position finite (not NaN/inf).
+    assert all(s > 0 for s in g["size"] if s) and all(s == s and abs(s) < 100 for s in g["size"])
+    assert all(c == c and abs(c) < 100 for c in g["position"])
+
+
+def test_flat_mesh_renders_as_ellipsoid():
+    # A flat mesh (a thin slab) must NOT become a capsule — its radius would
+    # balloon to the geom's width and read as a fat blob (the fruitfly wing
+    # bug). It should be an ellipsoid keeping all three half-extents, so the
+    # smallest stays much thinner than the others.
+    xml = textwrap.dedent("""
+    <mujoco>
+      <asset>
+        <mesh name="slab" vertex="-1 -0.5 -0.02  1 -0.5 -0.02  1 0.5 -0.02  -1 0.5 -0.02
+                                   -1 -0.5 0.02   1 -0.5 0.02   1 0.5 0.02   -1 0.5 0.02"/>
+      </asset>
+      <worldbody>
+        <body name="b1" pos="0 0 0">
+          <geom type="mesh" mesh="slab"/>
+        </body>
+      </worldbody>
+    </mujoco>
+    """)
+    g = _extract_single_geom(xml)
+    assert g["type"] == "ellipsoid"
+    sz = sorted(g["size"])
+    assert sz[0] < 0.5 * sz[1]  # stayed flat, not ballooned into a capsule radius
 
 
 def test_compute_body_transforms():

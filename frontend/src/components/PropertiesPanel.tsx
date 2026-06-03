@@ -33,6 +33,8 @@ export default function PropertiesPanel() {
   const setAutoIk = useStore((s) => s.setAutoIk);
   const modelOpacity = useStore((s) => s.modelOpacity);
   const setModelOpacity = useStore((s) => s.setModelOpacity);
+  const markerSize = useStore((s) => s.markerSize);
+  const setMarkerSize = useStore((s) => s.setMarkerSize);
   const showErrorLines = useStore((s) => s.showErrorLines);
   const setShowErrorLines = useStore((s) => s.setShowErrorLines);
   const colorByError = useStore((s) => s.colorByError);
@@ -165,17 +167,21 @@ export default function PropertiesPanel() {
             style={{ width: "100%" }}
           />
         </div>
-        {/* Mocap scale — live skeleton-vs-cloud size match, no backend call */}
+        {/* Mocap scale — live skeleton-vs-cloud size match, no backend call.
+            Log slider in [1e-4, 1e2] covers mm (1000), cm (100, rat default),
+            m (1, stick/fly stac-mjx outputs), and arbitrary unit-input data. */}
         <div>
           <label
             style={{ fontSize: 11, color: Math.abs(mocapScaleFactor - 0.01) > 1e-5 ? "#ffaa00" : "#888" }}
-            title="Multiplier from raw mocap units to meters. Default 0.01 assumes cm input."
+            title="Multiplier from raw mocap units to meters. cm → 0.01, mm → 0.001, m → 1.0."
           >
-            Mocap Scale: {mocapScaleFactor.toFixed(4)}
+            Mocap Scale: {mocapScaleFactor < 0.01
+              ? mocapScaleFactor.toExponential(2)
+              : mocapScaleFactor.toFixed(4)}
           </label>
-          <input type="range" min={0.001} max={0.05} step={0.0005}
-            value={mocapScaleFactor}
-            onChange={(e) => setMocapScaleFactor(parseFloat(e.target.value))}
+          <input type="range" min={-4} max={2} step={0.01}
+            value={Math.log10(Math.max(mocapScaleFactor, 1e-12))}
+            onChange={(e) => setMocapScaleFactor(Math.pow(10, parseFloat(e.target.value)))}
             style={{ width: "100%" }}
           />
         </div>
@@ -187,6 +193,22 @@ export default function PropertiesPanel() {
           <input type="range" min={0.05} max={1.0} step={0.05}
             value={modelOpacity}
             onChange={(e) => setModelOpacity(parseFloat(e.target.value))}
+            style={{ width: "100%" }}
+          />
+        </div>
+        {/* Marker size — multiplier on top of the bbox-derived default.
+            Default radius is ~1.2% of the model bbox diagonal (≈3.6mm rat,
+            ≈2mm stick bug, ≈0.06mm fly). Bump this for tiny species. */}
+        <div>
+          <label
+            style={{ fontSize: 11, color: Math.abs(markerSize - 1.0) > 1e-3 ? "#ffaa00" : "#888" }}
+            title="Multiplier on the auto-derived marker radius. Tune up for small species (flies)."
+          >
+            Marker Size: {markerSize.toFixed(2)}x
+          </label>
+          <input type="range" min={0.1} max={5.0} step={0.05}
+            value={markerSize}
+            onChange={(e) => setMarkerSize(parseFloat(e.target.value))}
             style={{ width: "100%" }}
           />
         </div>

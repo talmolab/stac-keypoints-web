@@ -11,10 +11,12 @@ import {
   extractGeometry,
   computeBodyTransforms,
   jacobianIk,
+  mOptOffsets,
 } from "./mujocoWasm";
 import { loadKeypointsFromBytes } from "./h5KeypointsLoader";
 import { dumpStacYaml, dumpStacUiSidecar } from "./yamlConfig";
 import { preprocessMeshfulXml } from "./preprocessMeshfulXml";
+import { procrustesScaled } from "./procrustes";
 
 const cachedAcm: Record<string, unknown> = {};
 const cachedConfigByPath: Record<string, unknown> = {};
@@ -278,51 +280,7 @@ export async function alignToMujoco(data: Record<string, unknown>) {
   }
 
   // Procrustes alignment: find R, t, s that maps meanSrc -> mjTarget
-  const n = commonKps.length;
-  const muSrc = [0, 0, 0];
-  const muTgt = [0, 0, 0];
-  for (let i = 0; i < n; i++) {
-    for (let d = 0; d < 3; d++) {
-      muSrc[d] += meanSrc[i][d] / n;
-      muTgt[d] += mjTarget[i][d] / n;
-    }
-  }
-
-  const srcC = meanSrc.map((p) => [
-    p[0] - muSrc[0],
-    p[1] - muSrc[1],
-    p[2] - muSrc[2],
-  ]);
-  const tgtC = mjTarget.map((p) => [
-    p[0] - muTgt[0],
-    p[1] - muTgt[1],
-    p[2] - muTgt[2],
-  ]);
-
-  // H = srcC^T @ tgtC (3x3 cross-covariance)
-  const H = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < n; i++) {
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        H[r][c] += srcC[i][r] * tgtC[i][c];
-      }
-    }
-  }
-
-  // SVD-based Procrustes
-  const { R: rotMat, s: scale } = svd3x3Procrustes(H, srcC);
-
-  // t = muTgt - s * R @ muSrc
-  const t = [0, 0, 0];
-  for (let r = 0; r < 3; r++) {
-    let rmu = 0;
-    for (let c = 0; c < 3; c++) rmu += rotMat[r][c] * muSrc[c];
-    t[r] = muTgt[r] - scale * rmu;
-  }
+  const { R: rotMat, t, s: scale } = procrustesScaled(meanSrc, mjTarget);
 
   // Apply to all frames
   const aligned = new Array(positions.length);
@@ -345,140 +303,6 @@ export async function alignToMujoco(data: Record<string, unknown>) {
     translation: t,
     method: "procrustes-browser",
   };
-}
-
-// ---------------------------------------------------------------------------
-// Simple 3x3 SVD for Procrustes (Jacobi eigendecomposition approach)
-// ---------------------------------------------------------------------------
-
-function svd3x3Procrustes(
-  H: number[][],
-  srcC: number[][],
-): { R: number[][]; s: number } {
-  // H^T H -> symmetric 3x3
-  const HtH = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++)
-    for (let j = 0; j < 3; j++)
-      for (let k = 0; k < 3; k++) HtH[i][j] += H[k][i] * H[k][j];
-
-  // Jacobi eigenvalue decomposition of HtH
-  const { eigenvectors: V, eigenvalues } = jacobiEigen3x3(HtH);
-  const S = eigenvalues.map((ev) => Math.sqrt(Math.max(0, ev)));
-
-  // U = H V S^-1
-  const U = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++) {
-    for (let j = 0; j < 3; j++) {
-      if (S[j] > 1e-10) {
-        for (let k = 0; k < 3; k++) {
-          U[i][j] += (H[i][k] * V[k][j]) / S[j];
-        }
-      }
-    }
-  }
-
-  // R = U V^T
-  let R = [
-    [0, 0, 0],
-    [0, 0, 0],
-    [0, 0, 0],
-  ];
-  for (let i = 0; i < 3; i++)
-    for (let j = 0; j < 3; j++)
-      for (let k = 0; k < 3; k++) R[i][j] += U[i][k] * V[j][k];
-
-  // Check determinant and correct for reflection
-  const det =
-    R[0][0] * (R[1][1] * R[2][2] - R[1][2] * R[2][1]) -
-    R[0][1] * (R[1][0] * R[2][2] - R[1][2] * R[2][0]) +
-    R[0][2] * (R[1][0] * R[2][1] - R[1][1] * R[2][0]);
-  if (det < 0) {
-    for (let i = 0; i < 3; i++) U[i][2] = -U[i][2];
-    R = [
-      [0, 0, 0],
-      [0, 0, 0],
-      [0, 0, 0],
-    ];
-    for (let i = 0; i < 3; i++)
-      for (let j = 0; j < 3; j++)
-        for (let k = 0; k < 3; k++) R[i][j] += U[i][k] * V[j][k];
-  }
-
-  // Scale: sum(S) / sum(srcC^2)
-  const sumS = S.reduce((a, b) => a + b, 0);
-  let sumSrc2 = 0;
-  for (const p of srcC) sumSrc2 += p[0] * p[0] + p[1] * p[1] + p[2] * p[2];
-  const scale = sumSrc2 > 1e-10 ? sumS / sumSrc2 : 1.0;
-
-  return { R, s: scale };
-}
-
-function jacobiEigen3x3(A: number[][]): {
-  eigenvalues: number[];
-  eigenvectors: number[][];
-} {
-  const a = [
-    [A[0][0], A[0][1], A[0][2]],
-    [A[1][0], A[1][1], A[1][2]],
-    [A[2][0], A[2][1], A[2][2]],
-  ];
-  const v = [
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 1],
-  ];
-
-  for (let iter = 0; iter < 50; iter++) {
-    // Find largest off-diagonal element
-    let maxVal = 0,
-      p = 0,
-      q = 1;
-    for (let i = 0; i < 3; i++)
-      for (let j = i + 1; j < 3; j++)
-        if (Math.abs(a[i][j]) > maxVal) {
-          maxVal = Math.abs(a[i][j]);
-          p = i;
-          q = j;
-        }
-    if (maxVal < 1e-12) break;
-
-    const theta = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]);
-    const c = Math.cos(theta),
-      s = Math.sin(theta);
-
-    // Rotate columns of A
-    const ap = [a[0][p], a[1][p], a[2][p]];
-    const aq = [a[0][q], a[1][q], a[2][q]];
-    for (let i = 0; i < 3; i++) {
-      a[i][p] = c * ap[i] - s * aq[i];
-      a[i][q] = s * ap[i] + c * aq[i];
-    }
-    // Rotate rows of A
-    const rp = [a[p][0], a[p][1], a[p][2]];
-    const rq = [a[q][0], a[q][1], a[q][2]];
-    for (let j = 0; j < 3; j++) {
-      a[p][j] = c * rp[j] - s * rq[j];
-      a[q][j] = s * rp[j] + c * rq[j];
-    }
-
-    // Rotate eigenvector matrix
-    const vp = [v[0][p], v[1][p], v[2][p]];
-    const vq = [v[0][q], v[1][q], v[2][q]];
-    for (let i = 0; i < 3; i++) {
-      v[i][p] = c * vp[i] - s * vq[i];
-      v[i][q] = s * vp[i] + c * vq[i];
-    }
-  }
-
-  return { eigenvalues: [a[0][0], a[1][1], a[2][2]], eigenvectors: v };
 }
 
 // ---------------------------------------------------------------------------
@@ -516,12 +340,22 @@ export async function runQuickStac(data: Record<string, unknown>) {
   const offsetsRaw = data.offsets as Record<string, number[]>;
   const mocapScale = (data.mocapScaleFactor as number) || 0.01;
   const maxIter = (data.maxIterations as number) || 25;
+  const initialQpos = data.initialQpos as number[] | undefined;
 
   const allQpos: number[][] = [];
   const allErrors: number[] = [];
   const allTransforms: any[][] = [];
 
-  for (const fi of frameIndices) {
+  // Every frame cold-starts via jacobianIk's per-frame trunk Procrustes seed,
+  // which re-orients the root correctly for that frame. We do NOT chain
+  // warm-starts across frames: jacobianIk runs a fixed iteration count
+  // regardless of seed, so chaining buys no speed, and a previous frame's pose
+  // is a bad root seed for a frame far away — the joints-only refinement can't
+  // rotate the root back, so the skeleton detaches from the mocap on big
+  // scrubs. The caller's explicit `initialQpos` is honored only for a
+  // single-frame live edit (length-1 batch, frame i === 0).
+  for (let i = 0; i < frameIndices.length; i++) {
+    const fi = frameIndices[i];
     if (fi >= numFrames) continue;
 
     // Extract target positions for this frame (cm -> meters)
@@ -535,7 +369,10 @@ export async function runQuickStac(data: Record<string, unknown>) {
       ]);
     }
 
-    const result = jacobianIk(targets, kpNames, pairs, offsetsRaw, maxIter);
+    const seed = i === 0 ? initialQpos : undefined;
+    const result = jacobianIk(
+      targets, kpNames, pairs, offsetsRaw, maxIter, 0.3, 0.01, seed,
+    );
     allQpos.push(result.qpos);
     allErrors.push(result.error);
     allTransforms.push(result.transforms);
@@ -546,6 +383,69 @@ export async function runQuickStac(data: Record<string, unknown>) {
     errors: allErrors,
     frameIndices: frameIndices.slice(0, allQpos.length),
     bodyTransforms: allTransforms,
+  };
+}
+
+export async function refitOffsets(data: Record<string, unknown>) {
+  const positions = data.positions as number[];
+  const numFrames = data.numFrames as number;
+  const numKp = data.numKeypoints as number;
+  const kpNames = data.keypointNames as string[];
+  const frameIndices = data.frameIndices as number[];
+  const qposesPerFrame = data.qposesPerFrame as number[][];
+  const pairs = data.mappings as Record<string, string>;
+  const mocapScale = (data.mocapScaleFactor as number) || 0.01;
+
+  if (frameIndices.length !== qposesPerFrame.length) {
+    return { error: `frameIndices (${frameIndices.length}) must align with qposesPerFrame (${qposesPerFrame.length})` };
+  }
+  if (!pairs || Object.keys(pairs).length === 0) {
+    return { offsets: {}, error: 0, frameIndicesUsed: [] };
+  }
+
+  const kpOrder = Object.keys(pairs);
+  const kpIdx: Record<string, number> = {};
+  kpNames.forEach((n, i) => { kpIdx[n] = i; });
+  for (const kp of kpOrder) {
+    if (kpIdx[kp] === undefined) {
+      return { error: `Mapped keypoint not present in kp_names: ${kp}` };
+    }
+  }
+
+  // Skip frames where any mapped keypoint is NaN — same policy as the
+  // backend's closed-form solve. Build aligned (qpos, targets) pairs.
+  const validIdx: number[] = [];
+  const validQ: number[][] = [];
+  const validTargets: number[][][] = [];
+  for (let t = 0; t < frameIndices.length; t++) {
+    const f = frameIndices[t];
+    if (f < 0 || f >= numFrames) continue;
+    const frameTargets: number[][] = [];
+    let anyNan = false;
+    for (const kp of kpOrder) {
+      const k = kpIdx[kp];
+      const i = (f * numKp + k) * 3;
+      const x = positions[i] * mocapScale;
+      const y = positions[i + 1] * mocapScale;
+      const z = positions[i + 2] * mocapScale;
+      if (x !== x || y !== y || z !== z) { anyNan = true; break; }
+      frameTargets.push([x, y, z]);
+    }
+    if (anyNan) continue;
+    validIdx.push(f);
+    validQ.push(qposesPerFrame[t]);
+    validTargets.push(frameTargets);
+  }
+
+  if (validIdx.length === 0) {
+    return { offsets: {}, error: 0, frameIndicesUsed: [] };
+  }
+
+  const result = mOptOffsets(validQ, validTargets, pairs);
+  return {
+    offsets: result.offsets,
+    error: result.error,
+    frameIndicesUsed: validIdx,
   };
 }
 

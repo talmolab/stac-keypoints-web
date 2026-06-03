@@ -21,6 +21,9 @@ export function useAutoIk() {
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const runningRef = useRef(false);
+  // Edits that arrive while an IK pass is in flight set this; the in-flight
+  // pass re-fires once it finishes so the latest state always wins.
+  const pendingRef = useRef(false);
 
   // Build a dependency fingerprint that changes when IK-relevant state changes
   const offsetFingerprint = offsets
@@ -44,14 +47,29 @@ export function useAutoIk() {
     if (timerRef.current) clearTimeout(timerRef.current);
 
     // Debounce: 150ms for snappy feedback
-    timerRef.current = setTimeout(async () => {
-      if (runningRef.current) return; // skip if already running
+    timerRef.current = setTimeout(async function run() {
+      if (runningRef.current) {
+        // Mark a re-run; the in-flight pass will pick it up on completion.
+        pendingRef.current = true;
+        return;
+      }
       runningRef.current = true;
-      const state = useStore.getState();
-      state.setIkStatus("Auto IK...");
-      // 25 iterations for live feedback (~0.2s per frame)
-      await runIk([state.currentFrame], 25);
-      runningRef.current = false;
+      pendingRef.current = false;
+      try {
+        const state = useStore.getState();
+        state.setIkStatus("Auto IK...");
+        // 25 iterations for live feedback (~0.2s per frame)
+        await runIk([state.currentFrame], 25, { warmStart: true });
+      } finally {
+        runningRef.current = false;
+        // If new edits arrived while we were running, fire one more pass
+        // against the freshest state (no debounce; the original debounce
+        // already elapsed).
+        if (pendingRef.current) {
+          pendingRef.current = false;
+          run();
+        }
+      }
     }, 150);
 
     return () => {

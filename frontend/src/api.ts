@@ -73,6 +73,14 @@ export interface XmlPreset {
   name: string;
   path: string;
   root: string;
+  /** Per-species stac_config.json sibling, when one is bundled. Picked up
+   *  by the preset dropdown handler so switching species also restores
+   *  that species' mappings + `mocapScaleFactor`. */
+  configPath?: string;
+  /** True iff a bundled demo keypoint clip accompanies this preset (standalone
+   *  mode only — rat today). The dropdown handler auto-loads it after the
+   *  model+config so re-picking the species restores its markers. */
+  hasDemoData?: boolean;
 }
 
 export async function listXmls(): Promise<XmlPreset[]> {
@@ -81,6 +89,8 @@ export async function listXmls(): Promise<XmlPreset[]> {
       name: s.name,
       path: s.xmlPath,
       root: "bundled",
+      configPath: s.configPath,
+      hasDemoData: s.hasDemoData,
     }));
   }
   const resp = await fetch(`${BASE}/api/list-xmls`);
@@ -245,6 +255,19 @@ export async function uploadStacOutput(file: File) {
 export async function runQuickStac(data: Record<string, unknown>) {
   if (!(await backendOk())) return local.runQuickStac(data);
   const resp = await fetch(`${BASE}/api/run-quick-stac`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  return resp.json();
+}
+
+export async function refitOffsets(data: Record<string, unknown>) {
+  // Closed-form m_opt is also implemented in localApi via mujocoWasm,
+  // so standalone mode gets Refit Offsets too (numerically identical
+  // up to float precision).
+  if (!(await backendOk())) return local.refitOffsets(data);
+  const resp = await fetch(`${BASE}/api/refit-offsets`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),

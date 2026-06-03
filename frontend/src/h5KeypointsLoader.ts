@@ -124,8 +124,9 @@ export async function loadKeypointsFromBytes(
     if (keys.includes("tracks")) arrPath = "tracks";
     else if (keys.includes("positions")) arrPath = "positions";
     else if (keys.includes("pred")) arrPath = "pred"; // .mat v7.3 stac-mjx
+    else if (keys.includes("kp_data")) arrPath = "kp_data"; // stac-mjx fit-output H5
     else throw new Error(
-      `H5/MAT file has no 'tracks', 'positions', or 'pred' dataset. Keys: ${keys.join(", ")}`,
+      `H5/MAT file has no 'tracks', 'positions', 'pred', or 'kp_data' dataset. Keys: ${keys.join(", ")}`,
     );
 
     const ds = f.get(arrPath) as { value: ArrayLike<number>; shape: number[] };
@@ -144,6 +145,24 @@ export async function loadKeypointsFromBytes(
         }
       }
       flat = out;
+      shape = [F, K, 3];
+    }
+
+    // stac-mjx fit-output H5 stores `kp_data` flat as (frames, kp*3) — reshape
+    // to (frames, kp, 3). Companion `kp_names` gives K, then we just reinterpret.
+    if (arrPath === "kp_data" && shape.length === 2) {
+      const [F, KD] = shape;
+      let K: number | null = null;
+      if (keys.includes("kp_names")) {
+        const raw = (f.get("kp_names") as { value: unknown }).value;
+        if (Array.isArray(raw)) K = raw.length;
+      }
+      if (K === null) K = KD / 3;
+      if (K * 3 !== KD) {
+        throw new Error(
+          `kp_data shape ${shape} doesn't match kp_names length ${K}: ${KD} / 3 != ${K}`,
+        );
+      }
       shape = [F, K, 3];
     }
 

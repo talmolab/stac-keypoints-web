@@ -20,7 +20,7 @@
     <light name="spotlight" pos="0 -5 0" dir="0 1 0" diffuse=".8 .8 .8" specular=".4 .4 .4" directional="true" cutoff="45" exponent="20" />
     <body name="mouse" pos="0 0 0" quat="0 0 0 1">
       <freejoint name="root" />
-      <geom pos="-0.000232988 -9.47209e-09 -0.00141198" type="capsule" size="0.00558884 0.00466261" quat="1 0 0 0" />
+      <geom pos="-4.19095e-09 0.00727621 0.000323871" type="capsule" size="0.00558884 0.00466261" quat="0.456701 0.539838 -0.539838 0.456701" />
       <body name="mouse__Lumbar6_interim_0" pos="0 0.01206 0.00074">
         <camera name="center_of_mass" mode="trackcom" pos="0 .05 -.25" xyaxes="-1 0 0 0 1 .1" />
         <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
@@ -31,7 +31,7 @@
           <body name="mouse__Lumbar6" pos="0 0 0">
             <inertial pos="0 0.00252 0.00133" quat="0.707107 0 0 0.707107" mass="0.000163962" diaginertia="1e-06 1e-06 1e-06" />
             <joint name="mouse__Lumbar6_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.10472 0.10472" />
-            <geom pos="1.421e-11 0.00048162 0.00106873" type="sphere" size="0.00268279" />
+            <geom pos="-4.5402e-09 0.00252485 0.00133634" type="sphere" size="0.00268279" />
             <body name="mouse__Lumbar5_interim_0" pos="0 0.00372 -3e-05">
               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
               <joint name="mouse__Lumbar5_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -41,7 +41,7 @@
                 <body name="mouse__Lumbar5" pos="0 0 0">
                   <inertial pos="0 0.00237 0.00115" quat="0.707107 0 0 0.707107" mass="0.000137716" diaginertia="1e-06 1e-06 1e-06" />
                   <joint name="mouse__Lumbar5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.10472 0.10472" />
-                  <geom pos="8.19761e-11 0.00038897 0.000909466" type="sphere" size="0.00260826" />
+                  <geom pos="-4.88944e-09 0.00237635 0.0011585" type="sphere" size="0.00260826" />
                   <body name="mouse__Lumbar4_interim_0" pos="0 0.00373 -2e-05">
                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                     <joint name="mouse__Lumbar4_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -51,7 +51,7 @@
                       <body name="mouse__Lumbar4" pos="0 0 0">
                         <inertial pos="0 0.00244 0.00102" quat="0 0.707107 0 0.707107" mass="0.000120721" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__Lumbar4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.10472 0.10472" />
-                        <geom pos="-1.33531e-10 0.000445112 0.000704552" type="sphere" size="0.00248412" />
+                        <geom pos="-1.19908e-08 0.00244843 0.0010276" type="sphere" size="0.00248412" />
                         <body name="mouse__Lumbar3_interim_0" pos="0 0.00367 1e-05">
                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                           <joint name="mouse__Lumbar3_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -61,7 +61,7 @@
                             <body name="mouse__Lumbar3" pos="0 0 0">
                               <inertial pos="0 0.00215 0.00076" quat="0 0.707107 0 0.707107" mass="8.5376e-05" diaginertia="1e-06 1e-06 1e-06" />
                               <joint name="mouse__Lumbar3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.10472 0.10472" />
-                              <geom pos="-7.59189e-10 0.000371886 0.000595202" type="sphere" size="0.00221144" />
+                              <geom pos="3.09665e-08 0.00215467 0.00076934" type="sphere" size="0.00221144" />
                               <body name="mouse__Lumbar2_interim_0" pos="0 0.00329 0">
                                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                 <joint name="mouse__Lumbar2_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -71,7 +71,7 @@
                                   <body name="mouse__Lumbar2" pos="0 0 0">
                                     <inertial pos="0 0.00237 0.00068" quat="0.5 0.5 -0.5 0.5" mass="8.17254e-05" diaginertia="1e-06 1e-06 1e-06" />
                                     <joint name="mouse__Lumbar2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.10472 0.10472" />
-                                    <geom pos="-7.15745e-07 0.000489408 0.00044096" type="sphere" size="0.00228549" />
+                                    <geom pos="2.75904e-08 0.00237944 0.000683873" type="sphere" size="0.00228549" />
                                     <body name="mouse__Lumbar1_interim_0" pos="0 0.00334 -2e-05">
                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                       <joint name="mouse__Lumbar1_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -81,7 +81,7 @@
                                         <body name="mouse__Lumbar1" pos="0 0 0">
                                           <inertial pos="0 0.00185 0.00061" quat="0 0.707107 0 0.707107" mass="6.09118e-05" diaginertia="1e-06 1e-06 1e-06" />
                                           <joint name="mouse__Lumbar1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.10472 0.10472" />
-                                          <geom pos="-7.63578e-10 0.000144996 0.000336479" type="sphere" size="0.00186689" />
+                                          <geom pos="2.99187e-08 0.0018565 0.000615176" type="sphere" size="0.00186689" />
                                           <body name="mouse__Thoracic13_interim_0" pos="0 0.00313 0">
                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                             <joint name="mouse__Thoracic13_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -91,7 +91,7 @@
                                               <body name="mouse__Thoracic13" pos="0 0 0">
                                                 <inertial pos="0 0.00194 0.00048" quat="0 0.707107 0 0.707107" mass="5.4685e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                 <joint name="mouse__Thoracic13_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                <geom pos="-1.52564e-09 0.000406772 0.000344998" type="sphere" size="0.00193209" />
+                                                <geom pos="2.96859e-08 0.00194431 0.000488777" type="sphere" size="0.00193209" />
                                                 <body name="mouse__Thoracic12_interim_0" pos="0 0.00264 0">
                                                   <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                   <joint name="mouse__Thoracic12_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -101,7 +101,7 @@
                                                     <body name="mouse__Thoracic12" pos="0 0 0">
                                                       <inertial pos="0 -0.00096 -0.00395" quat="0.5 0.5 0.5 0.5" mass="0.00187536" diaginertia="1e-06 1e-06 1e-06" />
                                                       <joint name="mouse__Thoracic12_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                      <geom pos="-0.000114917 -0.000836995 1.26958e-06" type="capsule" size="0.0064722 0.00350613" quat="1 0 0 0" />
+                                                      <geom pos="4.28408e-08 -0.000964784 -0.00395056" type="capsule" size="0.0064722 0.00350613" quat="0.5 0.5 0.5 0.5" />
                                                       <body name="mouse__Thoracic11_interim_0" pos="0 0.00198 -2e-05">
                                                         <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                         <joint name="mouse__Thoracic11_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -111,7 +111,7 @@
                                                           <body name="mouse__Thoracic11" pos="0 0 0">
                                                             <inertial pos="0 -0.00117 -0.00389" quat="0.5 0.5 0.5 0.5" mass="0.00198397" diaginertia="1e-06 1e-06 1e-06" />
                                                             <joint name="mouse__Thoracic11_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                            <geom pos="-0.000160888 -0.000828854 1.26141e-06" type="capsule" size="0.00627723 0.0037011" quat="1 0 0 0" />
+                                                            <geom pos="4.19095e-08 -0.00117255 -0.00389368" type="capsule" size="0.00627723 0.0037011" quat="0.5 0.5 0.5 0.5" />
                                                             <body name="mouse__Thoracic10_interim_0" pos="0 0.00199 -2e-05">
                                                               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                               <joint name="mouse__Thoracic10_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -121,7 +121,7 @@
                                                                 <body name="mouse__Thoracic10" pos="0 0 0">
                                                                   <inertial pos="0 0.00214 -0.00697" quat="0.5 0.5 0.5 0.5" mass="0.00422641" diaginertia="1e-06 1e-06 1e-06" />
                                                                   <joint name="mouse__Thoracic10_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                  <geom pos="0.00212571 -8.09947e-07 -0.000341625" type="sphere" size="0.00911416" />
+                                                                  <geom pos="-6.0536e-09 0.00214743 -0.00697063" type="sphere" size="0.00911416" />
                                                                   <body name="mouse__Thoracic9_interim_0" pos="0 0.00206 -1e-05">
                                                                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                     <joint name="mouse__Thoracic9_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -131,7 +131,7 @@
                                                                       <body name="mouse__Thoracic9" pos="0 0 0">
                                                                         <inertial pos="0 0.00162 -0.00669" quat="0.5 0.5 0.5 0.5" mass="0.00365901" diaginertia="1e-06 1e-06 1e-06" />
                                                                         <joint name="mouse__Thoracic9_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                        <geom pos="0.00180662 -7.08492e-06 0.000174869" type="sphere" size="0.00922135" />
+                                                                        <geom pos="-3.77186e-08 0.00162178 -0.00669017" type="sphere" size="0.00922135" />
                                                                         <body name="mouse__Thoracic8_interim_0" pos="0 0.00203 0">
                                                                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                           <joint name="mouse__Thoracic8_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -141,7 +141,7 @@
                                                                             <body name="mouse__Thoracic8" pos="0 0 0">
                                                                               <inertial pos="0 0.0021 -0.0064" quat="0.5 0.5 0.5 0.5" mass="0.00302533" diaginertia="1e-06 1e-06 1e-06" />
                                                                               <joint name="mouse__Thoracic8_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                              <geom pos="0.00173763 -8.56608e-06 0.000421449" type="sphere" size="0.0092681" />
+                                                                              <geom pos="2.00234e-08 0.00210878 -0.00640541" type="ellipsoid" size="0.00407479 0.0100135 0.0092681" quat="0.707107 0 0 0.707107" />
                                                                               <body name="mouse__Thoracic7_interim_0" pos="0 0.00206 0">
                                                                                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                 <joint name="mouse__Thoracic7_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -151,7 +151,7 @@
                                                                                   <body name="mouse__Thoracic7" pos="0 0 0">
                                                                                     <inertial pos="0 0.00201 -0.00613" quat="0.5 0.5 0.5 0.5" mass="0.00221615" diaginertia="1e-06 1e-06 1e-06" />
                                                                                     <joint name="mouse__Thoracic7_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                    <geom pos="0.0012151 2.13114e-06 0.000227643" type="sphere" size="0.00928991" />
+                                                                                    <geom pos="1.87661e-07 0.00201215 -0.00613619" type="ellipsoid" size="0.0029898 0.00997371 0.00928991" quat="0.707107 0 0 0.707107" />
                                                                                     <body name="mouse__Thoracic6_interim_0" pos="0 0.00205 0">
                                                                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                       <joint name="mouse__Thoracic6_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -161,7 +161,7 @@
                                                                                         <body name="mouse__Thoracic6" pos="0 0 0">
                                                                                           <inertial pos="0 0.00125 -0.00592" quat="0.5 0.5 0.5 0.5" mass="0.00169488" diaginertia="1e-06 1e-06 1e-06" />
                                                                                           <joint name="mouse__Thoracic6_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                          <geom pos="0.000395107 1.51666e-07 0.000194947" type="sphere" size="0.00921314" />
+                                                                                          <geom pos="-1.88593e-07 0.00125737 -0.00592692" type="ellipsoid" size="0.00238927 0.00962444 0.00921314" quat="0.707107 0 0 0.707107" />
                                                                                           <body name="mouse__Thoracic5_interim_0" pos="0 0.00206 0">
                                                                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                             <joint name="mouse__Thoracic5_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -171,7 +171,7 @@
                                                                                               <body name="mouse__Thoracic5" pos="0 0 0">
                                                                                                 <inertial pos="0 0.00171 -0.00514" quat="0.5 0.5 0.5 0.5" mass="0.00123608" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                 <joint name="mouse__Thoracic5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                <geom pos="0.000533446 1.3181e-07 0.000253631" type="sphere" size="0.00888743" />
+                                                                                                <geom pos="3.10596e-07 0.00171411 -0.00514142" type="ellipsoid" size="0.00192082 0.00905096 0.00888743" quat="0.707107 0 0 0.707107" />
                                                                                                 <body name="mouse__Thoracic4_interim_0" pos="0 0.00203 0">
                                                                                                   <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                   <joint name="mouse__Thoracic4_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -181,7 +181,7 @@
                                                                                                     <body name="mouse__Thoracic4" pos="0 0 0">
                                                                                                       <inertial pos="0 0.00195 -0.00438" quat="0.707107 0 0 0.707107" mass="0.000979661" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                       <joint name="mouse__Thoracic4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                      <geom pos="0.000409945 1.6742e-07 0.000316135" type="sphere" size="0.007645" />
+                                                                                                      <geom pos="6.45407e-07 0.00195623 -0.00438332" type="ellipsoid" size="0.00192297 0.007645 0.00832983" quat="0.707107 0 0 0.707107" />
                                                                                                       <body name="mouse__Thoracic3_interim_0" pos="0 0.00206 1e-05">
                                                                                                         <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                         <joint name="mouse__Thoracic3_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -191,7 +191,7 @@
                                                                                                           <body name="mouse__Thoracic3" pos="0 0 0">
                                                                                                             <inertial pos="0 0.0021 -0.00342" quat="0.707107 0 0 0.707107" mass="0.000820796" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                             <joint name="mouse__Thoracic3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                            <geom pos="0.000381998 -3.37169e-08 0.000494985" type="sphere" size="0.00681174" />
+                                                                                                            <geom pos="-4.23752e-08 0.00210047 -0.0034247" type="ellipsoid" size="0.00204857 0.00681174 0.00735252" quat="0.707107 0 0 0.707107" />
                                                                                                             <body name="mouse__Thoracic2_interim_0" pos="0 0.00198 3e-05">
                                                                                                               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                               <joint name="mouse__Thoracic2_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -201,7 +201,7 @@
                                                                                                                 <body name="mouse__Thoracic2" pos="0 0 0">
                                                                                                                   <inertial pos="0 0.00146 -0.00253" quat="0.707107 0 0 0.707107" mass="0.000449683" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                   <joint name="mouse__Thoracic2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                  <geom pos="5.29948e-07 -3.87572e-05 0.0006099" type="sphere" size="0.00618292" />
+                                                                                                                  <geom pos="7.1805e-07 0.00146501 -0.00253801" type="ellipsoid" size="0.00618292 0.00143575 0.00633206" quat="1 0 0 0" />
                                                                                                                   <body name="mouse__Thoracic1_interim_0" pos="0 0.00195 4e-05">
                                                                                                                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                     <joint name="mouse__Thoracic1_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -211,7 +211,7 @@
                                                                                                                       <body name="mouse__Thoracic1" pos="0 0 0">
                                                                                                                         <inertial pos="0 0.00073 -0.00175" quat="0.707107 0 0 0.707107" mass="0.000247848" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                         <joint name="mouse__Thoracic1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                        <geom pos="1.01329e-10 5.24202e-05 0.000422029" type="sphere" size="0.00471121" />
+                                                                                                                        <geom pos="-1.14087e-08 0.000736896 -0.00175104" type="ellipsoid" size="0.00471121 0.00133871 0.00491221" quat="1 0 0 0" />
                                                                                                                         <body name="mouse__Cervical8_interim_0" pos="0 0.00199 4e-05">
                                                                                                                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                           <joint name="mouse__Cervical8_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -221,7 +221,7 @@
                                                                                                                             <body name="mouse__Cervical8" pos="0 0 0">
                                                                                                                               <inertial pos="0 0.00042 -5e-05" quat="0.5 0.5 0.5 0.5" mass="8.61405e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                               <joint name="mouse__Cervical8_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                              <geom pos="-4.6434e-08 -5.25642e-05 0.000170182" type="capsule" size="0.00124114 0.000534447" quat="0.707107 0 0.707107 0" />
+                                                                                                                              <geom pos="-7.82893e-08 0.000423398 -5.63485e-05" type="ellipsoid" size="0.00177559 0.000488602 0.00124114" quat="1 0 0 0" />
                                                                                                                               <body name="mouse__Cervical7_interim_0" pos="0 0.00089 1e-05">
                                                                                                                                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                 <joint name="mouse__Cervical7_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -231,7 +231,7 @@
                                                                                                                                   <body name="mouse__Cervical7" pos="0 0 0">
                                                                                                                                     <inertial pos="0 0.0004 5e-05" quat="0.5 0.5 0.5 0.5" mass="8.42975e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                     <joint name="mouse__Cervical7_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                    <geom pos="-1.19859e-06 -4.13255e-05 0.000167671" type="capsule" size="0.00122838 0.000549649" quat="0.707107 0 0.707107 0" />
+                                                                                                                                    <geom pos="-1.42708e-06 0.000403509 5.051e-05" type="ellipsoid" size="0.00177803 0.000482451 0.00122838" quat="1 0 0 0" />
                                                                                                                                     <body name="mouse__Cervical6_interim_0" pos="0 0.00086 1e-05">
                                                                                                                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                       <joint name="mouse__Cervical6_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -241,7 +241,7 @@
                                                                                                                                         <body name="mouse__Cervical6" pos="0 0 0">
                                                                                                                                           <inertial pos="0 0.00039 0.0001" quat="0.5 0.5 0.5 0.5" mass="8.28884e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__Cervical6_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                          <geom pos="1.34243e-09 -3.98031e-05 0.000161708" type="capsule" size="0.00123216 0.000539673" quat="0.707107 0 0.707107 0" />
+                                                                                                                                          <geom pos="4.62751e-08 0.000396628 0.00010558" type="ellipsoid" size="0.00177183 0.000474587 0.00123216" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__Cervical5_interim_0" pos="0 0.00083 1e-05">
                                                                                                                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__Cervical5_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -251,7 +251,7 @@
                                                                                                                                               <body name="mouse__Cervical5" pos="0 0 0">
                                                                                                                                                 <inertial pos="0 0.00041 0.00013" quat="0.5 0.5 0.5 0.5" mass="8.21986e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                 <joint name="mouse__Cervical5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                                <geom pos="1.11536e-09 -1.24438e-05 0.000161898" type="capsule" size="0.00121733 0.000559869" quat="0.707107 0 0.707107 0" />
+                                                                                                                                                <geom pos="4.43542e-08 0.00041713 0.000131472" type="ellipsoid" size="0.0017772 0.000474928 0.00121733" quat="1 0 0 0" />
                                                                                                                                                 <body name="mouse__Cervical4_interim_0" pos="0 0.00081 1e-05">
                                                                                                                                                   <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                   <joint name="mouse__Cervical4_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -261,7 +261,7 @@
                                                                                                                                                     <body name="mouse__Cervical4" pos="0 0 0">
                                                                                                                                                       <inertial pos="0 0.00038 0.00015" quat="0.5 0.5 0.5 0.5" mass="8.56537e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                       <joint name="mouse__Cervical4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                                      <geom pos="-4.05919e-08 -4.82348e-05 0.000163055" type="capsule" size="0.00123842 0.000536938" quat="0.707107 0 0.707107 0" />
+                                                                                                                                                      <geom pos="-8.14907e-10 0.000384785 0.000158546" type="ellipsoid" size="0.00177536 0.00048697 0.00123842" quat="1 0 0 0" />
                                                                                                                                                       <body name="mouse__Cervical3_interim_0" pos="0 0.00086 0">
                                                                                                                                                         <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                         <joint name="mouse__Cervical3_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -271,7 +271,7 @@
                                                                                                                                                           <body name="mouse__Cervical3" pos="0 0 0">
                                                                                                                                                             <inertial pos="0 0.00033 0.00017" quat="0.5 0.5 0.5 0.5" mass="8.43003e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                             <joint name="mouse__Cervical3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                                            <geom pos="-3.96119e-08 -3.97517e-05 0.0001621" type="capsule" size="0.00122993 0.000546907" quat="0.707107 0 0.707107 0" />
+                                                                                                                                                            <geom pos="-1.80444e-09 0.000332344 0.000174581" type="ellipsoid" size="0.00177684 0.000482183 0.00122993" quat="1 0 0 0" />
                                                                                                                                                             <body name="mouse__Cervical2_interim_0" pos="0 0.00081 0">
                                                                                                                                                               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                               <joint name="mouse__Cervical2_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -281,7 +281,7 @@
                                                                                                                                                                 <body name="mouse__Cervical2" pos="0 0 0">
                                                                                                                                                                   <inertial pos="0 0.00043 0.001" quat="0.707107 0 0 0.707107" mass="3.51285e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                                   <joint name="mouse__Cervical2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                                                  <geom pos="-6.02459e-08 -9.59107e-05 0.000513137" type="sphere" size="0.00163232" />
+                                                                                                                                                                  <geom pos="2.44472e-09 0.000435758 0.00100044" type="sphere" size="0.00163232" />
                                                                                                                                                                   <body name="mouse__Cervical1_interim_0" pos="0 0.00113 2e-05">
                                                                                                                                                                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                                     <joint name="mouse__Cervical1_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 0.0872665" />
@@ -291,7 +291,7 @@
                                                                                                                                                                       <body name="mouse__Cervical1" pos="0 0 0">
                                                                                                                                                                         <inertial pos="0 0.00036 0.0004" quat="0.5 0.5 0.5 0.5" mass="9.13264e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                                         <joint name="mouse__Cervical1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.15708 0.15708" />
-                                                                                                                                                                        <geom pos="9.48618e-11 -1.62298e-05 0.000146586" type="sphere" size="0.00128268" />
+                                                                                                                                                                        <geom pos="2.57278e-08 0.000360794 0.000402471" type="ellipsoid" size="0.00160361 0.000554994 0.00128268" quat="1 0 0 0" />
                                                                                                                                                                         <body name="mouse__Head_interim_0" pos="0 0.00085 2e-05">
                                                                                                                                                                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                                           <joint name="mouse__Head_adduction" pos="0 0 0" axis="0 0 1" limited="true" range="-0.174533 0.174533" />
@@ -301,7 +301,7 @@
                                                                                                                                                                             <body name="mouse__Head" pos="0 0 0">
                                                                                                                                                                               <inertial pos="0 0.01046 0.00191" quat="0.707107 0.707107 0 0" mass="0.00403045" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                                                               <joint name="mouse__Head_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.174533 0.174533" />
-                                                                                                                                                                              <geom pos="-5.47796e-09 -0.000307095 -0.000779776" type="capsule" size="0.00655278 0.00470617" quat="1 0 0 0" />
+                                                                                                                                                                              <geom pos="6.72881e-08 0.0101666 0.00181757" type="capsule" size="0.00655278 0.00470617" quat="0.810958 0.585104 0 0" />
                                                                                                                                                                             </body>
                                                                                                                                                                           </body>
                                                                                                                                                                         </body>
@@ -332,7 +332,7 @@
                                                                                                                         <body name="mouse__LScapula" pos="-0.00687 0.00335 -0.00575">
                                                                                                                           <inertial pos="-0.00162 -0.00587 0.00058" quat="0.707107 0.707107 0 0" mass="0.000444827" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                           <joint name="mouse__LScapula_rotation" pos="0 0 0" axis="0 0 1" limited="true" range="-0.174533 0.174533" />
-                                                                                                                          <geom pos="-0.000511785 -0.000241125 -0.000149006" type="capsule" size="0.00352563 0.00407038" quat="0.707107 -0.707107 0 0" />
+                                                                                                                          <geom pos="-0.0016227 -0.00587866 0.000587147" type="capsule" size="0.00352563 0.00407038" quat="0.707107 -0.707107 0 0" />
                                                                                                                           <body name="mouse__LHumerus_interim_0" pos="0 0 0">
                                                                                                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                             <joint name="mouse__LShoulder_rotation" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0523599 0.628319" />
@@ -342,60 +342,60 @@
                                                                                                                               <body name="mouse__LHumerus" pos="0 0 0">
                                                                                                                                 <inertial pos="-0.00091 0.00049 -0.00632" mass="0.000245766" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                 <joint name="mouse__LShoulder_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.785398 0.785398" />
-                                                                                                                                <geom pos="-9.83344e-05 0.000227799 -0.000942229" type="capsule" size="0.0021606 0.00568261" quat="1 0 0 0" />
+                                                                                                                                <geom pos="-0.000919295 0.000490161 -0.00631997" type="capsule" size="0.0021606 0.00568261" quat="1 0 0 0" />
                                                                                                                                 <body name="mouse__LUlna" pos="9e-05 0.00015 -0.01337">
                                                                                                                                   <inertial pos="-0.00027 -0.00079 -0.00691" mass="0.000139187" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                   <joint name="mouse__LElbow_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="1.0472 2.67035" />
-                                                                                                                                  <geom pos="0.000134962 -8.60248e-06 -0.00246354" type="capsule" size="0.00170982 0.00816722" quat="1 0 0 0" />
+                                                                                                                                  <geom pos="-0.000270023 -0.00079388 -0.0069142" type="capsule" size="0.00170982 0.00816722" quat="1 0 0 0" />
                                                                                                                                   <body name="mouse__LRadius" pos="-0.0005 0 -0.0009">
                                                                                                                                     <inertial pos="0.000255751 0.000285751 -0.00777399" quat="0.999749 -0.0158457 0.0158377 -0.000251023" mass="6.11974e-05" diaginertia="2.00007e-06 2.00007e-06 2e-06" />
                                                                                                                                     <joint name="mouse__LElbow_supination" pos="0 0 0" axis="0 0 1" limited="true" range="-0.0872665 1.5708" />
-                                                                                                                                    <geom pos="-0.000162208 -1.08005e-05 -7.58249e-05" type="capsule" size="0.0011238 0.006807" quat="1 0 0 0" />
+                                                                                                                                    <geom pos="0.000263939 0.000295822 -0.00764254" type="capsule" size="0.0011238 0.006807" quat="1 0 0 0" />
                                                                                                                                     <body name="mouse__LCarpus_interim_0" pos="0.00019 0.00051 -0.01488">
                                                                                                                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                       <joint name="mouse__LWrist_adduction" pos="0 0 0" axis="0 1 0" limited="true" range="-0.349066 0.349066" />
                                                                                                                                       <body name="mouse__LCarpus" pos="0 0 0">
                                                                                                                                         <inertial pos="0.00014 -0.00066 -0.00119" quat="0.5 0.5 0.5 0.5" mass="5.91924e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                         <joint name="mouse__LWrist_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.872665" />
-                                                                                                                                        <geom pos="-8.16428e-05 -3.43681e-05 9.77795e-06" type="capsule" size="0.000768034 0.000518544" quat="0.707107 0 0.707107 0" />
+                                                                                                                                        <geom pos="0.000145158 -0.000663826 -0.00120025" type="capsule" size="0.000768034 0.000518544" quat="0.707107 0 0.707107 0" />
                                                                                                                                         <body name="mouse__LMetaCarpus1" pos="-0.00096 0 -0.00153">
                                                                                                                                           <inertial pos="-0.00023 -0.00089 -0.00124" quat="0.707107 0 0 0.707107" mass="1.67097e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__LMetaCarpus1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="1.00912e-05 -3.47982e-05 0.000104845" type="capsule" size="0.000475549 0.000720919" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="-0.000239138 -0.000898797 -0.00124557" type="capsule" size="0.000475549 0.000720919" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__LFPhalange1" pos="-0.00049 6e-05 -0.00207">
                                                                                                                                             <inertial pos="-0.0001 -0.00098 -0.00204" quat="0.707107 0 0 0.707107" mass="2.74249e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__LFPhalange1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="9.45295e-05 1.39527e-05 -0.000203902" type="capsule" size="0.000440886 0.00141691" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="-0.000107944 -0.000982115 -0.00204464" type="capsule" size="0.000440886 0.00141691" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__LMetaCarpus2" pos="-0.00056 5e-05 -0.0015">
                                                                                                                                           <inertial pos="0 -0.00075 -0.00192" mass="2.30115e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__LMetaCarpus2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="-1.12308e-05 -2.39024e-05 2.22007e-05" type="capsule" size="0.000441102 0.00121069" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="9.48785e-06 -0.000752876 -0.00192455" type="capsule" size="0.000441102 0.00121069" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__LFPhalange2" pos="-0.00017 5e-05 -0.00321">
                                                                                                                                             <inertial pos="-4e-05 -0.00078 -0.00278" mass="5.30697e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__LFPhalange2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="7.70822e-05 3.94857e-05 -8.98155e-05" type="capsule" size="0.000561712 0.00194529" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="-4.24418e-05 -0.00078694 -0.00278605" type="capsule" size="0.000561712 0.00194529" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__LMetaCarpus3" pos="3e-05 5e-05 -0.00152">
                                                                                                                                           <inertial pos="0.00014 -0.00055 -0.00192" mass="2.25144e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__LMetaCarpus3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="-3.16422e-05 -2.24039e-05 -4.83431e-05" type="capsule" size="0.00041724 0.00125096" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="0.000141444 -0.000559784 -0.00192348" type="capsule" size="0.00041724 0.00125096" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__LFPhalange3" pos="0.00012 0.00012 -0.00318">
                                                                                                                                             <inertial pos="7e-05 -0.00058 -0.00279" mass="3.88468e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__LFPhalange3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="-1.28366e-05 5.04309e-05 -0.000112019" type="capsule" size="0.00055078 0.00195189" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="7.63522e-05 -0.000583518 -0.00279347" type="capsule" size="0.00055078 0.00195189" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__LMetaCarpus4" pos="0.00075 4e-05 -0.00137">
                                                                                                                                           <inertial pos="0.00012 -0.00044 -0.00148" quat="0.707107 0 0 0.707107" mass="1.47308e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__LMetaCarpus4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="-2.22973e-05 -3.66015e-05 7.12733e-05" type="capsule" size="0.000444654 0.000779465" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="0.000125828 -0.000448704 -0.00148612" type="capsule" size="0.000444654 0.000779465" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__LFPhalange4" pos="0.00021 3e-05 -0.00228">
                                                                                                                                             <inertial pos="0.00033 -0.00032 -0.00238" quat="0.707107 0 0 0.707107" mass="4.51883e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__LFPhalange4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="-5.80054e-05 -4.10907e-06 -0.000195837" type="capsule" size="0.000575263 0.00155123" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="0.000334998 -0.000324311 -0.00238266" type="capsule" size="0.000575263 0.00155123" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__LMetaCarpus5" pos="0.00106 5e-05 -0.0014">
@@ -417,7 +417,7 @@
                                                                                                                         <body name="mouse__RScapula" pos="0.00687 0.00335 -0.00575">
                                                                                                                           <inertial pos="0.00162 -0.00587 0.00058" quat="0.707107 0.707107 0 0" mass="0.000444817" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                           <joint name="mouse__RScapula_rotation" pos="0 0 0" axis="0 0 1" limited="true" range="-0.174533 0.174533" />
-                                                                                                                          <geom pos="0.000511786 -0.000241154 -0.000148659" type="capsule" size="0.00352552 0.00407055" quat="0.707107 -0.707107 0 0" />
+                                                                                                                          <geom pos="0.00162263 -0.00587868 0.000587845" type="capsule" size="0.00352552 0.00407055" quat="0.707107 -0.707107 0 0" />
                                                                                                                           <body name="mouse__RHumerus_interim_0" pos="0 0 0">
                                                                                                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                             <joint name="mouse__RShoulder_rotation" pos="0 0 0" axis="0 0 1" limited="true" range="-0.628319 0.0523599" />
@@ -427,60 +427,60 @@
                                                                                                                               <body name="mouse__RHumerus" pos="0 0 0">
                                                                                                                                 <inertial pos="0.00091 0.00049 -0.00632" mass="0.000245755" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                 <joint name="mouse__RShoulder_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.785398 0.785398" />
-                                                                                                                                <geom pos="9.83299e-05 0.000228033 -0.000942234" type="capsule" size="0.00216046 0.00568275" quat="1 0 0 0" />
+                                                                                                                                <geom pos="0.000919193 0.000490017 -0.00632004" type="capsule" size="0.00216046 0.00568275" quat="1 0 0 0" />
                                                                                                                                 <body name="mouse__RUlna" pos="-9e-05 0.00015 -0.01337">
                                                                                                                                   <inertial pos="0.00026 -0.00079 -0.00691" mass="0.000138974" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                   <joint name="mouse__RElbow_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="1.0472 2.67035" />
-                                                                                                                                  <geom pos="-0.000135332 -8.7964e-06 -0.00246356" type="capsule" size="0.00170865 0.00816857" quat="1 0 0 0" />
+                                                                                                                                  <geom pos="0.000268847 -0.000794798 -0.0069143" type="capsule" size="0.00170865 0.00816857" quat="1 0 0 0" />
                                                                                                                                   <body name="mouse__RRadius" pos="0.0005 0 -0.0009">
                                                                                                                                     <inertial pos="-0.000255753 0.000285753 -0.00777394" quat="0.999749 -0.0158457 -0.0158377 0.000251023" mass="6.12219e-05" diaginertia="2.00007e-06 2.00007e-06 2e-06" />
                                                                                                                                     <joint name="mouse__RElbow_supination" pos="0 0 0" axis="0 0 1" limited="true" range="-1.5708 0.0872665" />
-                                                                                                                                    <geom pos="0.000162212 -1.02986e-05 -7.58289e-05" type="capsule" size="0.00112316 0.00680766" quat="1 0 0 0" />
+                                                                                                                                    <geom pos="-0.000264941 0.000294933 -0.00764265" type="capsule" size="0.00112316 0.00680766" quat="1 0 0 0" />
                                                                                                                                     <body name="mouse__RCarpus_interim_0" pos="-0.00019 0.00051 -0.01488">
                                                                                                                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                       <joint name="mouse__RWrist_adduction" pos="0 0 0" axis="0 1 0" limited="true" range="-0.349066 0.349066" />
                                                                                                                                       <body name="mouse__RCarpus" pos="0 0 0">
                                                                                                                                         <inertial pos="6e-05 -0.00059 -0.00122" quat="0.5 0.5 0.5 0.5" mass="4.6133e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                         <joint name="mouse__RWrist_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.872665" />
-                                                                                                                                        <geom pos="6.2448e-05 -1.11036e-06 6.71645e-06" type="capsule" size="0.000775352 0.000559315" quat="0.707107 0 0.707107 0" />
+                                                                                                                                        <geom pos="6.01637e-05 -0.000592323 -0.00122374" type="capsule" size="0.000775352 0.000559315" quat="0.707107 0 0.707107 0" />
                                                                                                                                         <body name="mouse__RMetaCarpus1" pos="0.00096 0 -0.00153">
                                                                                                                                           <inertial pos="0.00045 -0.00061 -0.0013" quat="0.707107 0 0 0.707107" mass="1.67034e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__RMetaCarpus1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="-2.5854e-06 -3.20123e-05 0.000101516" type="capsule" size="0.000466229 0.000729818" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="0.000455253 -0.000613211 -0.00130677" type="capsule" size="0.000466229 0.000729818" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__RFPhalange1" pos="0.00049 6e-05 -0.00207">
                                                                                                                                             <inertial pos="0.00028 -0.00078 -0.00211" mass="2.69227e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__RFPhalange1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="-8.05036e-05 -8.53274e-06 -0.00020786" type="capsule" size="0.00043704 0.00142273" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="0.000285873 -0.000783943 -0.00211316" type="capsule" size="0.00043704 0.00142273" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__RMetaCarpus2" pos="0.00056 5e-05 -0.0015">
                                                                                                                                           <inertial pos="0.00017 -0.00067 -0.00194" mass="2.5519e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__RMetaCarpus2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="2.67842e-05 -2.21846e-05 1.54478e-05" type="capsule" size="0.000512009 0.00114415" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="0.00017203 -0.000676392 -0.00194386" type="capsule" size="0.000512009 0.00114415" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__RFPhalange2" pos="0.00017 5e-05 -0.00321">
                                                                                                                                             <inertial pos="0.00014 -0.00094 -0.00281" mass="4.84528e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__RFPhalange2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="-6.74314e-05 -9.66095e-07 -0.000106123" type="capsule" size="0.000601467 0.00190537" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="0.000150495 -0.000943858 -0.00281415" type="capsule" size="0.000601467 0.00190537" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__RMetaCarpus3" pos="-3e-05 5e-05 -0.00152">
                                                                                                                                           <inertial pos="0 -0.00066 -0.00194" mass="2.68098e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__RMetaCarpus3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="3.31919e-05 -2.26488e-05 -5.16894e-05" type="capsule" size="0.000525996 0.00113521" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="5.68386e-06 -0.000663381 -0.00194743" type="capsule" size="0.000525996 0.00113521" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__RFPhalange3" pos="-0.00012 0.00012 -0.00318">
                                                                                                                                             <inertial pos="1e-05 -0.00102 -0.0028" mass="4.7081e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__RFPhalange3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="3.30152e-05 -9.12815e-06 -9.5843e-05" type="capsule" size="0.000599345 0.0019028" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="1.41193e-05 -0.0010289 -0.00280005" type="capsule" size="0.000599345 0.0019028" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__RMetaCarpus4" pos="-0.00075 4e-05 -0.00137">
                                                                                                                                           <inertial pos="2e-05 -0.00068 -0.00149" quat="0.707107 0 0 0.707107" mass="1.93015e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                           <joint name="mouse__RMetaCarpus4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                          <geom pos="2.14857e-05 -2.34052e-05 6.17938e-05" type="capsule" size="0.000457205 0.000753151" quat="1 0 0 0" />
+                                                                                                                                          <geom pos="2.19445e-05 -0.000681823 -0.00149772" type="capsule" size="0.000457205 0.000753151" quat="1 0 0 0" />
                                                                                                                                           <body name="mouse__RFPhalange4" pos="-0.00021 3e-05 -0.00228">
                                                                                                                                             <inertial pos="-0.00022 -0.00087 -0.00237" quat="0.707107 0 0 0.707107" mass="4.69146e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                             <joint name="mouse__RFPhalange4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                                                                                                                                            <geom pos="9.45373e-05 3.69706e-06 -0.000178667" type="capsule" size="0.000597207 0.00153048" quat="1 0 0 0" />
+                                                                                                                                            <geom pos="-0.000222857 -0.000870839 -0.00237487" type="capsule" size="0.000597207 0.00153048" quat="1 0 0 0" />
                                                                                                                                           </body>
                                                                                                                                         </body>
                                                                                                                                         <body name="mouse__RMetaCarpus5" pos="-0.00106 5e-05 -0.0014">
@@ -565,11 +565,11 @@
           <body name="mouse__LFemur" pos="0 0 0">
             <inertial pos="-0.00051 -0.00055 -0.01068" mass="0.000592679" diaginertia="1e-06 1e-06 1e-06" />
             <joint name="mouse__LHip_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.523599 0.872665" />
-            <geom pos="0.00025261 -0.000240124 0.000507051" type="capsule" size="0.00252765 0.00970702" quat="1 0 0 0" />
+            <geom pos="-0.000516951 -0.00054996 -0.0106806" type="capsule" size="0.00252765 0.00970702" quat="1 0 0 0" />
             <body name="mouse__LTibia" pos="0 0.00029 -0.02105">
               <inertial pos="3e-05 0.00081 -0.01251" mass="0.00066968" diaginertia="1e-06 1e-06 1e-06" />
               <joint name="mouse__LKnee_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-2.53073 -0.698132" />
-              <geom pos="0.000335321 -0.000209754 -0.00217596" type="capsule" size="0.00281407 0.0100188" quat="1 0 0 0" />
+              <geom pos="3.22566e-05 0.000810205 -0.0125182" type="capsule" size="0.00281407 0.0100188" quat="1 0 0 0" />
               <body name="mouse__LTarsus_interim_0" pos="0 0.00018 -0.02436">
                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                 <joint name="mouse__LAnkle_inversion" pos="0 0 0" axis="0 1 0" limited="true" range="-0.174533 0.174533" />
@@ -579,51 +579,51 @@
                   <body name="mouse__LTarsus" pos="0 0 0">
                     <inertial pos="0.00018 -0.00018 -0.00139" quat="0.5 0.5 -0.5 0.5" mass="9.39727e-05" diaginertia="1e-06 1e-06 1e-06" />
                     <joint name="mouse__LAnkle_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.872665 0.872665" />
-                    <geom pos="-0.000118203 -0.000411312 6.45909e-06" type="capsule" size="0.00224417 0.00180581" quat="0.707107 -0.707107 0 0" />
+                    <geom pos="0.000180741 -0.000183244 -0.00139728" type="capsule" size="0.00224417 0.00180581" quat="0.707107 -0.707107 0 0" />
                     <body name="mouse__LMetatarsus1" pos="-0.00141 0.00133 -0.00159">
                       <inertial pos="-0.00109 0.00295 -6e-05" quat="0.5 0.5 -0.5 0.5" mass="2.80424e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__LMetatarsus1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="-6.98707e-05 0.000260911 2.53461e-05" type="capsule" size="0.00124876 0.00219296" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="-0.00109292 0.0029553 -6.57402e-05" type="capsule" size="0.00124876 0.00219296" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__LBPhalange1" pos="-0.00152 0.00666 -8e-05">
                         <inertial pos="-0.00092 0.00223 2e-05" quat="0.5 0.5 -0.5 0.5" mass="1.60934e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__LBPhalange1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="7.41446e-05 0.000500029 4.91252e-05" type="capsule" size="0.000961818 0.00180929" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-0.000921965 0.0022389 2.44342e-05" type="capsule" size="0.000961818 0.00180929" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__LMetatarsus2" pos="-0.0009 0.00346 -0.00029">
                       <inertial pos="-0.00068 0.00365 -0.00136" quat="0.5 0.5 -0.5 0.5" mass="2.25349e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__LMetatarsus2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="-3.64812e-05 0.000222988 3.46712e-05" type="capsule" size="0.000965058 0.00271315" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="-0.000685063 0.00365403 -0.00136735" type="capsule" size="0.000965058 0.00271315" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__LBPhalange2" pos="-0.0006 0.0071 0.0001">
                         <inertial pos="-0.00066 0.00413 -0.00115" quat="0.707107 0.707107 0 0" mass="3.00062e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__LBPhalange2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="9.15594e-05 0.000500571 0.000112032" type="capsule" size="0.00109401 0.00301952" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-0.000666258 0.00414036 -0.00115068" type="capsule" size="0.00109401 0.00301952" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__LMetatarsus3" pos="0.00016 0.00362 -7e-05">
                       <inertial pos="-0.00029 0.00375 -0.00158" quat="0.707107 0.707107 0 0" mass="1.75598e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__LMetatarsus3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="-2.20834e-05 0.000230143 2.13099e-05" type="capsule" size="0.000793992 0.00289122" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="-0.000296621 0.00375476 -0.00158753" type="capsule" size="0.000793992 0.00289122" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__LBPhalange3" pos="-3e-05 0.00704 2e-05">
                         <inertial pos="-0.00048 0.00419 -0.00131" quat="0.707107 0.707107 0 0" mass="2.44894e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__LBPhalange3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="7.27216e-05 0.000515636 9.41577e-05" type="capsule" size="0.00106254 0.00306752" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-0.00048023 0.00419721 -0.00131323" type="capsule" size="0.00106254 0.00306752" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__LMetatarsus4" pos="0.00103 0.00294 -0.00037">
                       <inertial pos="0.00021 0.00376 -0.00126" quat="0.707107 0.707107 0 0" mass="1.69923e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__LMetatarsus4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="6.7635e-05 -0.000120324 -2.13276e-06" type="capsule" size="0.000795541 0.00297122" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="0.000211191 0.00376506 -0.00126226" type="capsule" size="0.000795541 0.00297122" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__LBPhalange4" pos="0.00061 0.00713 0.00078">
                         <inertial pos="-0.00017 0.00407 -0.00184" quat="0.707107 0.707107 0 0" mass="2.12288e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__LBPhalange4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="-7.8616e-05 0.000381056 6.98789e-05" type="capsule" size="0.000965221 0.00297355" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-0.000172524 0.00407325 -0.0018469" type="capsule" size="0.000965221 0.00297355" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__LMetatarsus5" pos="0.00206 0.00357 -0.00012">
                       <inertial pos="0.00015 0.00177 -0.00159" quat="0.5 0.5 -0.5 0.5" mass="4.49343e-06" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__LMetatarsus5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="-4.7093e-06 9.32352e-05 -2.74133e-06" type="capsule" size="0.000663795 0.00108597" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="0.000159087 0.00177824 -0.00159831" type="capsule" size="0.000663795 0.00108597" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__LBPhalange5" pos="0.00062 0.00339 0.00046">
                         <inertial pos="0.00015 0.00228 -0.00217" quat="0.5 0.5 -0.5 0.5" mass="6.64043e-06" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__LBPhalange5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
@@ -645,11 +645,11 @@
           <body name="mouse__RFemur" pos="0 0 0">
             <inertial pos="0.00051 -0.00055 -0.01068" mass="0.000592678" diaginertia="1e-06 1e-06 1e-06" />
             <joint name="mouse__RHip_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.523599 0.872665" />
-            <geom pos="-0.00025261 -0.000240123 0.000507053" type="capsule" size="0.00252765 0.00970703" quat="1 0 0 0" />
+            <geom pos="0.000516966 -0.000549966 -0.0106806" type="capsule" size="0.00252765 0.00970703" quat="1 0 0 0" />
             <body name="mouse__RTibia" pos="0 0.00029 -0.02105">
               <inertial pos="-3e-05 0.00081 -0.01251" mass="0.00066968" diaginertia="1e-06 1e-06 1e-06" />
               <joint name="mouse__RKnee_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-2.53073 -0.698132" />
-              <geom pos="-0.000335326 -0.000209753 -0.00217595" type="capsule" size="0.00281406 0.0100188" quat="1 0 0 0" />
+              <geom pos="-3.21469e-05 0.000810378 -0.0125182" type="capsule" size="0.00281406 0.0100188" quat="1 0 0 0" />
               <body name="mouse__RTarsus_interim_0" pos="0 0.00018 -0.02436">
                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                 <joint name="mouse__RAnkle_inversion" pos="0 0 0" axis="0 1 0" limited="true" range="-0.174533 0.174533" />
@@ -659,55 +659,55 @@
                   <body name="mouse__RTarsus" pos="0 0 0">
                     <inertial pos="-0.00057 -0.00021 -0.00158" quat="0.5 0.5 -0.5 0.5" mass="0.000100971" diaginertia="1e-06 1e-06 1e-06" />
                     <joint name="mouse__RAnkle_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.872665 0.872665" />
-                    <geom pos="0.000122285 -0.000382963 -0.000119172" type="capsule" size="0.0022405 0.00180299" quat="0.707107 -0.707107 0 0" />
+                    <geom pos="-0.000577879 -0.000210826 -0.00158634" type="capsule" size="0.0022405 0.00180299" quat="0.707107 -0.707107 0 0" />
                     <body name="mouse__RMetatarsus1" pos="0.00141 0.00133 -0.00159">
                       <inertial pos="0.00059 0.00311 -0.00046" quat="0.5 0.5 -0.5 0.5" mass="2.80424e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__RMetatarsus1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="6.43243e-05 0.000251012 2.59101e-05" type="capsule" size="0.00124876 0.00219298" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="0.000596419 0.00311593 -0.000465106" type="capsule" size="0.00124876 0.00219298" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__RBPhalange1" pos="0.00152 0.00666 -8e-05">
                         <inertial pos="0.00041 0.0024 -0.00037" quat="0.5 0.5 -0.5 0.5" mass="1.60939e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__RBPhalange1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="-7.47883e-05 0.000497554 5.41225e-05" type="capsule" size="0.000961838 0.00180929" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="0.000417752 0.00240132 -0.000373203" type="capsule" size="0.000961838 0.00180929" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__RMetatarsus2" pos="0.0009 0.00346 -0.00029">
                       <inertial pos="0.00015 0.00346 -0.00081" quat="0.5 0.5 -0.5 0.5" mass="2.25349e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__RMetatarsus2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="3.31352e-05 0.000210651 3.203e-05" type="capsule" size="0.00096506 0.00271316" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="0.000156024 0.0034656 -0.000815663" type="capsule" size="0.00096506 0.00271316" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__RBPhalange2" pos="0.0006 0.0071 0.0001">
                         <inertial pos="0.00013 0.00392 -0.00059" quat="0.707107 0.707107 0 0" mass="3.03272e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__RBPhalange2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="-8.47376e-05 0.000497838 0.000123503" type="capsule" size="0.001094 0.00304381" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="0.00013291 0.00392838 -0.000597369" type="capsule" size="0.001094 0.00304381" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__RMetatarsus3" pos="-0.00016 0.00362 -7e-05">
                       <inertial pos="-0.00022 0.00366 -0.00142" quat="0.707107 0.707107 0 0" mass="1.75597e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__RMetatarsus3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="1.7299e-05 0.000228185 2.06693e-05" type="capsule" size="0.00079398 0.00289125" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="-0.000220184 0.00366836 -0.00142201" type="capsule" size="0.00079398 0.00289125" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__RBPhalange3" pos="3e-05 0.00704 2e-05">
                         <inertial pos="-4e-05 0.00411 -0.00114" quat="0.707107 0.707107 0 0" mass="2.45274e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__RBPhalange3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="-7.26724e-05 0.000504598 0.00010704" type="capsule" size="0.00106253 0.00306818" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-4.38008e-05 0.00411021 -0.00114624" type="capsule" size="0.00106253 0.00306818" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__RMetatarsus4" pos="-0.00103 0.00294 -0.00037">
                       <inertial pos="-0.00073 0.00354 -0.00091" quat="0.707107 0.707107 0 0" mass="1.69921e-05" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__RMetatarsus4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="-6.40719e-05 -0.000141282 -4.03977e-06" type="capsule" size="0.000795525 0.00297126" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="-0.000732713 0.00353963 -0.000915952" type="capsule" size="0.000795525 0.00297126" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__RBPhalange4" pos="-0.00061 0.00713 0.00078">
                         <inertial pos="-0.00035 0.00384 -0.00149" quat="0.707107 0.707107 0 0" mass="2.12362e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__RBPhalange4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="7.97732e-05 0.0004197 7.83152e-05" type="capsule" size="0.000965217 0.00297355" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-0.000357265 0.00384691 -0.00149929" type="capsule" size="0.000965217 0.00297355" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                     <body name="mouse__RMetatarsus5" pos="-0.00206 0.00357 -0.00012">
                       <inertial pos="-0.00067 0.00169 -0.00143" quat="0.5 0.5 -0.5 0.5" mass="4.49343e-06" diaginertia="1e-06 1e-06 1e-06" />
                       <joint name="mouse__RMetatarsus5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                      <geom pos="1.73707e-06 9.51807e-05 -5.8147e-06" type="capsule" size="0.000663796 0.00108598" quat="0.707107 -0.707107 0 0" />
+                      <geom pos="-0.000675648 0.00169012 -0.00143535" type="capsule" size="0.000663796 0.00108598" quat="0.707107 -0.707107 0 0" />
                       <body name="mouse__RBPhalange5" pos="-0.00062 0.00339 0.00046">
                         <inertial pos="-0.00067 0.00219 -0.00201" quat="0.5 0.5 -0.5 0.5" mass="6.6405e-06" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__RBPhalange5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.0872665 0.0872665" />
-                        <geom pos="5.63833e-05 0.000322054 -1.83563e-05" type="capsule" size="0.000630402 0.00162478" quat="0.707107 -0.707107 0 0" />
+                        <geom pos="-0.000671976 0.00219792 -0.00200964" type="capsule" size="0.000630402 0.00162478" quat="0.707107 -0.707107 0 0" />
                       </body>
                     </body>
                   </body>
@@ -726,7 +726,7 @@
           <body name="mouse__Tail1" pos="0 0 0">
             <inertial pos="0 -0.00136 0.0001" mass="2.68667e-05" diaginertia="1e-06 1e-06 1e-06" />
             <joint name="mouse__Tail1_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-            <geom pos="-1.1318e-10 -0.000349897 0.000187017" type="sphere" size="0.00143338" />
+            <geom pos="-5.00586e-09 -0.0013617 9.96845e-05" type="sphere" size="0.00143338" />
             <body name="mouse__Tail2_interim_0" pos="0 -0.00183 0.00013">
               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
               <joint name="mouse__Tail2_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -736,7 +736,7 @@
                 <body name="mouse__Tail2" pos="0 0 0">
                   <inertial pos="0 -0.00115 0" quat="0.707107 0 0 0.707107" mass="1.72849e-05" diaginertia="1e-06 1e-06 1e-06" />
                   <joint name="mouse__Tail2_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                  <geom pos="-9.24556e-10 -0.000269647 0.000117709" type="sphere" size="0.00125155" />
+                  <geom pos="-5.64614e-09 -0.00114997 -2.26224e-06" type="sphere" size="0.00125155" />
                   <body name="mouse__Tail3_interim_0" pos="0 -0.00159 0">
                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                     <joint name="mouse__Tail3_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -746,7 +746,7 @@
                       <body name="mouse__Tail3" pos="0 0 0">
                         <inertial pos="0 -0.00104 -0.00036" quat="0.707107 0 0 0.707107" mass="1.73333e-05" diaginertia="1e-06 1e-06 1e-06" />
                         <joint name="mouse__Tail3_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                        <geom pos="6.89731e-11 -8.36527e-05 -7.99423e-05" type="sphere" size="0.00132642" />
+                        <geom pos="-4.94765e-09 -0.00104824 -0.000361525" type="sphere" size="0.00132642" />
                         <body name="mouse__Tail4_interim_0" pos="0 -0.0018 1e-05">
                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                           <joint name="mouse__Tail4_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -756,7 +756,7 @@
                             <body name="mouse__Tail4" pos="0 0 0">
                               <inertial pos="0 -0.00121 -0.00031" quat="0.707107 0 0 0.707107" mass="1.76594e-05" diaginertia="1e-06 1e-06 1e-06" />
                               <joint name="mouse__Tail4_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                              <geom pos="-3.9738e-11 -0.000119327 -0.000165439" type="sphere" size="0.00133666" />
+                              <geom pos="-5.18048e-09 -0.00121757 -0.000317709" type="sphere" size="0.00133666" />
                               <body name="mouse__Tail5_interim_0" pos="0 -0.00195 2e-05">
                                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                 <joint name="mouse__Tail5_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -766,7 +766,7 @@
                                   <body name="mouse__Tail5" pos="0 0 0">
                                     <inertial pos="0 -0.00116 -0.00049" quat="0.707107 0 0 0.707107" mass="1.90562e-05" diaginertia="1e-06 1e-06 1e-06" />
                                     <joint name="mouse__Tail5_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                    <geom pos="2.47142e-09 -0.000102034 -0.000238679" type="sphere" size="0.00134365" />
+                                    <geom pos="-7.40984e-07 -0.00116068 -0.000493835" type="sphere" size="0.00134365" />
                                     <body name="mouse__Tail6_interim_0" pos="0 -0.00218 1e-05">
                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                       <joint name="mouse__Tail6_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -776,7 +776,7 @@
                                         <body name="mouse__Tail6" pos="0 0 0">
                                           <inertial pos="0 -0.00165 -0.00047" quat="0.5 0.5 -0.5 0.5" mass="2.19112e-05" diaginertia="1e-06 1e-06 1e-06" />
                                           <joint name="mouse__Tail6_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                          <geom pos="8.26419e-09 -0.000163977 -0.000307359" type="sphere" size="0.00133499" />
+                                          <geom pos="-1.21183e-06 -0.00165144 -0.000470572" type="sphere" size="0.00133499" />
                                           <body name="mouse__Tail7_interim_0" pos="0 -0.00268 3e-05">
                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                             <joint name="mouse__Tail7_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -786,7 +786,7 @@
                                               <body name="mouse__Tail7" pos="0 0 0">
                                                 <inertial pos="0 -0.00179 -0.00015" quat="0.707107 0.707107 0 0" mass="1.33211e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                 <joint name="mouse__Tail7_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                <geom pos="-2.60555e-08 -7.90876e-05 -0.000126649" type="capsule" size="0.000967328 0.000823179" quat="0.707107 -0.707107 0 0" />
+                                                <geom pos="-1.62993e-06 -0.0017928 -0.000153516" type="capsule" size="0.000967328 0.000823179" quat="0.707107 -0.707107 0 0" />
                                                 <body name="mouse__Tail8_interim_0" pos="0 -0.00339 2e-05">
                                                   <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                   <joint name="mouse__Tail8_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -796,7 +796,7 @@
                                                     <body name="mouse__Tail8" pos="0 0 0">
                                                       <inertial pos="0 -0.00205 0" quat="0.5 0.5 -0.5 0.5" mass="1.13999e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                       <joint name="mouse__Tail8_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                      <geom pos="-8.45492e-10 -6.28514e-05 -5.867e-05" type="capsule" size="0.00087995 0.00119297" quat="0.707107 -0.707107 0 0" />
+                                                      <geom pos="-2.17679e-06 -0.00205679 -7.405e-06" type="capsule" size="0.00087995 0.00119297" quat="0.707107 -0.707107 0 0" />
                                                       <body name="mouse__Tail9_interim_0" pos="0 -0.00415 2e-05">
                                                         <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                         <joint name="mouse__Tail9_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -806,7 +806,7 @@
                                                           <body name="mouse__Tail9" pos="0 0 0">
                                                             <inertial pos="0 -0.0021 1e-05" quat="0.5 0.5 -0.5 0.5" mass="1.14433e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                             <joint name="mouse__Tail9_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                            <geom pos="1.02031e-08 -8.07963e-05 -2.61301e-05" type="capsule" size="0.000855926 0.00128837" quat="0.707107 -0.707107 0 0" />
+                                                            <geom pos="-2.89516e-06 -0.00210756 1.64302e-05" type="capsule" size="0.000855926 0.00128837" quat="0.707107 -0.707107 0 0" />
                                                             <body name="mouse__Tail10_interim_0" pos="0 -0.00427 -1e-05">
                                                               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                               <joint name="mouse__Tail10_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -816,7 +816,7 @@
                                                                 <body name="mouse__Tail10" pos="0 0 0">
                                                                   <inertial pos="0 -0.00221 3e-05" quat="0.5 0.5 -0.5 0.5" mass="1.03346e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                                   <joint name="mouse__Tail10_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                  <geom pos="6.08579e-09 -0.000129233 1.71554e-05" type="capsule" size="0.000802067 0.00141562" quat="0.707107 -0.707107 0 0" />
+                                                                  <geom pos="-3.36778e-06 -0.00221109 3.23172e-05" type="capsule" size="0.000802067 0.00141562" quat="0.707107 -0.707107 0 0" />
                                                                   <body name="mouse__Tail11_interim_0" pos="0 -0.00447 -4e-05">
                                                                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                     <joint name="mouse__Tail11_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -826,7 +826,7 @@
                                                                       <body name="mouse__Tail11" pos="0 0 0">
                                                                         <inertial pos="0 -0.0022 0" quat="0.5 0.5 -0.5 0.5" mass="1.08872e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                                         <joint name="mouse__Tail11_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                        <geom pos="2.96199e-09 -0.000102498 3.68723e-07" type="capsule" size="0.000864789 0.00137646" quat="0.707107 -0.707107 0 0" />
+                                                                        <geom pos="-4.13705e-06 -0.00220703 8.58202e-06" type="capsule" size="0.000864789 0.00137646" quat="0.707107 -0.707107 0 0" />
                                                                         <body name="mouse__Tail12_interim_0" pos="0 -0.00447 -7e-05">
                                                                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                           <joint name="mouse__Tail12_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -836,7 +836,7 @@
                                                                             <body name="mouse__Tail12" pos="0 0 0">
                                                                               <inertial pos="0 -0.00248 0" quat="0.5 0.5 -0.5 0.5" mass="1.0683e-05" diaginertia="1e-06 1e-06 1e-06" />
                                                                               <joint name="mouse__Tail12_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                              <geom pos="-3.91396e-08 -0.000221076 4.50174e-06" type="capsule" size="0.00077853 0.00175997" quat="0.707107 -0.707107 0 0" />
+                                                                              <geom pos="-4.89896e-06 -0.00248753 -1.39637e-06" type="capsule" size="0.00077853 0.00175997" quat="0.707107 -0.707107 0 0" />
                                                                               <body name="mouse__Tail13_interim_0" pos="0 -0.00504 -7e-05">
                                                                                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                 <joint name="mouse__Tail13_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -846,7 +846,7 @@
                                                                                   <body name="mouse__Tail13" pos="0 0 0">
                                                                                     <inertial pos="0 -0.00222 0" quat="0.5 0.5 -0.5 0.5" mass="8.01547e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                     <joint name="mouse__Tail13_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                    <geom pos="-2.04188e-09 -0.000295437 2.77814e-05" type="capsule" size="0.000717026 0.00155252" quat="0.707107 -0.707107 0 0" />
+                                                                                    <geom pos="-5.77859e-06 -0.00222231 6.85902e-06" type="capsule" size="0.000717026 0.00155252" quat="0.707107 -0.707107 0 0" />
                                                                                     <body name="mouse__Tail14_interim_0" pos="0 -0.00451 -4e-05">
                                                                                       <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                       <joint name="mouse__Tail14_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -856,7 +856,7 @@
                                                                                         <body name="mouse__Tail14" pos="0 0 0">
                                                                                           <inertial pos="0 -0.00216 -4e-05" quat="0.5 0.5 -0.5 0.5" mass="4.24744e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                           <joint name="mouse__Tail14_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                          <geom pos="-4.21912e-09 -0.000242685 -4.11256e-06" type="capsule" size="0.000522247 0.00169635" quat="0.707107 -0.707107 0 0" />
+                                                                                          <geom pos="-6.59187e-06 -0.00216287 -4.60969e-05" type="capsule" size="0.000522247 0.00169635" quat="0.707107 -0.707107 0 0" />
                                                                                           <body name="mouse__Tail15_interim_0" pos="0 -0.00442 -6e-05">
                                                                                             <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                             <joint name="mouse__Tail15_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -866,7 +866,7 @@
                                                                                               <body name="mouse__Tail15" pos="0 0 0">
                                                                                                 <inertial pos="0 -0.00218 -4e-05" quat="0.707107 0.707107 0 0" mass="4.01428e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                 <joint name="mouse__Tail15_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                                <geom pos="1.64324e-08 -6.58554e-05 1.35588e-05" type="capsule" size="0.000482064 0.00172465" quat="0.707107 -0.707107 0 0" />
+                                                                                                <geom pos="-7.50029e-06 -0.00218198 -4.20741e-05" type="capsule" size="0.000482064 0.00172465" quat="0.707107 -0.707107 0 0" />
                                                                                                 <body name="mouse__Tail16_interim_0" pos="0 -0.0044 -9e-05">
                                                                                                   <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                   <joint name="mouse__Tail16_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -876,7 +876,7 @@
                                                                                                     <body name="mouse__Tail16" pos="0 0 0">
                                                                                                       <inertial pos="0 -0.00216 -4e-05" quat="0.5 0.5 -0.5 0.5" mass="3.74496e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                       <joint name="mouse__Tail16_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                                      <geom pos="-1.94803e-08 -8.05534e-05 -7.1027e-06" type="capsule" size="0.000471848 0.00174276" quat="0.707107 -0.707107 0 0" />
+                                                                                                      <geom pos="-8.54314e-06 -0.00216323 -4.92184e-05" type="capsule" size="0.000471848 0.00174276" quat="0.707107 -0.707107 0 0" />
                                                                                                       <body name="mouse__Tail17_interim_0" pos="0 -0.0044 -6e-05">
                                                                                                         <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                         <joint name="mouse__Tail17_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -886,7 +886,7 @@
                                                                                                           <body name="mouse__Tail17" pos="0 0 0">
                                                                                                             <inertial pos="-1e-05 -0.00198 -7e-05" quat="0.5 0.5 -0.5 0.5" mass="2.05974e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                             <joint name="mouse__Tail17_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                                            <geom pos="2.92727e-08 -0.00016754 3.02282e-06" type="capsule" size="0.000389951 0.00162584" quat="0.707107 -0.707107 0 0" />
+                                                                                                            <geom pos="-9.5874e-06 -0.00198865 -7.11161e-05" type="capsule" size="0.000389951 0.00162584" quat="0.707107 -0.707107 0 0" />
                                                                                                             <body name="mouse__Tail18_interim_0" pos="0 -0.00398 -4e-05">
                                                                                                               <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                               <joint name="mouse__Tail18_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -896,7 +896,7 @@
                                                                                                                 <body name="mouse__Tail18" pos="0 0 0">
                                                                                                                   <inertial pos="-1e-05 -0.00184 -5e-05" quat="0.5 0.5 -0.5 0.5" mass="1.73526e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                   <joint name="mouse__Tail18_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                                                  <geom pos="4.15768e-08 -0.000135526 4.97964e-06" type="capsule" size="0.000362561 0.00152849" quat="0.707107 -0.707107 0 0" />
+                                                                                                                  <geom pos="-1.05987e-05 -0.00184583 -5.85243e-05" type="capsule" size="0.000362561 0.00152849" quat="0.707107 -0.707107 0 0" />
                                                                                                                   <body name="mouse__Tail19_interim_0" pos="0 -0.00375 -4e-05">
                                                                                                                     <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                     <joint name="mouse__Tail19_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -906,7 +906,7 @@
                                                                                                                       <body name="mouse__Tail19" pos="0 0 0">
                                                                                                                         <inertial pos="-1e-05 -0.00169 -5e-05" quat="0.5 0.5 -0.5 0.5" mass="1.20955e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                         <joint name="mouse__Tail19_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                                                        <geom pos="6.08115e-08 -0.000143664 -5.95197e-06" type="capsule" size="0.000330229 0.0013951" quat="0.707107 -0.707107 0 0" />
+                                                                                                                        <geom pos="-1.15934e-05 -0.00169166 -5.68325e-05" type="capsule" size="0.000330229 0.0013951" quat="0.707107 -0.707107 0 0" />
                                                                                                                         <body name="mouse__Tail20_interim_0" pos="0 -0.00341 -3e-05">
                                                                                                                           <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                           <joint name="mouse__Tail20_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />
@@ -916,7 +916,7 @@
                                                                                                                             <body name="mouse__Tail20" pos="0 0 0">
                                                                                                                               <inertial pos="-1e-05 -0.00162 -2e-05" quat="0.5 0.5 -0.5 0.5" mass="1.09957e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                               <joint name="mouse__Tail20_flexion" pos="0 0 0" axis="1 0 0" limited="true" range="-0.349066 0.349066" />
-                                                                                                                              <geom pos="5.75557e-08 -0.000145609 7.8361e-06" type="capsule" size="0.000308023 0.00135296" quat="0.707107 -0.707107 0 0" />
+                                                                                                                              <geom pos="-1.25345e-05 -0.00162797 -2.30086e-05" type="capsule" size="0.000308023 0.00135296" quat="0.707107 -0.707107 0 0" />
                                                                                                                               <body name="mouse__Tail21_interim_0" pos="0 -0.00329 -1e-05">
                                                                                                                                 <inertial pos="0 0 0" mass="1e-06" diaginertia="1e-06 1e-06 1e-06" />
                                                                                                                                 <joint name="mouse__Tail21_bending" pos="0 0 0" axis="0 0 1" limited="true" range="-0.349066 0.349066" />

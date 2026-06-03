@@ -21,6 +21,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0", "httpx>=0.25", "anyio>=4.0", "pytest-anyio>=0.0.0"]
+# Backend IK preview only: backend/stac_runner.py delegates per-frame pose
+# optimization to stac_mjx.StacCore.q_opt. stac-mjx is NOT on PyPI, so it is
+# intentionally not a base dependency (it would break `pip install` and CI).
+# Install it from a checkout/git to enable backend IK, e.g.
+#   pip install -e ../stac-mjx
+#   pip install "stac-mjx @ git+https://github.com/talmolab/stac-mjx.git"
+# Standalone / pure-frontend mode runs entirely in the browser (mujocoWasm.ts)
+# and never imports it; stac_runner defers the import and tests importorskip it.
+backend-ik = ["stac-mjx>=0.0.1"]
 
 [tool.setuptools.packages.find]
 include = ["backend*"]
