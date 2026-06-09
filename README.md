@@ -17,6 +17,18 @@ insect) and runs in two modes:
   model-path loading. IK, offset refit, and alignment then route through the
   real `stac-mjx` core instead of the in-browser JS ports.
 
+## Demo
+
+**Live IK preview** — map keypoints and watch the Jacobian-IK fit update in real
+time, entirely in the browser.
+
+https://github.com/talmolab/stac-keypoints-web/raw/main/docs/inverse-kinematics.webm
+
+**Multi-species** — five MuJoCo body models out of the box, switchable from a
+single dropdown.
+
+https://github.com/talmolab/stac-keypoints-web/raw/main/docs/animals-selection.webm
+
 ## Quick start (browser-only)
 
 Visit the deployed site or build locally:
