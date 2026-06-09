@@ -48,6 +48,9 @@ export default function Toolbar() {
   const ikStatus = useStore((s) => s.ikStatus);
   const setIkStatus = useStore((s) => s.setIkStatus);
   const modelHasDemoData = useStore((s) => s.modelHasDemoData);
+  const ikRunning = useStore((s) => s.ikRunning);
+  const ikProgress = useStore((s) => s.ikProgress);
+  const requestIkCancel = useStore((s) => s.requestIkCancel);
 
   const finishXmlLoad = useCallback(async (
     data: any, fallbackPath: string, fallbackBasename: string,
@@ -291,6 +294,7 @@ export default function Toolbar() {
 
   const handleRunIkSequence = useCallback(async () => {
     const state = useStore.getState();
+    if (state.ikRunning) return; // guard against a double-click re-entry
     if (!state.acmPositions || !state.xmlPath) {
       setIkStatus("Load XML and ACM data first.");
       return;
@@ -301,10 +305,26 @@ export default function Toolbar() {
       return;
     }
     const allFrames = Array.from({ length: numFrames }, (_, i) => i);
+    state.resetIkCancel();
+    state.setIkRunning(true);
+    state.setIkProgress({ current: 0, total: numFrames });
     setIkStatus("Running IK on " + numFrames + " frames...");
-    // Use fewer iterations for sequence mode (speed)
-    await runIkOnFrames(allFrames, 50);
-  }, [runIkOnFrames, setIkStatus]);
+    try {
+      // Use fewer iterations for sequence mode (speed). The progress/cancel
+      // callbacks make the otherwise main-thread-blocking solve cooperative:
+      // it yields between frames so the bar repaints and Cancel is honoured.
+      await runIk(allFrames, 50, {
+        onProgress: (done, total) =>
+          useStore.getState().setIkProgress({ current: done, total }),
+        shouldCancel: () => useStore.getState().ikCancelRequested,
+      });
+    } finally {
+      const s = useStore.getState();
+      s.setIkRunning(false);
+      s.setIkProgress(null);
+      s.resetIkCancel();
+    }
+  }, [setIkStatus]);
 
   const handleRefitOffsets = useCallback(async () => {
     const state = useStore.getState();
@@ -422,7 +442,14 @@ export default function Toolbar() {
       >Load STAC H5</button>
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
-      <button style={{...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}} onClick={handleRunIkSequence}>IK Sequence</button>
+      <button
+        style={ikRunning
+          ? {...btnStyle, background: "#2a3a4a", border: "1px solid #4ac", opacity: 0.5, cursor: "wait"}
+          : {...btnStyle, background: "#2a3a4a", border: "1px solid #4ac"}}
+        onClick={handleRunIkSequence}
+        disabled={ikRunning}
+        title="Solve IK on every frame in the clip (50 iters/frame). Runs in the background with a progress bar and a Cancel button."
+      >IK Sequence</button>
       <button
         style={{...btnStyle, background: "#3a2a4a", border: "1px solid #84c"}}
         onClick={handleRefitOffsets}
@@ -433,7 +460,31 @@ export default function Toolbar() {
       <button style={btnStyle} onClick={handleExport} title="Cmd/Ctrl-S — re-saves to the file you picked first">Export</button>
       <button style={btnStyle} onClick={handleExportAs} title="Cmd/Ctrl-Shift-S — choose a new location">Save As…</button>
       <button style={btnStyle} onClick={handleQualityReport} title="Per-keypoint gap %, confidence histogram, error">Quality Report</button>
-      {ikStatus && (
+      {ikRunning && ikProgress && (
+        <span style={progressWrapStyle}>
+          <span style={progressTrackStyle}>
+            <span
+              style={{
+                ...progressFillStyle,
+                width: `${ikProgress.total > 0
+                  ? Math.round((ikProgress.current / ikProgress.total) * 100)
+                  : 0}%`,
+              }}
+            />
+          </span>
+          <span style={progressLabelStyle}>
+            IK {ikProgress.current}/{ikProgress.total}
+          </span>
+          <button
+            style={cancelBtnStyle}
+            onClick={requestIkCancel}
+            title="Stop the sequence — frames already solved are kept"
+          >
+            Cancel
+          </button>
+        </span>
+      )}
+      {!ikRunning && ikStatus && (
         <span
           style={statusStyle}
           onClick={() => setIkStatus(null)}
@@ -461,4 +512,35 @@ const statusStyle: React.CSSProperties = {
   color: "#8f8", fontSize: 12, marginLeft: 8, cursor: "pointer",
   padding: "4px 8px", background: "#1a2a1a", borderRadius: 4,
   border: "1px solid #3a5a3a",
+};
+
+// Lifted out of the toolbar's flex row into a fixed overlay: the toolbar is a
+// fixed-height, non-wrapping row, so appending the bar at the end pushed it
+// (and the Cancel button) off-screen. Fixed positioning keeps it visible
+// regardless of how crowded the toolbar is. Sits just below the 48px header.
+const progressWrapStyle: React.CSSProperties = {
+  position: "fixed", top: 56, right: 16, zIndex: 1000,
+  display: "inline-flex", alignItems: "center", gap: 8,
+  padding: "6px 10px", background: "#1a2333ee",
+  borderRadius: 6, border: "1px solid #3a4a6a",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+};
+
+const progressTrackStyle: React.CSSProperties = {
+  display: "inline-block", width: 120, height: 8,
+  background: "#0d1322", borderRadius: 4, overflow: "hidden",
+};
+
+const progressFillStyle: React.CSSProperties = {
+  display: "block", height: "100%", background: "#4ac",
+  transition: "width 0.12s linear",
+};
+
+const progressLabelStyle: React.CSSProperties = {
+  color: "#9cf", fontSize: 11, fontFamily: "monospace", whiteSpace: "nowrap",
+};
+
+const cancelBtnStyle: React.CSSProperties = {
+  background: "#4a2a2a", border: "1px solid #a44", color: "#fbb",
+  padding: "3px 10px", borderRadius: 4, cursor: "pointer", fontSize: 11,
 };

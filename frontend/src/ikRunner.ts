@@ -24,6 +24,19 @@ export interface RunIkOpts {
    *     asked for a fresh solve; every frame cold-starts.
    */
   warmStart?: boolean;
+
+  /**
+   * Progress callback for long multi-frame runs (IK Sequence). Invoked after
+   * each frame solves, with the count done and the total. Standalone only —
+   * the backend solves server-side in one shot and reports no sub-progress.
+   */
+  onProgress?: (done: number, total: number) => void;
+
+  /**
+   * Polled between frames; return true to stop the run early. Frames already
+   * solved are kept and applied (partial result). Standalone only.
+   */
+  shouldCancel?: () => boolean;
 }
 
 /**
@@ -75,6 +88,10 @@ export async function runIk(
     mocapScaleFactor: state.mocapScaleFactor,
     maxIterations,
     initialQpos,
+    // Cooperative progress/cancel for IK Sequence. The backend path drops these
+    // (JSON.stringify ignores functions); localApi.runQuickStac honours them.
+    onProgress: opts.onProgress,
+    shouldCancel: opts.shouldCancel,
   });
 
   if (result.error) {
@@ -129,7 +146,8 @@ export async function runIk(
         ).toFixed(1)
       : "N/A";
   state.setIkStatus(
-    "IK: " + result.qpos.length + "f, err " + meanError + "mm",
+    (result.cancelled ? "IK cancelled: " : "IK: ") +
+      result.qpos.length + "f, err " + meanError + "mm",
   );
   return true;
 }
