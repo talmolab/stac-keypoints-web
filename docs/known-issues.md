@@ -164,5 +164,5 @@ Files that are most likely to bite future maintainers:
 
 - Talmo Pereira (talmo@salk.edu) — overall direction, acceptance criteria.
 - Scott Yang — original SPA prototype (`upstream/scott/deploy_to_gh_page`).
-- Hugo Farajallah (hugo.farajallah@unige.ch) — M3–M6 implementation,
+- Hugo Farajallah (github@hugofara.net) — M3–M6 implementation,
   available for handoff questions through the contract end date.
