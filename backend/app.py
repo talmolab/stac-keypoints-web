@@ -29,9 +29,23 @@ from backend.stac_runner import run_quick_stac, refit_offsets
 
 app = FastAPI(title="STAC Retarget UI")
 
+
+def _allowed_origins() -> list[str]:
+    """CORS origins allowed to call this backend.
+
+    Defaults to the Vite dev server so local `start.sh` setups keep working
+    unchanged. To serve a remote/hosted frontend that talks to this backend
+    cross-origin, set ``STAC_ALLOW_ORIGINS`` to a comma-separated list of
+    origins (e.g. ``https://user.github.io``) before launching. Read at import
+    time, so set it in the environment before starting uvicorn.
+    """
+    raw = os.environ.get("STAC_ALLOW_ORIGINS", "http://localhost:5173")
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=_allowed_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
 )

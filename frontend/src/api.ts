@@ -1,6 +1,59 @@
 import * as local from "./localApi";
 
-const BASE = "";
+const API_BASE_KEY = "stac.apiBase";
+
+/** Resolve the backend base URL. Precedence: runtime override (localStorage,
+ *  set via the Backend Connection panel) > build-time VITE_API_BASE > "" (same
+ *  origin — the historical default; `start.sh` users are unaffected). Trailing
+ *  slashes are stripped so `${BASE}/api/...` never doubles up. Pure (sources
+ *  injected as args) so it's unit-testable. */
+export function resolveApiBase(
+  stored?: string | null,
+  envBase?: string | null,
+): string {
+  const raw = (stored && stored.trim()) || (envBase && envBase.trim()) || "";
+  return raw.replace(/\/+$/, "");
+}
+
+// `let` (not `const`) so a test/tooling can reason about it, but in practice it
+// only changes via a full reload — see setApiBase.
+let BASE = resolveApiBase(
+  typeof localStorage !== "undefined" ? localStorage.getItem(API_BASE_KEY) : null,
+  import.meta.env.VITE_API_BASE,
+);
+
+/** Current backend base URL ("" = same origin). */
+export function getApiBase(): string {
+  return BASE;
+}
+
+/** Persist a backend base URL and reload. A live swap would have to invalidate
+ *  every module-level cache keyed to the old backend (_backendOk, _defaultsCache,
+ *  the preset list); a reload re-initialises all of them cleanly, which is fine
+ *  for a set-once action. Pass "" to clear the override (fall back to env / same
+ *  origin). */
+export function setApiBase(url: string): void {
+  const trimmed = url.trim().replace(/\/+$/, "");
+  if (trimmed) localStorage.setItem(API_BASE_KEY, trimmed);
+  else localStorage.removeItem(API_BASE_KEY);
+  if (typeof window !== "undefined") window.location.reload();
+}
+
+export type BackendStatus = "connected" | "standalone" | "unreachable";
+
+/** Map a health-probe result to a UI status. Pure — split out from probeBackend
+ *  so the three-way logic is testable without mocking fetch. "standalone" = no
+ *  base set, in-browser by design; "unreachable" = a base IS configured but the
+ *  probe failed (surfaced instead of silently falling back to the WASM path). */
+export function backendStatusFrom(probeOk: boolean, base: string): BackendStatus {
+  if (probeOk) return "connected";
+  return base ? "unreachable" : "standalone";
+}
+
+/** Probe the configured backend and classify the connection for the indicator. */
+export async function probeBackend(): Promise<BackendStatus> {
+  return backendStatusFrom(await backendOk(), getApiBase());
+}
 
 let _backendOk: boolean | null = null;
 let _backendProbe: Promise<boolean> | null = null;
