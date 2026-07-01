@@ -5,6 +5,7 @@ import { runIk } from "../ikRunner";
 import { runAlignment, formatAlignStatus } from "../alignment";
 import { runExport } from "../exportConfig";
 import { runQualityReportExport } from "../qualityReport";
+import { statusTone } from "../statusTone";
 
 /** Open a transient native file picker and resolve with the chosen File. */
 function pickFile(accept: string): Promise<File | null> {
@@ -494,7 +495,7 @@ export default function Toolbar() {
       )}
       {!ikRunning && ikStatus && (
         <span
-          style={statusStyle}
+          style={statusStyleByTone[statusTone(ikStatus)]}
           onClick={() => setIkStatus(null)}
           title="Click to dismiss"
         >
@@ -516,10 +517,17 @@ const disabledBtnStyle: React.CSSProperties = {
   ...btnStyle, opacity: 0.4, cursor: "not-allowed", color: "#888",
 };
 
-const statusStyle: React.CSSProperties = {
-  color: "#8f8", fontSize: 12, marginLeft: 8, cursor: "pointer",
-  padding: "4px 8px", background: "#1a2a1a", borderRadius: 4,
-  border: "1px solid #3a5a3a",
+// The chip is colour-coded by message severity (see statusTone) so a blocked
+// export or a load error no longer reads as a green success. Shared shape;
+// only the colour trio differs per tone.
+const statusBase: React.CSSProperties = {
+  fontSize: 12, marginLeft: 8, cursor: "pointer",
+  padding: "4px 8px", borderRadius: 4,
+};
+const statusStyleByTone: Record<ReturnType<typeof statusTone>, React.CSSProperties> = {
+  ok: { ...statusBase, color: "#8f8", background: "#1a2a1a", border: "1px solid #3a5a3a" },
+  warn: { ...statusBase, color: "#fc8", background: "#2a2416", border: "1px solid #5a4a2a" },
+  error: { ...statusBase, color: "#f99", background: "#2a1616", border: "1px solid #5a3a3a" },
 };
 
 // Lifted out of the toolbar's flex row into a fixed overlay: the toolbar is a
