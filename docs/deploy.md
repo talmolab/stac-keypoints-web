@@ -87,6 +87,31 @@ when running the Python backend.
 | `STAC_KEYPOINTS_STAC_OUTPUT` | unset | Optional path to a precomputed STAC `.h5` to autoload. |
 | `STAC_KEYPOINTS_ACM_TRIALS` | `3` | Number of ACM trials to load on autoload. |
 | `STAC_XML_ROOTS` | unset | Extra directories scanned for the model dropdown's "Custom path" list. |
+| `STAC_ALLOW_ORIGINS` | `http://localhost:5173` | Comma-separated list of frontend origins allowed to call this backend (CORS). Set this when a hosted/remote frontend talks to the backend cross-origin. |
+
+## Connecting a hosted frontend to a remote backend
+
+By default the frontend talks to the backend **same-origin** (relative
+`/api/...` requests): either the Vite dev proxy (`start.sh`) or a co-hosted
+deploy. To point a hosted/standalone SPA at a backend on a *different* origin
+(e.g. a lab GPU box), no rebuild is required — but three things must line up:
+
+1. **Frontend → set the backend URL.** In the app, open the *Properties* panel
+   → **Backend Connection**, paste the URL (`http://host:8000`), and click
+   **Connect** (the page reloads to apply). The value persists in
+   `localStorage`. The indicator shows 🟢 *Connected*, ⚪ *Standalone*, or 🟠
+   *couldn't reach …* so a bad URL doesn't silently fall back to the in-browser
+   solver. A build-time default can also be baked in with `VITE_API_BASE`
+   (localStorage overrides it).
+
+2. **Backend → allow the frontend's origin.** Start the backend with
+   `STAC_ALLOW_ORIGINS` set to the page's origin, e.g.
+   `STAC_ALLOW_ORIGINS=https://user.github.io uvicorn backend.app:app ...`.
+   Otherwise the browser blocks the cross-origin requests.
+
+3. **WASM headers.** If the page also uses the in-browser (WASM) path, its host
+   must send the COOP/COEP headers described in `known-issues.md`
+   (SharedArrayBuffer requirement). Backend requests aren't affected by this.
 
 ## Release artefacts
 

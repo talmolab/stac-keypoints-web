@@ -4,6 +4,7 @@ import type { InteractionMode } from "../types";
 import { PRIMARY_SEGMENTS, segmentKey, RETARGET_TREE } from "../skeletonEditor";
 import ErrorDistribution from "./ErrorDistribution";
 import RegionErrorSummary from "./RegionErrorSummary";
+import BackendControls from "./BackendControls";
 
 export default function PropertiesPanel() {
   const selectedKp = useStore((s) => s.selectedKeypoint);
@@ -335,6 +336,15 @@ export default function PropertiesPanel() {
             ))}
           </div>
         </div>
+      </details>
+
+      {/* Backend Connection — point the app at a server (blank = same origin /
+          in-browser). Collapsed by default: most users run same-origin. */}
+      <details>
+        <summary style={{ cursor: "pointer", color: "#888", fontSize: 12 }}>
+          Backend Connection
+        </summary>
+        <BackendControls />
       </details>
     </div>
   );
