@@ -6,6 +6,7 @@ import { runAlignment, formatAlignStatus } from "../alignment";
 import { runExport } from "../exportConfig";
 import { runQualityReportExport } from "../qualityReport";
 import { statusTone } from "../statusTone";
+import { ToolbarMenu, MenuItem, MenuDivider, MenuLabel } from "./ToolbarMenu";
 
 /** Open a transient native file picker and resolve with the chosen File. */
 function pickFile(accept: string): Promise<File | null> {
@@ -152,19 +153,11 @@ export default function Toolbar() {
     api.isBackendAvailable().then(setHasBackend).catch(() => setHasBackend(false));
   }, []);
 
-  const handlePresetChange = useCallback(async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    e.target.value = "";  // reset so re-selecting the same item still fires
-    if (!value) return;
-    if (value === "__custom__") {
-      const last = localStorage.getItem("stac.lastXmlPath") || "";
-      const path = prompt("Absolute server-side path to MuJoCo XML:", last);
-      if (path) await loadByPath(path);
-      return;
-    }
-    const preset = xmlPresets.find((p) => p.path === value);
-    await loadByPath(value, preset?.configPath, preset?.hasDemoData);
-  }, [loadByPath, xmlPresets]);
+  const handleCustomPath = useCallback(async () => {
+    const last = localStorage.getItem("stac.lastXmlPath") || "";
+    const path = prompt("Absolute server-side path to MuJoCo XML:", last);
+    if (path) await loadByPath(path);
+  }, [loadByPath]);
 
   const handleLoadMat = useCallback(async () => {
     const file = await pickFile(".mat");
@@ -411,44 +404,68 @@ export default function Toolbar() {
 
   return (
     <>
-      <button style={btnStyle} onClick={handleLoadXml}>Load XML</button>
-      <button
-        style={btnStyle}
-        onClick={handleLoadXmlFolder}
-        title="Pick a model folder (XML + .obj/.stl meshes). Meshes are baked into capsules client-side."
-      >Load XML folder…</button>
-      <select
-        onChange={handlePresetChange}
-        defaultValue=""
-        title="Load a discovered XML by path (needed for models with external mesh assets)"
-        style={{ ...btnStyle, padding: "4px 6px" }}
-      >
-        <option value="" disabled>Load preset…</option>
-        {xmlPresets.map((p) => (
-          <option key={p.path} value={p.path}>{p.name}</option>
-        ))}
-        <option value="__custom__">Custom path…</option>
-      </select>
-      <button style={btnStyle} onClick={handleLoadKeypoints}>Load KP</button>
-      <button style={btnStyle} onClick={handleLoadMat}>Load .mat</button>
-      <button
-        style={acmDisabled ? disabledBtnStyle : btnStyle}
-        onClick={handleLoadAcm}
-        disabled={acmDisabled}
-        title={acmDisabled
-          ? "Needs the backend — standalone mode can only load ACM demo data for a bundled demo model (e.g. the rat). Use Load KP / Load .mat instead."
-          : "Auto-load ACM trials (backend data root, or the bundled demo clip in standalone mode)"}
-      >Load ACM</button>
-      <button style={btnStyle} onClick={handleLoadConfig}>Load Config</button>
+      {/* Load ▾ — every input source. The header is a fixed, non-wrapping row,
+          so these eight actions (plus the discovered presets) collapse into one
+          menu instead of eight top-level buttons + a select. */}
+      <ToolbarMenu label="Load" title="Load a model, keypoints, config, or a STAC output">
+        {(close) => (
+          <>
+            <MenuLabel>Model</MenuLabel>
+            <MenuItem label="Load XML…" onSelect={handleLoadXml} close={close} />
+            <MenuItem
+              label="Load XML folder…"
+              onSelect={handleLoadXmlFolder}
+              close={close}
+              title="Pick a model folder (XML + .obj/.stl meshes). Meshes are baked into capsules client-side."
+            />
+            {xmlPresets.length > 0 && (
+              <>
+                <MenuLabel>Presets</MenuLabel>
+                {xmlPresets.map((p) => (
+                  <MenuItem
+                    key={p.path}
+                    label={p.name}
+                    onSelect={() => loadByPath(p.path, p.configPath, p.hasDemoData)}
+                    close={close}
+                  />
+                ))}
+              </>
+            )}
+            <MenuItem
+              label="Custom path…"
+              onSelect={handleCustomPath}
+              close={close}
+              title="Load a discovered XML by absolute server-side path"
+            />
+            <MenuDivider />
+            <MenuLabel>Data</MenuLabel>
+            <MenuItem label="Load Keypoints (.h5/.mat)" onSelect={handleLoadKeypoints} close={close} />
+            <MenuItem label="Load .mat (ACM)" onSelect={handleLoadMat} close={close} />
+            <MenuItem
+              label="Load ACM trials"
+              onSelect={handleLoadAcm}
+              close={close}
+              disabled={acmDisabled}
+              title={acmDisabled
+                ? "Needs the backend — standalone mode can only load ACM demo data for a bundled demo model (e.g. the rat). Use Load Keypoints / .mat instead."
+                : "Auto-load ACM trials (backend data root, or the bundled demo clip in standalone mode)"}
+            />
+            <MenuItem label="Load Config" onSelect={handleLoadConfig} close={close} />
+            <MenuItem
+              label="Load STAC H5"
+              onSelect={handleLoadStacOutput}
+              close={close}
+              disabled={!hasBackend}
+              title={hasBackend
+                ? "Load a STAC output .h5 (learned offsets + solved poses) from the backend"
+                : "Needs the backend — there's no in-browser path to load a STAC output .h5 in standalone mode."}
+            />
+          </>
+        )}
+      </ToolbarMenu>
+
+      {/* Solve loop — kept as one-click buttons; these are pressed repeatedly. */}
       <button style={btnStyle} onClick={handleAlign}>Align</button>
-      <button
-        style={hasBackend ? btnStyle : disabledBtnStyle}
-        onClick={handleLoadStacOutput}
-        disabled={!hasBackend}
-        title={hasBackend
-          ? "Load a STAC output .h5 (learned offsets + solved poses) from the backend"
-          : "Needs the backend — there's no in-browser path to load a STAC output .h5 in standalone mode."}
-      >Load STAC H5</button>
       <button style={{...btnStyle, background: "#2a4a2a", border: "1px solid #4a4"}} onClick={handleRunIk}>Run IK</button>
       <button style={{...btnStyle, background: "#2a3a2a", border: "1px solid #4a4"}} onClick={handleRunIkFrame}>IK Frame</button>
       <button
@@ -466,9 +483,32 @@ export default function Toolbar() {
       >
         Refit Offsets
       </button>
-      <button style={btnStyle} onClick={handleExport} title="Cmd/Ctrl-S — re-saves to the file you picked first">Export</button>
-      <button style={btnStyle} onClick={handleExportAs} title="Cmd/Ctrl-Shift-S — choose a new location">Save As…</button>
-      <button style={btnStyle} onClick={handleQualityReport} title="Per-keypoint gap %, confidence histogram, error">Quality Report</button>
+      {/* Export ▾ — output actions grouped; the primary Export also has ⌘S. */}
+      <ToolbarMenu label="Export" title="Save the config or a quality report">
+        {(close) => (
+          <>
+            <MenuItem
+              label="Export  (⌘S)"
+              onSelect={handleExport}
+              close={close}
+              title="Re-saves to the file you picked first"
+            />
+            <MenuItem
+              label="Save As…  (⇧⌘S)"
+              onSelect={handleExportAs}
+              close={close}
+              title="Choose a new location"
+            />
+            <MenuDivider />
+            <MenuItem
+              label="Quality Report"
+              onSelect={handleQualityReport}
+              close={close}
+              title="Per-keypoint gap %, confidence histogram, error"
+            />
+          </>
+        )}
+      </ToolbarMenu>
       {ikRunning && ikProgress && (
         <span style={progressWrapStyle}>
           <span style={progressTrackStyle}>
@@ -509,12 +549,6 @@ export default function Toolbar() {
 const btnStyle: React.CSSProperties = {
   background: "#2a2a4a", border: "1px solid #555", color: "#ccc",
   padding: "6px 14px", borderRadius: 4, cursor: "pointer", fontSize: 12,
-};
-
-// Backend-only actions in standalone mode: dimmed + not-allowed so the
-// disabled state is visually obvious rather than a silent dead end.
-const disabledBtnStyle: React.CSSProperties = {
-  ...btnStyle, opacity: 0.4, cursor: "not-allowed", color: "#888",
 };
 
 // The chip is colour-coded by message severity (see statusTone) so a blocked
