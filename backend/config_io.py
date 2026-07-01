@@ -193,32 +193,59 @@ def export_stac_yaml(config: dict, output_path: str) -> None:
         f.write(dump_stac_yaml(config))
 
 
+def _embedded_mocap_scale_factor(f: h5py.File, default: float = 0.01) -> float:
+    """Read MOCAP_SCALE_FACTOR from an H5's embedded `config`, else `default`.
+
+    STAC stores kp_data in model units (= raw mocap × MOCAP_SCALE_FACTOR), so to
+    recover the raw display scale we must divide by the *same* factor the fit
+    used — not a hardcoded 0.01 (the rat's value). The stick walkers use 1.0,
+    so hardcoding 0.01 blows their targets up 100×.
+    """
+    if "config" not in f:
+        return default
+    raw_cfg = f["config"][()]
+    if isinstance(raw_cfg, bytes):
+        raw_cfg = raw_cfg.decode()
+    try:
+        parsed = yaml.safe_load(raw_cfg) or {}
+        model = _extract_model_section(parsed)
+        return float(model.get("MOCAP_SCALE_FACTOR", default))
+    except (yaml.YAMLError, TypeError, ValueError):
+        return default
+
+
 def load_stac_output_h5(h5_path: str) -> dict:
     """Load STAC output H5 and return offsets + qpos + kp_data for visualization.
 
-    kp_data contains the actual target keypoints STAC was fitting to (in meters,
-    flattened as N x 63). We reshape and convert back to cm (÷ MOCAP_SCALE_FACTOR)
-    so the web UI can display them aligned with the STAC poses.
+    kp_data contains the actual target keypoints STAC was fitting to (in model
+    units, flattened as N x 3·n_kp). We reshape and divide by the fit's
+    MOCAP_SCALE_FACTOR (read from the embedded config) to recover the raw mocap
+    scale the web UI renders the poses in.
     """
     with h5py.File(h5_path, "r") as f:
         kp_names = [
             n.decode() if isinstance(n, bytes) else str(n)
             for n in f["kp_names"][:]
         ]
+        scale = _embedded_mocap_scale_factor(f)
         result = {
             "offsets": f["offsets"][:].tolist(),
             "qpos": f["qpos"][:].tolist(),
             "kpNames": kp_names,
+            # The frontend renders targets at position × mocapScaleFactor, so it
+            # must use the *same* factor we divided by here for the targets to
+            # overlay the body. Return it so the loader can sync the store.
+            "mocapScaleFactor": scale,
         }
         if "marker_sites" in f:
             result["markerSites"] = f["marker_sites"][:].tolist()
-        # Load kp_data: the actual targets STAC optimized against (meters, flat)
+        # Load kp_data: the actual targets STAC optimized against (model units)
         if "kp_data" in f:
-            kp_data = f["kp_data"][:]  # (N, n_kp*3) in meters
+            kp_data = f["kp_data"][:]  # (N, n_kp*3) in model units
             n_kp = len(kp_names)
             n_frames = kp_data.shape[0]
-            # Reshape to (N, n_kp, 3) and convert meters → cm (÷ 0.01)
-            kp_3d = kp_data.reshape(n_frames, n_kp, 3) / 0.01  # meters → cm
+            # Recover raw mocap scale: ÷ the same MOCAP_SCALE_FACTOR the fit used
+            kp_3d = kp_data.reshape(n_frames, n_kp, 3) / scale
             result["stacTargets"] = {
                 "positions": kp_3d.flatten().tolist(),
                 "numFrames": int(n_frames),

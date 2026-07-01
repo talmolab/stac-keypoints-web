@@ -216,6 +216,14 @@ export default function Toolbar() {
     const data = await api.uploadStacOutput(file);
     if (data.error) { setIkStatus("Load error: " + data.error); return; }
 
+    // Sync mocap scale to the H5's own factor. The backend returns targets in
+    // raw mocap units and the scene renders them at position × mocapScaleFactor,
+    // so this must match the fit's factor (≠ 0.01 for non-rat species) or the
+    // targets won't overlay the body.
+    if (typeof data.mocapScaleFactor === "number") {
+      useStore.getState().setMocapScaleFactor(data.mocapScaleFactor);
+    }
+
     // Load learned offsets
     const state = useStore.getState();
     for (let i = 0; i < data.kpNames.length; i++) {
