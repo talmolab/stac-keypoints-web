@@ -8,6 +8,7 @@ import {
   initMuJoCo,
   loadXmlFromUrl,
   loadXmlFromText,
+  loadXmlWithAssets,
   extractGeometry,
   computeBodyTransforms,
   jacobianIk,
@@ -142,19 +143,27 @@ export async function uploadXml(files: File | File[]) {
     assets.set(key, new Uint8Array(await f.arrayBuffer()));
   }
 
-  // Always run through the preprocessor when assets are supplied — even if
-  // the XML happens to be mesh-less, it's a no-op and the report shows 0
-  // replacements. When no assets accompany the XML, try a direct load
-  // first; if it fails on missing meshes, surface a hint.
+  // When assets accompany the XML, first try to load it meshful-and-intact so
+  // the UI renders real triangle geometry. If that compile fails (missing or
+  // unsupported mesh, bad asset), fall back to the capsule/sphere preprocessor
+  // so the upload still succeeds — a mesh-less XML makes the preprocessor a
+  // no-op (0 replacements). When no assets accompany the XML, try a direct
+  // load first; if it fails on missing meshes, surface a hint.
   let finalXml = xmlText;
   let report: { nReplaced: number; nSphere: number; nCapsule: number } | null = null;
   if (assets.size > 0) {
     try {
-      const out = await preprocessMeshfulXml(xmlText, assets);
-      finalXml = out.xml;
-      report = out.report;
-    } catch (e) {
-      return { error: `Preprocessor failed: ${(e as Error).message}` };
+      await loadXmlWithAssets(xmlText, assets);
+      const geom = extractGeometry();
+      return { ...geom, xmlPath: xmlFile.name, preprocessReport: null };
+    } catch (_meshErr) {
+      try {
+        const out = await preprocessMeshfulXml(xmlText, assets);
+        finalXml = out.xml;
+        report = out.report;
+      } catch (e) {
+        return { error: `Preprocessor failed: ${(e as Error).message}` };
+      }
     }
   }
 

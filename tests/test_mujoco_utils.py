@@ -48,10 +48,26 @@ def _extract_single_geom(xml: str, body: str = "b1") -> dict:
     return geoms[0]
 
 
-def test_mesh_geom_renders_as_primitive():
-    # Mesh geoms have no triangle-mesh path on the frontend yet, so the
-    # extractor exposes them as a primitive fit to the mesh's AABB (a capsule
-    # for elongated meshes, an ellipsoid for flat ones).
+def _assert_valid_mesh(g: dict) -> None:
+    """A mesh geom must carry real, renderable triangle data."""
+    assert g["type"] == "mesh"
+    verts = g["vertices"]
+    faces = g["faces"]
+    assert len(verts) > 0 and len(verts) % 3 == 0
+    assert len(faces) > 0 and len(faces) % 3 == 0
+    n_verts = len(verts) // 3
+    assert all(v == v and abs(v) < 1e4 for v in verts)  # finite, sane scale
+    # Face indices are mesh-local (0-based) and in range — safe to hand to
+    # THREE.BufferGeometry.setIndex without an out-of-bounds read.
+    assert all(isinstance(i, int) and 0 <= i < n_verts for i in faces)
+    # pos/quat still place the mesh in the body frame like a primitive.
+    assert all(c == c and abs(c) < 100 for c in g["position"])
+    assert len(g["quaternion"]) == 4
+
+
+def test_mesh_geom_renders_as_triangles():
+    # Mesh geoms now emit the real triangle geometry (a THREE.BufferGeometry on
+    # the frontend), not a capsule/ellipsoid fit to the AABB.
     xml = textwrap.dedent("""
     <mujoco>
       <asset>
@@ -65,17 +81,14 @@ def test_mesh_geom_renders_as_primitive():
     </mujoco>
     """)
     g = _extract_single_geom(xml)
-    assert g["type"] in ("capsule", "ellipsoid", "sphere")
-    # All half-extents positive and finite; position finite (not NaN/inf).
-    assert all(s > 0 for s in g["size"] if s) and all(s == s and abs(s) < 100 for s in g["size"])
-    assert all(c == c and abs(c) < 100 for c in g["position"])
+    _assert_valid_mesh(g)
 
 
-def test_flat_mesh_renders_as_ellipsoid():
-    # A flat mesh (a thin slab) must NOT become a capsule — its radius would
-    # balloon to the geom's width and read as a fat blob (the fruitfly wing
-    # bug). It should be an ellipsoid keeping all three half-extents, so the
-    # smallest stays much thinner than the others.
+def test_flat_mesh_renders_as_triangles():
+    # A flat mesh (a thin slab) also renders as its real triangles — the old
+    # AABB→ellipsoid fallback (to avoid a ballooned capsule radius) is gone now
+    # that we draw the actual surface. Its vertices span all three axes with a
+    # much thinner extent along the flat one.
     xml = textwrap.dedent("""
     <mujoco>
       <asset>
@@ -90,9 +103,9 @@ def test_flat_mesh_renders_as_ellipsoid():
     </mujoco>
     """)
     g = _extract_single_geom(xml)
-    assert g["type"] == "ellipsoid"
-    sz = sorted(g["size"])
-    assert sz[0] < 0.5 * sz[1]  # stayed flat, not ballooned into a capsule radius
+    _assert_valid_mesh(g)
+    sz = sorted(g["size"])  # AABB half-extents kept for reference/bounds
+    assert sz[0] < 0.5 * sz[1]  # still flat along its thin axis
 
 
 def test_compute_body_transforms():
