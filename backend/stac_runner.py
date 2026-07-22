@@ -88,11 +88,16 @@ def _build(
         site_kp_order.append(kp)
 
     mj_model = spec.compile()
+    # dtype=int32 matters when site_kp_order is empty (every mapped body was
+    # dropped): np.array([]) would default to float64, and set_site_pos's
+    # `.at[site_idxs]` rejects a float indexer. run_quick_stac / refit_offsets
+    # raise a clear error before that, but keep the array integer regardless.
     site_idxs_np = np.array(
         [
             mujoco.mj_name2id(mj_model, mujoco.mjtObj.mjOBJ_SITE, kp)
             for kp in site_kp_order
-        ]
+        ],
+        dtype=np.int32,
     )
     site_idxs = _jp.asarray(site_idxs_np)
 
@@ -200,6 +205,31 @@ def clear_cache() -> None:
         _CACHE.pop("entry", None)
 
 
+def _require_resolved_sites(ctx: dict[str, Any], mappings: dict[str, str]) -> None:
+    """Raise a clear error when no mapped body resolved to a site.
+
+    ``_build`` silently skips any mapping whose body isn't in the model. If
+    *every* mapping is dropped there are no sites to fit — the solve would fail
+    deep inside JAX with a cryptic empty-index error. This surfaces the real
+    cause: the keypoint→body mappings don't match the loaded model (typically
+    mappings carried over from a different species/model).
+    """
+    if ctx["kp_order"]:
+        return
+    mj_model = ctx["mj_model"]
+    bodies = [
+        mujoco.mj_id2name(mj_model, mujoco.mjtObj.mjOBJ_BODY, b)
+        for b in range(mj_model.nbody)
+    ]
+    bodies = [b for b in bodies if b and b != "world"]
+    sample = ", ".join(bodies[:8]) + (" …" if len(bodies) > 8 else "")
+    raise ValueError(
+        "None of the mapped bodies exist in this model — the keypoint→body "
+        f"mappings ({dict(mappings)}) don't match the loaded model. Its bodies "
+        f"include: {sample}"
+    )
+
+
 def run_quick_stac(
     kp_positions_flat: list[float],
     num_frames: int,
@@ -266,6 +296,7 @@ def run_quick_stac(
     mjx_data = ctx["mjx_data"]
     site_idxs = ctx["site_idxs"]
     kp_order: list[str] = ctx["kp_order"]
+    _require_resolved_sites(ctx, mappings)
 
     # Offsets are passed to q_opt as solve data (no recompile). The same values
     # are applied to a model copy for the post-solve marker-error FK.
@@ -427,6 +458,7 @@ def refit_offsets(
     positions = flat.reshape(num_frames, num_keypoints, 3)
 
     ctx = _get(xml_path, mappings, offsets or {}, max_iterations)
+    _require_resolved_sites(ctx, mappings)
     mjx_model = ctx["mjx_model_base"]
     mjx_data = ctx["mjx_data"]
     site_idxs = ctx["site_idxs"]

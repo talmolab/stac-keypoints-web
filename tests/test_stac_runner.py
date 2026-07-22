@@ -221,6 +221,25 @@ def test_refit_offsets_shares_cache_with_run_quick_stac():
     assert id(_CACHE["entry"]["payload"]) == id_before
 
 
+def test_mappings_to_missing_bodies_raise_clear_error():
+    """Mappings whose bodies don't exist in the model must raise a clear,
+    actionable error naming the mismatch — not the cryptic JAX empty-index
+    TypeError that surfaced when every mapped body was silently dropped and
+    site_idxs came out as an empty float array."""
+    positions = _flat_positions(n_frames=1)
+    with pytest.raises(ValueError, match="don't match the loaded model"):
+        run_quick_stac(
+            kp_positions_flat=positions,
+            num_frames=1,
+            num_keypoints=len(KP_NAMES),
+            kp_names=KP_NAMES,
+            xml_path=XML_PATH,
+            frame_indices=[0],
+            mappings={kp: "no_such_body_xyz" for kp in KP_NAMES},
+            max_iterations=5,
+        )
+
+
 def test_mapping_change_rebuilds_cache():
     positions = _flat_positions(n_frames=1)
 
