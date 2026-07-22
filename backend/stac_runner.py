@@ -1,15 +1,23 @@
 """Quick STAC runner for subset of frames.
 
-Delegates per-frame pose optimization to ``stac_mjx.stac_core.StacCore.q_opt``
-— the same projected-gradient solver the full stac-mjx pipeline uses. Backend
-mode therefore implies stac-mjx (and JAX); standalone / pure-frontend mode
-uses a separate WASM Jacobian-transpose loop in ``mujocoWasm.ts`` and never
-touches this file.
+Delegates pose optimization to ``stac_mjx.stac_core.q_opt`` and marker-offset
+solves to ``stac_mjx.stac_core.m_opt`` — the same solvers the full stac-mjx
+pipeline uses. stac-mjx #134 replaced the old ``StacCore`` class with
+module-level functions plus a pre-analyzed ``QOptProblem`` handle (a batched
+jaxls SE(3) least-squares solve); this module targets that API. Backend mode
+therefore implies stac-mjx (and JAX); standalone / pure-frontend mode uses a
+separate WASM Jacobian-transpose loop in ``mujocoWasm.ts`` and never touches
+this file.
 
-The compiled MuJoCo model + sites + ``StacCore`` are cached per process keyed
-by ``(xml_path, mappings_signature, max_iter)``. Offsets change every drag
-tick and are applied via in-place ``site_pos`` updates — no JIT recompile.
+The compiled MuJoCo model + sites + bounds are cached per process keyed by
+``(xml_path, mappings_signature, max_iter)``. Within a cache entry, one
+``QOptProblem`` is analyzed per distinct ``(batch_size, keypoint-visibility
+mask)`` (a jaxls recompile) — the common all-keypoints-present case reuses a
+single problem for a given request size. Marker offsets are passed to ``q_opt``
+as solve *data* (``dynamic_site_offsets``), so a live offset drag re-solves
+without recompiling.
 """
+
 from __future__ import annotations
 
 import threading
@@ -35,6 +43,7 @@ def _lazy_imports():
     import jax as _j
     from jax import numpy as _jpm
     from stac_mjx import stac_core as _sc, utils as _su
+
     _jax, _jp, _stac_core, _stac_utils = _j, _jpm, _sc, _su
 
 
@@ -55,7 +64,12 @@ def _build(
     offsets: dict[str, list[float]],
     max_iter: int,
 ) -> dict[str, Any]:
-    """Compile model + sites, mjx-load, build StacCore + bounds."""
+    """Compile model + sites, mjx-load, derive bounds + solve masks.
+
+    Does *not* analyze a jaxls problem — that happens lazily in
+    ``_get_q_problem`` keyed by the per-frame keypoint mask, since the mask is
+    baked into the analyzed problem and only the visibility pattern varies.
+    """
     _lazy_imports()
     spec = mujoco.MjSpec.from_file(xml_path)
     site_kp_order: list[str] = []
@@ -75,7 +89,10 @@ def _build(
 
     mj_model = spec.compile()
     site_idxs_np = np.array(
-        [mujoco.mj_name2id(mj_model, mujoco.mjtObj.mjOBJ_SITE, kp) for kp in site_kp_order]
+        [
+            mujoco.mj_name2id(mj_model, mujoco.mjtObj.mjOBJ_SITE, kp)
+            for kp in site_kp_order
+        ]
     )
     site_idxs = _jp.asarray(site_idxs_np)
 
@@ -83,7 +100,9 @@ def _build(
 
     # Bounds: free root (qpos[0:3]) unbounded in position, qpos[3:7] quaternion
     # components in [-1, 1]. Non-root joints use jnt_range when limited, else
-    # fall back to [-pi, pi]. Simpler than stac_mjx.stac._align_joint_dims
+    # fall back to [-pi, pi]. In SE3 mode (all 7 free-joint DOFs optimized) the
+    # root is parameterized on the manifold and these root bounds are inert;
+    # the hinge bounds still apply. Simpler than stac_mjx.stac._align_joint_dims
     # which carries per-part masks the live preview doesn't need.
     nq = mj_model.nq
     lb = np.full(nq, -np.pi, dtype=np.float32)
@@ -107,19 +126,56 @@ def _build(
     lb_j = _jp.asarray(lb)
     ub_j = _jp.asarray(ub)
 
-    core = _stac_core.StacCore(tol=1e-5, n_iter_q=int(max_iter))
-
     return {
         "mj_model": mj_model,
         "mjx_model_base": mjx_model,
         "mjx_data": mjx_data,
-        "core": core,
         "site_idxs": site_idxs,
         "lb": lb_j,
         "ub": ub_j,
         "kp_order": site_kp_order,
         "nq": nq,
+        "n_kp_coords": len(site_kp_order) * 3,
+        # Optimize the full qpos (matches the old qs_to_opt = ones(nq)). All 7
+        # free-joint DOFs on → build_q_opt_problem picks SE3 mode for the root.
+        "joint_mask": _jp.ones(nq, dtype=_jp.bool_),
+        # No joint regularization — the live preview fits pose to keypoints only.
+        "joint_reg_weights": _jp.zeros(nq, dtype=_jp.float32),
+        # kp_mask -> analyzed QOptProblem (n_frames=1). Filled on demand.
+        "q_problems": {},
+        "max_iter": int(max_iter),
     }
+
+
+def _get_q_problem(ctx: dict[str, Any], kp_mask_np: np.ndarray, n_frames: int):
+    """Analyze (or reuse) an ``n_frames``-frame jaxls problem for this mask.
+
+    Both the keypoint mask and the frame count are baked into the analyzed
+    problem, so a distinct NaN pattern or batch size needs its own analysis
+    (a jaxls compile). Offsets are *not* baked (``dynamic_site_offsets``) so
+    offset changes never trigger a rebuild. The single-frame case (n_frames=1)
+    is just a batch of one, so this serves both the per-frame and batched paths.
+    """
+    key = (int(n_frames), kp_mask_np.tobytes())
+    prob = ctx["q_problems"].get(key)
+    if prob is not None:
+        return prob
+    prob = _stac_core.build_q_opt_problem(
+        int(n_frames),
+        ctx["mjx_model_base"],
+        ctx["mjx_data"],
+        ctx["joint_mask"],
+        _jp.asarray(kp_mask_np),
+        ctx["lb"],
+        ctx["ub"],
+        ctx["site_idxs"],
+        ctx["n_kp_coords"],
+        ctx["joint_reg_weights"],
+        velocity_smoothness_weight=0.0,
+        dynamic_site_offsets=True,
+    )
+    ctx["q_problems"][key] = prob
+    return prob
 
 
 def _get(
@@ -161,28 +217,24 @@ def run_quick_stac(
     """Run IK on a subset of frames and return qpos + body transforms.
 
     For each frame:
-      1. Apply current offsets in-place on the cached mjx.Model
-         (``set_site_pos`` — no recompile).
-      2. Build the mocap-order → mapping-order remap and a kps_to_opt mask
-         that zeros NaN rows out of the loss.
-      3. Call ``StacCore.q_opt`` (projected gradient over ``q_loss``).
+      1. Build the mocap-order → mapping-order remap and a keypoint mask that
+         drops NaN rows from the fit.
+      2. Look up (or analyze) a 1-frame ``QOptProblem`` for that mask.
+      3. Call ``stac_core.q_opt`` (batched jaxls SE(3) solve, n_frames=1),
+         passing the current offsets as solve data.
       4. Forward-kinematics for body transforms; mean Euclidean marker error
          over finite keypoints.
 
-    Warm-start: caller passes ``initial_qpos`` (the previously solved pose).
-    Single-frame auto-IK then converges in 1-5 iters; multi-frame batches
-    chain via ``prev_q`` so frame N seeds frame N+1.
+    Warm-start: every solved frame starts from ``initial_qpos`` (the previously
+    solved pose) when supplied, else the model default. Frames sharing a
+    visibility mask are solved together in one batched ``q_opt`` call.
 
-    NOTE (scrub-drift asymmetry vs standalone): ``q_opt`` optimizes the full
-    qpos including the root freejoint (``qs_to_opt = ones(nq)``), so on a big
-    timeline jump it can re-orient the root from the chained ``prev_q`` seed.
-    The standalone JS path (``localApi.runQuickStac`` → ``mujocoWasm.jacobianIk``)
-    cannot — it only moves joints — so it was changed to cold-start every frame
-    with a per-frame trunk Procrustes root seed instead of chaining. This
-    backend still chains; if backend-mode scrubbing is found to drift on
-    discontinuous clips, mirror that fix by seeding each frame's root with a
-    Procrustes fit rather than ``prev_q``. Verify on the GPU box — needs JAX +
-    stac-mjx, which isn't exercised by the standalone test suite.
+    NOTE (q_opt optimizes the full qpos including the root freejoint —
+    ``joint_mask = ones(nq)`` → SE3 root). Because the batched path warm-starts
+    every frame from the same ``init_q`` rather than chaining frame-to-frame, it
+    does not carry a root pose forward across a discontinuous scrub; if that is
+    ever needed, seed each frame's root with a per-frame Procrustes fit (mirroring
+    the standalone ``mujocoWasm.jacobianIk`` path) instead of a shared ``init_q``.
     """
     if not mappings:
         # No sites → no loss → q_opt returns initial; faster to bail. The
@@ -198,8 +250,7 @@ def run_quick_stac(
     _lazy_imports()
 
     # The frontend uses `null` on the wire for missing keypoints (JSON
-    # disallows the NaN literal). Restore as NaN so the kps_to_opt mask
-    # downstream works.
+    # disallows the NaN literal). Restore as NaN so the mask below works.
     if any(v is None for v in kp_positions_flat):
         flat = np.array(
             [np.nan if v is None else v for v in kp_positions_flat], dtype=float
@@ -213,18 +264,16 @@ def run_quick_stac(
     mj_model = ctx["mj_model"]
     mjx_model = ctx["mjx_model_base"]
     mjx_data = ctx["mjx_data"]
-    core = ctx["core"]
     site_idxs = ctx["site_idxs"]
-    lb, ub = ctx["lb"], ctx["ub"]
     kp_order: list[str] = ctx["kp_order"]
 
-    if offsets:
-        site_pos_np = np.array(
-            [offsets.get(kp, [0.0, 0.0, 0.0]) for kp in kp_order], dtype=np.float32
-        )
-        mjx_model = _stac_utils.set_site_pos(
-            mjx_model, _jp.asarray(site_pos_np), site_idxs
-        )
+    # Offsets are passed to q_opt as solve data (no recompile). The same values
+    # are applied to a model copy for the post-solve marker-error FK.
+    site_offsets_np = np.array(
+        [(offsets or {}).get(kp, [0.0, 0.0, 0.0]) for kp in kp_order], dtype=np.float32
+    )
+    site_offsets_j = _jp.asarray(site_offsets_np)
+    mjx_model_off = _stac_utils.set_site_pos(mjx_model, site_offsets_j, site_idxs)
 
     kp_idx = {name: i for i, name in enumerate(kp_names)}
     missing = [kp for kp in kp_order if kp not in kp_idx]
@@ -233,44 +282,70 @@ def run_quick_stac(
     remap = np.array([kp_idx[kp] for kp in kp_order], dtype=np.int32)
 
     targets_m = positions * mocap_scale_factor  # (n_frames, n_kp, 3) → meters
-    qs_to_opt = _jp.ones(nq, dtype=_jp.bool_)
 
     if initial_qpos is not None and len(initial_qpos) == nq:
-        prev_q = _jp.asarray(initial_qpos, dtype=_jp.float32)
+        init_q = _jp.asarray(initial_qpos, dtype=_jp.float32)
     else:
-        prev_q = _jp.asarray(mjx_data.qpos)
+        init_q = _jp.asarray(mjx_data.qpos)
+
+    # Per-frame targets + visibility masks, grouped by mask. Each group is
+    # solved in a single batched q_opt call — frames are independent
+    # (velocity_smoothness_weight=0), so batching only vectorizes the solve, it
+    # does not couple frames. The common all-keypoints-present case is one group.
+    #
+    # NOTE (vs the old per-frame chaining): every frame is warm-started from the
+    # same ``init_q`` rather than from the previous frame's solution, so the
+    # batched path can't chain a root re-orientation across a discontinuous
+    # scrub. For a single frame it is identical to the per-frame path.
+    valid_frames = [f for f in frame_indices if f < num_frames]
+    frame_meta: dict[int, tuple] = {}
+    groups: dict[bytes, list[int]] = {}
+    for f in valid_frames:
+        targets_mapped = targets_m[f][remap]  # (n_kp, 3)
+        finite_mask = ~np.isnan(targets_mapped).any(axis=1)
+        kp_mask_np = np.repeat(finite_mask, 3).astype(np.bool_)
+        frame_meta[f] = (targets_mapped, finite_mask, kp_mask_np)
+        groups.setdefault(kp_mask_np.tobytes(), []).append(f)
+
+    solved_q: dict[int, Any] = {}
+    for fs in groups.values():
+        n = len(fs)
+        kp_mask_np = frame_meta[fs[0]][2]
+        problem = _get_q_problem(ctx, kp_mask_np, n)
+        q_init = _jp.broadcast_to(init_q[None], (n, nq))
+        kp_rows = []
+        for f in fs:
+            targets_mapped, finite_mask, _ = frame_meta[f]
+            clean = np.where(finite_mask[:, None], targets_mapped, 0.0).astype(
+                np.float32
+            )
+            kp_rows.append(clean.reshape(-1))
+        kp_data = _jp.asarray(np.stack(kp_rows))  # (n, n_kp*3)
+        q_out = _stac_core.q_opt(
+            problem,
+            q_init,
+            kp_data,
+            n_solver_max_iters=int(max_iterations),
+            initial_step_damping=1.0,
+            site_offsets=site_offsets_j,
+        )
+        for k, f in enumerate(fs):
+            solved_q[f] = q_out[k]
 
     all_qpos: list[list[float]] = []
     all_errors: list[float] = []
     all_body_transforms: list[list[dict]] = []
+    emitted_frames: list[int] = []
 
     for frame_idx in frame_indices:
-        if frame_idx >= num_frames:
+        if frame_idx not in solved_q:
             continue
+        new_q = solved_q[frame_idx]
+        targets_mapped, finite_mask, _ = frame_meta[frame_idx]
 
-        targets_mapped = targets_m[frame_idx][remap]
-        finite_mask = ~np.isnan(targets_mapped).any(axis=1)
-        targets_clean = np.where(
-            finite_mask[:, None], targets_mapped, 0.0
-        ).astype(np.float32)
-        ref_flat = _jp.asarray(targets_clean.flatten())
-        kps_to_opt = _jp.asarray(np.repeat(finite_mask, 3).astype(np.bool_))
-
-        new_mjx_data, result = core.q_opt(
-            mjx_model,
-            mjx_data,
-            ref_flat,
-            qs_to_opt,
-            kps_to_opt,
-            prev_q,
-            lb,
-            ub,
-            site_idxs,
-        )
-        new_q = prev_q if result is None else result.params
-
-        new_mjx_data = new_mjx_data.replace(qpos=new_q)
-        new_mjx_data = _stac_utils.kinematics(mjx_model, new_mjx_data)
+        # Body transforms + marker positions from FK on the offset-applied model.
+        new_mjx_data = mjx_data.replace(qpos=new_q)
+        new_mjx_data = _stac_utils.kinematics(mjx_model_off, new_mjx_data)
 
         marker_pos = np.array(_stac_utils.get_site_xpos(new_mjx_data, site_idxs))
         diffs = marker_pos - np.array(targets_mapped)
@@ -293,8 +368,7 @@ def run_quick_stac(
         all_qpos.append([float(v) for v in np.array(new_q)])
         all_errors.append(mean_err)
         all_body_transforms.append(frame_transforms)
-
-        prev_q = new_q
+        emitted_frames.append(frame_idx)
 
     model_center = [0.0, 0.0, 0.0]
     if all_body_transforms:
@@ -304,7 +378,7 @@ def run_quick_stac(
     return {
         "qpos": all_qpos,
         "errors": all_errors,
-        "frameIndices": frame_indices[: len(all_qpos)],
+        "frameIndices": emitted_frames,
         "bodyTransforms": all_body_transforms,
         "modelCenter": model_center,
     }
@@ -325,7 +399,7 @@ def refit_offsets(
 ) -> dict:
     """Closed-form marker-offset solve over the given (labeled) frames.
 
-    Calls ``StacCore.m_opt`` which exactly solves
+    Calls ``stac_core.m_opt`` which exactly solves
         min_m  sum_t || y_t - (p_t + R_t m) ||^2
     per keypoint (no SGD iterations, no JIT recompile beyond the first).
     Requires that the caller has already solved IK on these frames and is
@@ -355,7 +429,6 @@ def refit_offsets(
     ctx = _get(xml_path, mappings, offsets or {}, max_iterations)
     mjx_model = ctx["mjx_model_base"]
     mjx_data = ctx["mjx_data"]
-    core = ctx["core"]
     site_idxs = ctx["site_idxs"]
     kp_order: list[str] = ctx["kp_order"]
     nq = ctx["nq"]
@@ -403,7 +476,10 @@ def refit_offsets(
     q_traj = _jp.asarray(np.stack(qpose_rows).astype(np.float32))
 
     initial_off_np = np.array(
-        [offsets.get(kp, [0.0, 0.0, 0.0]) if offsets else [0.0, 0.0, 0.0] for kp in kp_order],
+        [
+            offsets.get(kp, [0.0, 0.0, 0.0]) if offsets else [0.0, 0.0, 0.0]
+            for kp in kp_order
+        ],
         dtype=np.float32,
     )
     initial_off = _jp.asarray(initial_off_np)
@@ -412,7 +488,7 @@ def refit_offsets(
     # reg_coef multiplier zeros the regularization term entirely.
     is_regularized = _jp.zeros((n_kp, 3), dtype=_jp.float32)
 
-    result = core.m_opt(
+    result = _stac_core.m_opt(
         mjx_model,
         mjx_data,
         keypoints,

@@ -1,6 +1,6 @@
 """Tests for stac_runner — wire contract, NaN robustness, cache behavior.
 
-stac_runner delegates per-frame IK to stac_mjx.StacCore.q_opt, so this whole
+stac_runner delegates IK to stac_mjx.stac_core.q_opt / m_opt, so this whole
 module requires stac-mjx + JAX importable. Backend mode = stac-mjx (per
 project policy); standalone / pure-frontend mode uses the WASM Jacobian in
 mujocoWasm.ts and never touches this code.
