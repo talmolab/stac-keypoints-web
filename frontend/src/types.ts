@@ -26,6 +26,12 @@ export interface GeomData {
   position: [number, number, number];
   quaternion: [number, number, number, number];
   color: [number, number, number, number];
+  // Present only when type === "mesh": the real triangle geometry in the
+  // geom-local MuJoCo (Z-up) frame. `vertices` is a flat [x,y,z,...] array;
+  // `faces` is a flat, mesh-local (0-based) triangle index array. The renderer
+  // swizzles vertices to Three.js (Y-up) when it builds the BufferGeometry.
+  vertices?: number[];
+  faces?: number[];
 }
 
 export interface BodyTransform {

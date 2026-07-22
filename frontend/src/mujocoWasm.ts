@@ -48,8 +48,11 @@ export async function loadXmlFromText(text: string): Promise<void> {
   mjModel = mjModule.MjModel.mj_loadXML("/working/model.xml");
   mjData = new mjModule.MjData(mjModel);
   mjModule.mj_forward(mjModel, mjData);
+  cacheBodyNames();
+}
 
-  // Cache body names
+/** Recompute the body-name cache from the freshly-loaded model. */
+function cacheBodyNames(): void {
   const textDecoder = new TextDecoder("utf-8");
   const namesArray = new Uint8Array(mjModel.names);
   cachedBodyNames = [];
@@ -59,6 +62,68 @@ export async function loadXmlFromText(text: string): Promise<void> {
     while (end < namesArray.length && namesArray[end] !== 0) end++;
     cachedBodyNames.push(textDecoder.decode(namesArray.subarray(nameAdr, end)));
   }
+}
+
+/** Recursively delete everything under `dir`, then rmdir `dir`. Best-effort:
+ *  a missing dir (first call) makes readdir throw and we bail. */
+function cleanupDir(dir: string): void {
+  let entries: string[];
+  try { entries = mjModule.FS.readdir(dir); } catch (_) { return; }
+  for (const name of entries) {
+    if (name === "." || name === "..") continue;
+    const path = `${dir}/${name}`;
+    const stat = mjModule.FS.stat(path);
+    // S_IFDIR = 0o040000 — Emscripten honours POSIX mode bits.
+    if ((stat.mode & 0o170000) === 0o040000) cleanupDir(path);
+    else mjModule.FS.unlink(path);
+  }
+  try { mjModule.FS.rmdir(dir); } catch (_) { /* race / non-empty — drop */ }
+}
+
+/**
+ * Load a meshful MJCF supplied as text together with its companion asset files
+ * (meshes, textures), keeping the meshes intact so extractGeometry can emit
+ * real triangle geometry. Assets are keyed relative to the XML's own directory;
+ * `meshdir` in the XML resolves against the staged model.xml. Replaces any
+ * previously-loaded model. Throws if the model fails to compile (e.g. missing
+ * or unsupported mesh) — the caller can then fall back to the capsule path.
+ *
+ * The staging dir is rebuilt fresh each call — Emscripten MEMFS persists writes
+ * across loads, so stale bytes from a prior upload with a colliding path would
+ * otherwise be read silently.
+ */
+export async function loadXmlWithAssets(
+  xmlText: string,
+  assets: Map<string, Uint8Array>,
+): Promise<void> {
+  await initMuJoCo();
+  const STAGE = "/working/upload";
+
+  if (mjData) { mjData.delete(); mjData = null; }
+  if (mjModel) { mjModel.delete(); mjModel = null; }
+
+  cleanupDir(STAGE);
+  mjModule.FS.mkdir(STAGE);
+  const ensureDir = (rel: string): void => {
+    const parts = rel.split("/");
+    let cur = STAGE;
+    for (let i = 0; i < parts.length - 1; i++) {
+      cur += "/" + parts[i];
+      try { mjModule.FS.mkdir(cur); } catch (_) { /* exists */ }
+    }
+  };
+  for (const [path, bytes] of assets) {
+    if (!path) continue;
+    const safe = path.replace(/^\/+/, "");
+    ensureDir(safe);
+    mjModule.FS.writeFile(`${STAGE}/${safe}`, bytes);
+  }
+  mjModule.FS.writeFile(`${STAGE}/model.xml`, xmlText);
+
+  mjModel = mjModule.MjModel.mj_loadXML(`${STAGE}/model.xml`);
+  mjData = new mjModule.MjData(mjModel);
+  mjModule.mj_forward(mjModel, mjData);
+  cacheBodyNames();
 }
 
 export function getModel() { return mjModel; }
@@ -81,6 +146,7 @@ export function extractGeometry() {
   GEOM_NAMES[mj.mjtGeom.mjGEOM_ELLIPSOID.value] = "ellipsoid";
   GEOM_NAMES[mj.mjtGeom.mjGEOM_BOX.value] = "box";
   const PLANE_TYPE = mj.mjtGeom.mjGEOM_PLANE.value;
+  const MESH_TYPE = mj.mjtGeom.mjGEOM_MESH.value;
 
   const geoms: any[] = [];
   for (let g = 0; g < mjModel.ngeom; g++) {
@@ -93,10 +159,41 @@ export function extractGeometry() {
     // backend dropped this same filter in PR #10; mirror it here. The rat has
     // zero geoms in group >= 3, so this is a no-op for it.
 
-    const typeName = GEOM_NAMES[geomType] || "unknown";
     const bodyId = mjModel.geom_bodyid[g];
+    const position: [number, number, number] = [
+      mjModel.geom_pos[g * 3],
+      mjModel.geom_pos[g * 3 + 1],
+      mjModel.geom_pos[g * 3 + 2],
+    ];
+    const quaternion: [number, number, number, number] = [
+      mjModel.geom_quat[g * 4],
+      mjModel.geom_quat[g * 4 + 1],
+      mjModel.geom_quat[g * 4 + 2],
+      mjModel.geom_quat[g * 4 + 3],
+    ];
+    const color: [number, number, number, number] = [
+      mjModel.geom_rgba[g * 4],
+      mjModel.geom_rgba[g * 4 + 1],
+      mjModel.geom_rgba[g * 4 + 2],
+      mjModel.geom_rgba[g * 4 + 3],
+    ];
+
+    // Real triangle mesh — emit vertices/faces so the renderer draws actual
+    // geometry (parity with the backend's extract_model_geometry). Only fires
+    // when a meshful model is loaded with its assets present; the capsule
+    // preprocessor path never reaches here (its meshes are stripped first).
+    const mesh = geomType === MESH_TYPE ? extractMeshTriangles(g) : null;
+    if (mesh) {
+      geoms.push({
+        type: "mesh", bodyId, bodyName: cachedBodyNames[bodyId] || "",
+        size: mesh.aabbHalf, position, quaternion, color,
+        vertices: mesh.vertices, faces: mesh.faces,
+      });
+      continue;
+    }
+
     geoms.push({
-      type: typeName,
+      type: GEOM_NAMES[geomType] || "unknown",
       bodyId,
       bodyName: cachedBodyNames[bodyId] || "",
       size: [
@@ -104,23 +201,9 @@ export function extractGeometry() {
         mjModel.geom_size[g * 3 + 1],
         mjModel.geom_size[g * 3 + 2],
       ],
-      position: [
-        mjModel.geom_pos[g * 3],
-        mjModel.geom_pos[g * 3 + 1],
-        mjModel.geom_pos[g * 3 + 2],
-      ],
-      quaternion: [
-        mjModel.geom_quat[g * 4],
-        mjModel.geom_quat[g * 4 + 1],
-        mjModel.geom_quat[g * 4 + 2],
-        mjModel.geom_quat[g * 4 + 3],
-      ],
-      color: [
-        mjModel.geom_rgba[g * 4],
-        mjModel.geom_rgba[g * 4 + 1],
-        mjModel.geom_rgba[g * 4 + 2],
-        mjModel.geom_rgba[g * 4 + 3],
-      ],
+      position,
+      quaternion,
+      color,
     });
   }
 
@@ -131,6 +214,38 @@ export function extractGeometry() {
     nbody: mjModel.nbody,
     bodyNames: cachedBodyNames,
   };
+}
+
+/**
+ * Read the real triangle geometry backing a mesh geom `g`, in the geom-local
+ * MuJoCo (Z-up) frame. Returns flat vertex/face arrays plus the geom's AABB
+ * half-extents, or null when the mesh has no vertex data or the bindings don't
+ * expose the mesh arrays (caller then falls back to a primitive). Face indices
+ * are mesh-local (0-based), matching what THREE.BufferGeometry.setIndex wants.
+ */
+function extractMeshTriangles(
+  g: number,
+): { vertices: number[]; faces: number[]; aabbHalf: [number, number, number] } | null {
+  const m = mjModel;
+  if (!m.geom_dataid || !m.mesh_vert || !m.mesh_face) return null;
+  const meshId = m.geom_dataid[g];
+  if (meshId < 0) return null;
+  const vertNum = m.mesh_vertnum[meshId];
+  const faceNum = m.mesh_facenum[meshId];
+  if (!vertNum || !faceNum) return null;
+  const vertAdr = m.mesh_vertadr[meshId];
+  const faceAdr = m.mesh_faceadr[meshId];
+
+  const vertices = new Array<number>(vertNum * 3);
+  for (let i = 0; i < vertNum * 3; i++) vertices[i] = m.mesh_vert[vertAdr * 3 + i];
+  const faces = new Array<number>(faceNum * 3);
+  for (let i = 0; i < faceNum * 3; i++) faces[i] = m.mesh_face[faceAdr * 3 + i];
+
+  const aabb = m.geom_aabb; // [cx,cy,cz,hx,hy,hz] per geom
+  const aabbHalf: [number, number, number] = aabb
+    ? [aabb[g * 6 + 3], aabb[g * 6 + 4], aabb[g * 6 + 5]]
+    : [0, 0, 0];
+  return { vertices, faces, aabbHalf };
 }
 
 /**
