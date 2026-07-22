@@ -3,6 +3,7 @@ import tempfile
 import textwrap
 from pathlib import Path
 
+import numpy as np
 import pytest
 import yaml
 from backend.config_io import (
@@ -10,8 +11,11 @@ from backend.config_io import (
     dump_stac_ui_sidecar,
     dump_stac_yaml,
     export_stac_yaml,
+    load_stac_output_h5,
     load_stac_yaml,
 )
+
+h5py = pytest.importorskip("h5py")
 
 YAML_PATH = os.environ.get(
     "STAC_KEYPOINTS_CONFIG",
@@ -326,3 +330,47 @@ def test_dump_stac_yaml_uses_portable_mjcf():
     })
     parsed = yaml.safe_load(body)
     assert parsed["model"]["MJCF_PATH"] == "models/rodent_relaxed.xml"
+
+
+def test_load_stac_output_surfaces_embedded_mappings(tmp_path):
+    """A STAC output H5 carries the config it was fit with. The loader must
+    surface KEYPOINT_MODEL_PAIRS (so the UI can drive IK against the right
+    bodies), plus SCALE_FACTOR and the fit's MOCAP_SCALE_FACTOR."""
+    cfg = textwrap.dedent("""
+        MJCF_PATH: models/stick.xml
+        MOCAP_SCALE_FACTOR: 0.000987
+        SCALE_FACTOR: 1.0
+        KP_NAMES: [head_t1, t1_t2]
+        KEYPOINT_MODEL_PAIRS:
+          head_t1: reference_base
+          t1_t2: 04-t1-l
+    """)
+    p = tmp_path / "out.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("config", data=cfg)
+        f.create_dataset("kp_names", data=np.array([b"head_t1", b"t1_t2"]))
+        f.create_dataset("qpos", data=np.zeros((3, 7), dtype=float))
+        f.create_dataset("offsets", data=np.zeros((2, 3), dtype=float))
+        f.create_dataset("kp_data", data=np.zeros((3, 6), dtype=float))
+
+    r = load_stac_output_h5(str(p))
+    assert r["keypointModelPairs"] == {"head_t1": "reference_base", "t1_t2": "04-t1-l"}
+    assert r["scaleFactor"] == 1.0
+    assert abs(r["mocapScaleFactor"] - 0.000987) < 1e-9
+    # stacTargets recovered at raw scale (÷ the fit's MOCAP_SCALE_FACTOR).
+    assert r["stacTargets"]["numKeypoints"] == 2
+    assert r["stacTargets"]["numFrames"] == 3
+
+
+def test_load_stac_output_without_config_defaults(tmp_path):
+    """No embedded config → empty mappings + default scales, no crash."""
+    p = tmp_path / "bare.h5"
+    with h5py.File(p, "w") as f:
+        f.create_dataset("kp_names", data=np.array([b"a"]))
+        f.create_dataset("qpos", data=np.zeros((1, 7), dtype=float))
+        f.create_dataset("offsets", data=np.zeros((1, 3), dtype=float))
+
+    r = load_stac_output_h5(str(p))
+    assert r["keypointModelPairs"] == {}
+    assert r["scaleFactor"] == 0.9
+    assert r["mocapScaleFactor"] == 0.01

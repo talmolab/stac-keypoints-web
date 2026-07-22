@@ -218,6 +218,18 @@ export default function Toolbar() {
       useStore.getState().setMocapScaleFactor(data.mocapScaleFactor);
     }
 
+    // Adopt the keypoint→body mappings the reference was actually fit with, so
+    // "Run IK" / "Refit" target the correct bodies. Without this the solve uses
+    // whatever mappings were left in the store — on a different model those
+    // resolve to nothing and the backend rejects the request. The embedded
+    // pairs are authoritative for this data, so replace the mapping set.
+    if (data.keypointModelPairs && Object.keys(data.keypointModelPairs).length > 0) {
+      useStore.getState().setMappingsBulk(data.keypointModelPairs);
+    }
+    if (typeof data.scaleFactor === "number") {
+      useStore.setState({ scaleFactor: data.scaleFactor });
+    }
+
     // Load learned offsets
     const state = useStore.getState();
     for (let i = 0; i < data.kpNames.length; i++) {

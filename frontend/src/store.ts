@@ -172,6 +172,7 @@ interface AppState {
   setHelpOpen: (open: boolean) => void;
   toggleHelp: () => void;
   addMapping: (kp: string, body: string) => void;
+  setMappingsBulk: (pairs: Record<string, string>) => void;
   removeMapping: (kp: string) => void;
   updateOffset: (kp: string, x: number, y: number, z: number) => void;
   setOffsetsBulk: (offsets: Record<string, [number, number, number]>) => void;
@@ -406,6 +407,17 @@ export const useStore = create<AppState>()(persist((set) => ({
       stacBodyTransforms: null,
     };
   }),
+  setMappingsBulk: (pairs) => set((state) => ({
+    // Replace the mapping set wholesale from an authoritative source (e.g. the
+    // KEYPOINT_MODEL_PAIRS embedded in an imported STAC output). Single set +
+    // one history snapshot; stale multi-frame IK is invalidated like addMapping.
+    mappings: Object.entries(pairs).map(([kp, body]) => ({ keypointName: kp, bodyName: body })),
+    _undoStack: [...state._undoStack, { mappings: state.mappings, offsets: state.offsets }].slice(-50),
+    _redoStack: [],
+    stacQpos: null,
+    stacFrameIndices: null,
+    stacBodyTransforms: null,
+  })),
   togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
   labelCurrentFrame: () => set((state) => {
     const newStatuses = [...state.frameStatuses];

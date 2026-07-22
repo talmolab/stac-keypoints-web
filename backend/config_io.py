@@ -193,25 +193,24 @@ def export_stac_yaml(config: dict, output_path: str) -> None:
         f.write(dump_stac_yaml(config))
 
 
-def _embedded_mocap_scale_factor(f: h5py.File, default: float = 0.01) -> float:
-    """Read MOCAP_SCALE_FACTOR from an H5's embedded `config`, else `default`.
+def _embedded_model_config(f: h5py.File) -> dict:
+    """Parse the model section of an H5's embedded `config`, or {} if absent.
 
-    STAC stores kp_data in model units (= raw mocap × MOCAP_SCALE_FACTOR), so to
-    recover the raw display scale we must divide by the *same* factor the fit
-    used — not a hardcoded 0.01 (the rat's value). The stick walkers use 1.0,
-    so hardcoding 0.01 blows their targets up 100×.
+    STAC output H5s carry the exact config they were fit with (including
+    KEYPOINT_MODEL_PAIRS, MOCAP_SCALE_FACTOR, SCALE_FACTOR). Returns the flat
+    model dict so callers can recover the authoritative mappings/scales rather
+    than guessing.
     """
     if "config" not in f:
-        return default
+        return {}
     raw_cfg = f["config"][()]
     if isinstance(raw_cfg, bytes):
         raw_cfg = raw_cfg.decode()
     try:
         parsed = yaml.safe_load(raw_cfg) or {}
-        model = _extract_model_section(parsed)
-        return float(model.get("MOCAP_SCALE_FACTOR", default))
     except (yaml.YAMLError, TypeError, ValueError):
-        return default
+        return {}
+    return _extract_model_section(parsed)
 
 
 def load_stac_output_h5(h5_path: str) -> dict:
@@ -221,13 +220,22 @@ def load_stac_output_h5(h5_path: str) -> dict:
     units, flattened as N x 3·n_kp). We reshape and divide by the fit's
     MOCAP_SCALE_FACTOR (read from the embedded config) to recover the raw mocap
     scale the web UI renders the poses in.
+
+    Also surfaces the embedded ``KEYPOINT_MODEL_PAIRS`` (as ``keypointModelPairs``)
+    and ``SCALE_FACTOR`` so the frontend can adopt the exact keypoint→body
+    mappings the reference was solved with — without them, "Run IK" after import
+    fits against whatever stale mappings were in the store.
     """
     with h5py.File(h5_path, "r") as f:
         kp_names = [
             n.decode() if isinstance(n, bytes) else str(n)
             for n in f["kp_names"][:]
         ]
-        scale = _embedded_mocap_scale_factor(f)
+        model_cfg = _embedded_model_config(f)
+        # Divide kp_data by the *same* MOCAP_SCALE_FACTOR the fit used, not a
+        # hardcoded 0.01 (the rat's value) — the stick walkers use ~1.0, so
+        # assuming 0.01 would blow their targets up 100×.
+        scale = float(model_cfg.get("MOCAP_SCALE_FACTOR", 0.01))
         result = {
             "offsets": f["offsets"][:].tolist(),
             "qpos": f["qpos"][:].tolist(),
@@ -236,6 +244,9 @@ def load_stac_output_h5(h5_path: str) -> dict:
             # must use the *same* factor we divided by here for the targets to
             # overlay the body. Return it so the loader can sync the store.
             "mocapScaleFactor": scale,
+            # Authoritative keypoint→body mappings the fit used (drives IK).
+            "keypointModelPairs": dict(model_cfg.get("KEYPOINT_MODEL_PAIRS", {})),
+            "scaleFactor": float(model_cfg.get("SCALE_FACTOR", 0.9)),
         }
         if "marker_sites" in f:
             result["markerSites"] = f["marker_sites"][:].tolist()
